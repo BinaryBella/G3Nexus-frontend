@@ -1,0 +1,4 @@
+export const CLIENT_ADMIN = "CLIENT_ADMIN";
+export const CLIENT_USER = "CLIENT_USER";
+export const COMPANY_ADMIN = "COMPANY_ADMIN";
+export const COMPANY_DEVELOPER = "COMPANY_DEVELOPER";
