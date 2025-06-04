@@ -13,7 +13,6 @@ export interface Client {
     address: string;
     isActive: boolean;
     name: string;
-    // password: string;
     role: string;
 }
 

@@ -3,11 +3,51 @@ import {
     Client, Employee, Requirement, Bug, Payment, TermsConditions, ApiResponse
 } from './types';
 
-const BASE_URL = 'https://localhost:7289/api'; // Replace with your API base URL
+
+// Create an axios instance with default config
+const api = axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7289/api',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// Authentication service
+export const authService = {
+    login: async (email: string, password: string) => {
+        try {
+            const response = await api.post('/auth/login', { email, password });
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Store tokens in localStorage when user logs in
+    setTokens: (accessToken: string, refreshToken: string) => {
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+    },
+
+    // Get the stored tokens
+    getTokens: () => {
+        return {
+            accessToken: localStorage.getItem('accessToken'),
+            refreshToken: localStorage.getItem('refreshToken'),
+        };
+    },
+
+    // Clear tokens on logout
+    clearTokens: () => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+    },
+};
+
 
 // Fetch Clients
 export const fetchClients = async (): Promise<Client[]> => {
-    const response = await axios.get<ApiResponse<Client[]>>(`${BASE_URL}/Client`);
+    const response = await axios.get<ApiResponse<Client[]>>(`${api}/Client`);
 
     if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch clients');
@@ -26,7 +66,7 @@ export const fetchClients = async (): Promise<Client[]> => {
 
 // Add Client
 export const addClient = async (clientData: Omit<Client, 'id'>): Promise<Client> => {
-    const response = await axios.post<ApiResponse<Client>>(`${BASE_URL}/Client`, clientData);
+    const response = await axios.post<ApiResponse<Client>>(`${api}/Client`, clientData);
 
     if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add client');
@@ -37,7 +77,7 @@ export const addClient = async (clientData: Omit<Client, 'id'>): Promise<Client>
 
 // Fetch Employees
 export const fetchEmployees = async (): Promise<Employee[]> => {
-    const response = await axios.get<ApiResponse<Employee[]>>(`${BASE_URL}/Employee`);
+    const response = await axios.get<ApiResponse<Employee[]>>(`${api}/Employee`);
 
     if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch employees');
@@ -55,7 +95,7 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
 
 // Add Employee
 export const addEmployee = async (EmployeeData: Omit<Employee, 'id'>): Promise<Employee> => {
-    const response = await axios.post<ApiResponse<Employee>>(`${BASE_URL}/Employee`, EmployeeData);
+    const response = await axios.post<ApiResponse<Employee>>(`${api}/Employee`, EmployeeData);
 
     if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add employee');
@@ -66,7 +106,7 @@ export const addEmployee = async (EmployeeData: Omit<Employee, 'id'>): Promise<E
 
 // Fetch Requirements
 export const fetchRequirements = async (): Promise<Requirement[]> => {
-    const response = await axios.get<ApiResponse<Requirement[]>>(`${BASE_URL}/Requirement`);
+    const response = await axios.get<ApiResponse<Requirement[]>>(`${api}/Requirement`);
 
     if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch requirements');
@@ -85,7 +125,7 @@ export const fetchRequirements = async (): Promise<Requirement[]> => {
 
 // Add Requirement
 export const addRequirement = async (RequirementData: Omit<Requirement, 'id'>): Promise<Requirement> => {
-    const response = await axios.post<ApiResponse<Requirement>>(`${BASE_URL}/Requirement`, RequirementData);
+    const response = await axios.post<ApiResponse<Requirement>>(`${api}/Requirement`, RequirementData);
 
     if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add requirement');
@@ -96,7 +136,7 @@ export const addRequirement = async (RequirementData: Omit<Requirement, 'id'>): 
 
 // Fetch Bugs
 export const fetchBugs = async (): Promise<Bug[]> => {
-    const response = await axios.get<ApiResponse<Bug[]>>(`${BASE_URL}/Bug`);
+    const response = await axios.get<ApiResponse<Bug[]>>(`${api}/Bug`);
 
     if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch bugs');
@@ -115,7 +155,7 @@ export const fetchBugs = async (): Promise<Bug[]> => {
 
 // Fetch Payments
 export const fetchPayments = async (): Promise<Payment[]> => {
-    const response = await axios.get<ApiResponse<Payment[]>>(`${BASE_URL}/Payment`);
+    const response = await axios.get<ApiResponse<Payment[]>>(`${api}/Payment`);
 
     if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch payments');
@@ -133,7 +173,7 @@ export const fetchPayments = async (): Promise<Payment[]> => {
 
 // Add Payment
 export const addPayment = async (paymentData: Omit<Payment, 'paymentId'>): Promise<Payment> => {
-    const response = await axios.post<ApiResponse<Payment>>(`${BASE_URL}/Payment`, paymentData);
+    const response = await axios.post<ApiResponse<Payment>>(`${api}/Payment`, paymentData);
 
     if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add payment');

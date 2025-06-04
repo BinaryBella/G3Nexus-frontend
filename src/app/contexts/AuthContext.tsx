@@ -1,106 +1,125 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/navigation'; // Changed from next/router
-import { LoginCredentials, User } from "@/app/lib/types";
+// src/contexts/AuthContext.tsx
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { authService } from '@/app/services/api';
+import {Client, Employee} from "@/app/lib/types";
 
-// Define the type for the context value
+
+// Define a User type that can be either a Client or an Employee
+export type User = Client | Employee;
+
 interface AuthContextType {
+    isAuthenticated: boolean;
     user: User | null;
-    loading: boolean;
-    login: (credentials: LoginCredentials) => Promise<boolean>;
+    login: (email: string, password: string) => Promise<void>;
     logout: () => void;
+    loading: boolean;
+    isClient: () => boolean;
+    isEmployee: () => boolean;
 }
 
-// Create the context with default values matching the type
-const AuthContext = createContext<AuthContextType>({
-    user: null,
-    loading: true,
-    login: async () => false,
-    logout: () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
+    // Check if user is authenticated on mount
     useEffect(() => {
-        checkAuth();
-    }, []);
-
-    const checkAuth = async () => {
-        try {
-            // Using optional chaining and nullish coalescing for safer client-side checks
-            const token = typeof window !== 'undefined'
-                ? localStorage?.getItem('token') ?? null
-                : null;
-
-            if (token) {
-                const response = await fetch('your-api/verify-token', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const userData = await response.json();
+        const checkAuth = async () => {
+            const { accessToken } = authService.getTokens();
+            if (accessToken) {
+                try {
+                    // Here you would typically validate the token and get user data
+                    const userData = await authService.getCurrentUser();
                     setUser(userData);
-                } else {
-                    if (typeof window !== 'undefined') {
-                        localStorage.removeItem('token');
-                    }
+                    setIsAuthenticated(true);
+                } catch (error) {
+                    console.error('Token validation failed:', error);
+                    authService.clearTokens();
+                    setIsAuthenticated(false);
                     setUser(null);
                 }
             }
             setLoading(false);
-        } catch (error) {
-            console.error('Auth check failed:', error);
+        };
+
+        checkAuth();
+    }, []);
+
+    const login = async (email: string, password: string) => {
+        setLoading(true);
+        try {
+            const response = await authService.login(email, password);
+            if (response.status) {
+                const { accessToken, refreshToken } = response.data;
+                authService.setTokens(accessToken, refreshToken);
+
+                // Fetch user data after successful login
+                try {
+                    const userData = await authService.getCurrentUser();
+                    setUser(userData);
+                    setIsAuthenticated(true);
+
+                    // Redirect based on user role
+                    if (userData.role === 'client') {
+                        router.push('/client/projects');
+                    } else if (userData.role === 'employee') {
+                        router.push('/employee/dashboard');
+                    } else {
+                        router.push('/dashboard');
+                    }
+                } catch (userError) {
+                    console.error('Error fetching user data:', userError);
+                    throw new Error('Could not retrieve user information');
+                }
+            } else {
+                throw new Error(response.message || 'Login failed');
+            }
+        } catch (error: unknown) {
+            console.error('Login error:', error);
+            throw error instanceof Error ? error : new Error('An unknown error occurred');
+        } finally {
             setLoading(false);
         }
     };
 
-    const login = async (credentials: LoginCredentials): Promise<boolean> => {
-        try {
-            const response = await fetch('your-api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(credentials),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('token', data.token);
-                }
-                setUser(data.user);
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('Login failed:', error);
-            return false;
-        }
+    const logout = () => {
+        authService.clearTokens();
+        setIsAuthenticated(false);
+        setUser(null);
+        router.push('/auth/login');
     };
 
-    const logout = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-        }
-        setUser(null);
-        router.push('/login');
+    // Helper functions to check user type
+    const isClient = (): boolean => {
+        return !!user && user.role === 'client';
+    };
+
+    const isEmployee = (): boolean => {
+        return !!user && user.role === 'employee';
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout }}>
+        <AuthContext.Provider value={{
+            isAuthenticated,
+            user,
+            login,
+            logout,
+            loading,
+            isClient,
+            isEmployee
+        }}>
             {children}
         </AuthContext.Provider>
     );
-}
+};
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');

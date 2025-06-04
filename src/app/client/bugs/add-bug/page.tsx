@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import ProtectedRoute from '@/app/components/ProtectedRoute';
 
 
 const RequirementForm = () => {
@@ -10,8 +10,6 @@ const RequirementForm = () => {
     const [Bug, setPriority] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<File | null>(null);
-    const router = useRouter();
-
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         // Handle form submission
@@ -19,6 +17,7 @@ const RequirementForm = () => {
     };
 
     return (
+        <ProtectedRoute>
         <form onSubmit={handleSubmit} className="bg-white px-8 pt-6 h-screen">
             <h1 className="text-4xl font-bold text-[#3450A3] mb-8">
                 Add New Bugs
@@ -101,7 +100,7 @@ const RequirementForm = () => {
                 />
             </div>
         </form>
-
+        </ProtectedRoute>
     );
 };
 

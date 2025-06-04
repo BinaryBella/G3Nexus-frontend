@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 interface LoginFormData {
     email: string;
@@ -13,41 +13,28 @@ interface LoginFormData {
 }
 
 export default function LoginPage() {
+    const { login } = useAuth();
     const [formData, setFormData] = useState<LoginFormData>({
         email: '',
         password: ''
     });
     const [showPassword, setShowPassword] = useState(false);
-    const router = useRouter();
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Add your login logic here
-        console.log('Form submitted:', formData);
+        setError('');
+        setIsLoading(true);
 
-        // Simulate a login process
         try {
-            // Replace this with your actual authentication logic
-            const response = await fakeAuthenticationCall(formData);
-
-            if (response.success) {
-                // Redirect to the projects page on successful login
-                router.push('/client/projects');
-            } else {
-                // Handle login failure (e.g., show an error message)
-                console.error('Login failed');
-            }
-        } catch (error) {
-            console.error('An error occurred during login:', error);
+            await login(formData.email, formData.password);
+            // No need to redirect here as it's handled in the context
+        } catch (error: any) {
+            setError(error.message || 'Login failed');
+        } finally {
+            setIsLoading(false);
         }
-    };
-
-// This is a placeholder function. Replace it with your actual authentication logic.
-    const fakeAuthenticationCall = async (credentials: LoginFormData): Promise<{ success: boolean }> => {
-        // Simulate an API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // For this example, always return success. In a real app, you'd validate the credentials.
-        return { success: true };
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,6 +137,11 @@ export default function LoginPage() {
                                     ) : (
                                         <Eye className="h-5 w-5" />
                                     )}
+                                    {error && (
+                                        <div className="text-red-300 mt-2 text-sm">
+                                            {error}
+                                        </div>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -157,9 +149,10 @@ export default function LoginPage() {
                         <div className="pt-8">
                             <button
                                 type="submit"
-                                className="w-full bg-[#F5B316] text-white py-3 rounded-lg font-medium hover:bg-[#E5A714] transition-colors"
+                                disabled={isLoading}
+                                className="w-full bg-[#F5B316] text-white py-3 rounded-lg font-medium hover:bg-[#E5A714] transition-colors disabled:bg-opacity-70"
                             >
-                                Login
+                                {isLoading ? 'Logging in...' : 'Login'}
                             </button>
 
                             <div className="text-center mt-4">
