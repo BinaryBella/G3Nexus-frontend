@@ -3,8 +3,8 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/app/services/api';
-import {Client, Employee} from "@/app/lib/types";
+import { authService } from '@/app/lib/services';
+import { Client, Employee } from "@/app/lib/types";
 
 
 // Define a User type that can be either a Client or an Employee

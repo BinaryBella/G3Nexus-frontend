@@ -4,7 +4,7 @@ import { User } from '@/app/contexts/AuthContext';
 
 // Create an axios instance with default config
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-api-url.com',
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7289/api',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -41,7 +41,7 @@ api.interceptors.response.use(
                 }
 
                 const response = await axios.post(
-                    `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh-token`,
+                    `${process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7289/api'}/auth/refresh-token`,
                     { refreshToken }
                 );
 
@@ -88,6 +88,7 @@ export const authService = {
 
     // Store tokens in localStorage when user logs in
     setTokens: (accessToken: string, refreshToken: string) => {
+        if (typeof window === 'undefined') return;
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
     },
@@ -106,39 +107,40 @@ export const authService = {
 
     // Clear tokens on logout
     clearTokens: () => {
+        if (typeof window === 'undefined') return;
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
     },
-};
-
-// Client-specific service
-export const clientService = {
-    // Get all projects for a client
-    getProjects: async () => {
+    
+    // Register a new user
+    register: async (userData: any) => {
         try {
-            const response = await api.get('/client/projects');
+            const response = await api.post('/auth/register', userData);
             return response.data;
         } catch (error) {
             throw error;
         }
     },
-
-    // Additional client-specific methods
-};
-
-// Employee-specific service
-export const employeeService = {
-    // Get assigned projects for an employee
-    getAssignedProjects: async () => {
+    
+    // Request password reset
+    requestPasswordReset: async (email: string) => {
         try {
-            const response = await api.get('/employee/projects');
+            const response = await api.post('/auth/forgot-password', { email });
             return response.data;
         } catch (error) {
             throw error;
         }
     },
-
-    // Additional employee-specific methods
+    
+    // Reset password with token
+    resetPassword: async (token: string, newPassword: string) => {
+        try {
+            const response = await api.post('/auth/reset-password', { token, newPassword });
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
 };
 
 export default api;

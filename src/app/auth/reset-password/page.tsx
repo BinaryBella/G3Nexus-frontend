@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
     };
 
     return (
-        <div className="min-h-screen flex flex-row">
+        <div className="min-h-screen flex flex-row" suppressHydrationWarning={true}>
             {/* Left Section - Illustration */}
             <div className="hidden lg:flex lg:w-1/2 bg-white px-20 py-12 flex-col">
                 {/* Logo Container */}
