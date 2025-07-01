@@ -3,15 +3,17 @@
 import React, { useState } from 'react';
 import { FileSearch, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchBugs } from '../../lib/api'; // Assume this function exists
-import { Bug } from '../../lib/types'; // Assume this type is defined
+import { bugService } from '@/app/lib/services/bugService';
+import { Bug } from '../../lib/types';
 
-const SeverityBadge = ({ severity }) => {
-    const colorClass = {
+const SeverityBadge = ({ severity }: { severity: string }) => {
+    const colorMap: Record<string, string> = {
         Low: "bg-yellow-200 text-yellow-800",
         Medium: "bg-green-200 text-green-800",
         High: "bg-red-200 text-red-800"
-    }[severity] || "bg-gray-200 text-gray-800";
+    };
+
+    const colorClass = colorMap[severity] || "bg-gray-200 text-gray-800";
 
     return (
         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colorClass}`}>
@@ -25,7 +27,7 @@ const BugsTable = () => {
 
     const { data: bugs = [], error, isLoading } = useQuery<Bug[], Error>({
         queryKey: ['bugs'],
-        queryFn: fetchBugs,
+        queryFn: bugService.getAllBugs,
     });
 
     const handleDetails = (id: number) => {
@@ -74,7 +76,7 @@ const BugsTable = () => {
                 <table className="w-full border-collapse">
                     <thead>
                     <tr className="bg-[#3450A3] text-white">
-                        <th className="p-3 text-left">Title</th>
+                        <th className="p-3 text-left text-blackr">Title</th>
                         <th className="p-3 text-left">Severity</th>
                         <th className="p-3 text-left">Description</th>
                         <th className="p-3 text-center">Actions</th>
