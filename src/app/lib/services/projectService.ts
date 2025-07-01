@@ -2,15 +2,21 @@
 import api from './api';
 import { ApiResponse } from '@/app/lib/types';
 
-// Define Project type
+// Define Project type to match backend response
 export interface Project {
-  id: number;
-  name: string;
-  description: string;
-  startDate: string;
-  endDate: string;
+  projectId: number;
+  projectName: string;
+  projectType: string;
+  projectSize: string;
+  creationDate: string;
+  projectDescription: string;
+  estimatedBudget: number;
+  actualStartDate: string;
+  actualEndDate: string;
+  totalBudget: number;
+  paymentType: string;
+  paymentStatus: string;
   status: string;
-  clientId: number;
   isActive: boolean;
 }
 
@@ -61,7 +67,7 @@ export const projectService = {
   },
 
   // Add project
-  addProject: async (projectData: Omit<Project, 'id'>): Promise<Project> => {
+  addProject: async (projectData: Omit<Project, 'projectId'>): Promise<Project> => {
     try {
       const response = await api.post<ApiResponse<Project>>('/project', projectData);
 
@@ -76,7 +82,7 @@ export const projectService = {
   },
 
   // Update project
-  updateProject: async (id: number, projectData: Partial<Omit<Project, 'id'>>): Promise<Project> => {
+  updateProject: async (id: number, projectData: Partial<Omit<Project, 'projectId'>>): Promise<Project> => {
     try {
       const response = await api.put<ApiResponse<Project>>(`/project/${id}`, projectData);
 
