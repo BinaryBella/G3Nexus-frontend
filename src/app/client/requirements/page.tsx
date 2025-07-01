@@ -3,16 +3,20 @@
 import React, { useState } from 'react';
 import { FileSearch, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchRequirements } from '../../lib/api'; // Assume this function exists
+import { requirementService } from '@/app/lib/services/requirementService';
 import { Requirement } from '../../lib/types';
-import Link from "next/link"; // Assume this type is defined
+import Link from "next/link";
 
-const PriorityBadge = ({ priority }) => {
-    const colorClass = {
-        Low: "bg-yellow-200 text-yellow-800",
-        Medium: "bg-green-200 text-green-800",
-        High: "bg-red-200 text-red-800"
-    }[priority] || "bg-gray-200 text-gray-800";
+const PriorityBadge = ({ priority }: { priority: string }) => {
+    let colorClass = "bg-gray-200 text-gray-800"; // default
+
+    if (priority === 'Low') {
+        colorClass = "bg-yellow-200 text-yellow-800";
+    } else if (priority === 'Medium') {
+        colorClass = "bg-green-200 text-green-800";
+    } else if (priority === 'High') {
+        colorClass = "bg-red-200 text-red-800";
+    }
 
     return (
         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colorClass}`}>
@@ -26,7 +30,7 @@ const RequirementsTable = () => {
 
     const { data: requirements = [], error, isLoading } = useQuery<Requirement[], Error>({
         queryKey: ['requirements'],
-        queryFn: fetchRequirements,
+        queryFn: requirementService.getAllRequirements,
     });
 
     const handleDetails = (id: number) => {
