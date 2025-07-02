@@ -7,13 +7,13 @@ export interface ApiResponse<T> {
 
 export interface Client {
     id: number;
-    organizationName: string;
+    name: string;
     contactNo: string;
     email: string;
     address: string;
-    isActive: boolean;
-    name: string;
+    password: string;
     role: string;
+    isActive: boolean;
 }
 
 export interface Employee {
