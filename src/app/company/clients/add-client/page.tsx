@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { addClient } from '../../../lib/api'; // API function
-import { Client } from '../../../lib/types'; // Assume this type is defined
+import { clientService } from '@/app/lib/services/clientService'; // Import clientService
+import { Client } from '../../../lib/types'; // Client type definition
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -55,7 +55,7 @@ const ClientsPage: React.FC = () => {
     const [modalMessage, setModalMessage] = useState('');
 
     const addClientMutation = useMutation({
-        mutationFn: addClient,
+        mutationFn: clientService.addClient,
         onSuccess: () => {
             setModalMessage('Client added successfully!');
             setIsModalOpen(true);
@@ -78,10 +78,23 @@ const ClientsPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+        
+        // Validate all required fields
+        if (!clientData.organizationName || !clientData.name || !clientData.contactNo || !clientData.address) {
+            setError('Please fill in all personal information fields');
+            return;
+        }
+        
+        if (!clientData.email || !clientData.password || !clientData.role) {
+            setError('Please fill in all account information fields');
+            return;
+        }
+        
         if (clientData.password !== confirmPassword) {
             setError("Passwords don't match");
             return;
         }
+        
         try {
             await addClientMutation.mutateAsync(clientData);
         } catch (error) {
@@ -96,7 +109,7 @@ const ClientsPage: React.FC = () => {
     };
 
     const handleCancel = () => {
-        router.push('/clients');
+        router.push('/company/clients');
     };
 
     const validatePersonalInfo = () => {
@@ -110,7 +123,7 @@ const ClientsPage: React.FC = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         if (modalMessage.startsWith('Client added successfully')) {
-            router.push('/clients');
+            router.push('/company/clients');
         }
     };
 
@@ -285,10 +298,11 @@ const ClientsPage: React.FC = () => {
                                 Back
                             </button>
                             <button
-                                className="w-28 bg-[#FFBF00] hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-md"
+                                className="w-28 bg-[#FFBF00] hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded-md disabled:bg-gray-300 disabled:cursor-not-allowed"
                                 type="submit"
+                                disabled={addClientMutation.isPending}
                             >
-                                Submit
+                                {addClientMutation.isPending ? 'Adding...' : 'Submit'}
                             </button>
                         </div>
                     </div>

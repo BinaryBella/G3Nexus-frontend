@@ -7,6 +7,7 @@ export interface ApiResponse<T> {
 
 export interface Client {
     id: number;
+    organizationName: string;
     name: string;
     contactNo: string;
     email: string;
@@ -17,7 +18,7 @@ export interface Client {
 }
 
 export interface Employee {
-    id: number;
+    employeeId: number;
     contactNo: string;
     email: string;
     address: string;

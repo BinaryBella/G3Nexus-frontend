@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/app/components/Navbar';
 import { Users, Plus, Edit, Trash2, Eye, Search } from 'lucide-react';
 import { employeeService, Employee } from '@/app/lib/services/employeeService';
 
 const EmployeesPage = () => {
+    const router = useRouter();
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
@@ -109,7 +111,10 @@ const EmployeesPage = () => {
                                 Employee Management
                             </h1>
                         </div>
-                        <button className="bg-[#3450A3] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors">
+                        <button 
+                            className="bg-[#3450A3] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
+                            onClick={() => router.push('/company/employees/add-employee')}
+                        >
                             <Plus className="h-4 w-4" />
                             Add New Employee
                         </button>

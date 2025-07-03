@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { addEmployee } from '../../../lib/api'; // Assuming this API function is defined
-import { Employee } from '../../../lib/types'; // Assuming this type is defined
+import { employeeService } from '@/app/lib/services/employeeService'; // Import employeeService
+import { Employee } from '../../../lib/types'; // Employee type definition
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -48,7 +48,7 @@ const EmployeeForm = () => {
     const [modalMessage, setModalMessage] = useState('');
 
     const addEmployeeMutation = useMutation({
-        mutationFn: addEmployee,
+        mutationFn: employeeService.addEmployee,
         onSuccess: () => {
             setModalMessage('Employee added successfully!');
             setIsModalOpen(true);
@@ -63,12 +63,18 @@ const EmployeeForm = () => {
         e.preventDefault();
         setError('');
 
+        // Validate all required fields
+        if (!employeeName || !contactNo || !email || !address || !designation || !password) {
+            setError('Please fill in all required fields');
+            return;
+        }
+
         if (password !== confirmPassword) {
             setError("Passwords don't match");
             return;
         }
 
-        const newEmployee: Omit<Employee, 'id'> = {
+        const newEmployee: Omit<Employee, 'employeeId'> = {
             name: employeeName,
             contactNo,
             email,
@@ -88,7 +94,7 @@ const EmployeeForm = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         if (modalMessage.startsWith('Employee added successfully')) {
-            router.push('/employees'); // Redirect to employee list page after success
+            router.push('/company/employees'); // Redirect to employee list page after success
         }
     };
 
@@ -200,15 +206,16 @@ const EmployeeForm = () => {
                 <button
                     className="w-28 bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline"
                     type="button"
-                    onClick={() => router.push('/employees')} // Navigate to employees page on cancel
+                    onClick={() => router.push('/company/employees')} // Navigate to employees page on cancel
                 >
                     Cancel
                 </button>
                 <button
-                    className="w-28 bg-[#FFBF00] hover:bg-[#FFBF00] text-black font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline"
+                    className="w-28 bg-[#FFBF00] hover:bg-[#FFBF00] text-black font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline disabled:bg-gray-300 disabled:cursor-not-allowed"
                     type="submit"
+                    disabled={addEmployeeMutation.isPending}
                 >
-                    Submit
+                    {addEmployeeMutation.isPending ? 'Adding...' : 'Submit'}
                 </button>
             </div>
 
