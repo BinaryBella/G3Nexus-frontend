@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/app/components/Navbar';
+import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { Users, Plus, Edit, Trash2, Eye, Search } from 'lucide-react';
 import { employeeService, Employee } from '@/app/lib/services/employeeService';
 
@@ -13,6 +14,9 @@ const EmployeesPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchText, setSearchText] = useState('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         fetchEmployees();
@@ -47,14 +51,32 @@ const EmployeesPage = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (window.confirm('Are you sure you want to delete this employee?')) {
-            try {
-                await employeeService.deleteEmployee(id);
-                await fetchEmployees(); // Refresh the list
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to delete employee');
-            }
+        const employee = employees.find(emp => emp.employeeId === id);
+        if (employee) {
+            setSelectedEmployee(employee);
+            setShowDeleteModal(true);
         }
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedEmployee) return;
+
+        try {
+            setIsDeleting(true);
+            await employeeService.deleteEmployee(selectedEmployee.employeeId);
+            await fetchEmployees(); // Refresh the list
+            setShowDeleteModal(false);
+            setSelectedEmployee(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to delete employee');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setSelectedEmployee(null);
     };
 
     const getStatusBadge = (isActive: boolean) => {
@@ -111,7 +133,7 @@ const EmployeesPage = () => {
                                 Employee Management
                             </h1>
                         </div>
-                        <button 
+                        <button
                             className="bg-[#3450A3] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
                             onClick={() => router.push('/company/employees/add-employee')}
                         >
@@ -232,14 +254,9 @@ const EmployeesPage = () => {
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                         <div className="flex space-x-2">
                                                             <button
-                                                                className="text-blue-600 hover:text-blue-900"
-                                                                title="View Details"
-                                                            >
-                                                                <Eye className="h-4 w-4" />
-                                                            </button>
-                                                            <button
                                                                 className="text-green-600 hover:text-green-900"
                                                                 title="Edit Employee"
+                                                                onClick={() => router.push('/company/employees/edit-employee/' + employee.employeeId)}
                                                             >
                                                                 <Edit className="h-4 w-4" />
                                                             </button>
@@ -276,6 +293,18 @@ const EmployeesPage = () => {
                     )}
                 </section>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={cancelDelete}
+                onConfirm={confirmDelete}
+                isDeleting={isDeleting}
+                title="Delete Employee"
+                message="Are you sure you want to delete this employee?"
+                itemName={selectedEmployee?.name}
+                warningMessage="This action cannot be undone."
+            />
         </div>
     );
 };

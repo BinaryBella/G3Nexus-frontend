@@ -15,7 +15,7 @@ export interface Employee {
 }
 
 export const employeeService = {
-  // Get all employees
+
   getAllEmployees: async (): Promise<Employee[]> => {
     try {
       const response = await api.get<ApiResponse<Employee[]>>('/employee');
