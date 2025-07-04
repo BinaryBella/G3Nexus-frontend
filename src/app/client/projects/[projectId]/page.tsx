@@ -9,7 +9,6 @@ interface ProjectFormProps {
 }
 
 interface ProjectFormData {
-    // Project Initialization fields
     clientName: string;
     projectName: string;
     projectType: string;
@@ -18,7 +17,6 @@ interface ProjectFormData {
     projectDescription: string;
     estimatedBudget: string;
     status: boolean;
-    // More Details fields
     actualStartDate: string;
     actualEndDate: string;
     totalBudget: string;
