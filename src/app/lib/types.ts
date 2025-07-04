@@ -18,7 +18,7 @@ export interface Client {
 }
 
 export interface Employee {
-    employeeId: number;
+    employeeId?: number;
     contactNo: string;
     email: string;
     address: string;

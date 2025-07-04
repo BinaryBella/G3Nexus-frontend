@@ -65,7 +65,7 @@ api.interceptors.response.use(
     }
 );
 
-// Authentication service
+// reset password function
 export const authService = {
     login: async (email: string, password: string) => {
         try {
@@ -111,7 +111,7 @@ export const authService = {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
     },
-    
+
     // Register a new user
     register: async (userData: any) => {
         try {
@@ -121,7 +121,7 @@ export const authService = {
             throw error;
         }
     },
-    
+
     // Request password reset
     requestPasswordReset: async (email: string) => {
         try {
@@ -131,23 +131,23 @@ export const authService = {
             throw error;
         }
     },
-    
+
     // Verify reset code (email as query param, code in body)
     verifyResetCode: async (email: string, code: string) => {
         try {
-            const response = await api.post(`/verify-email?email=${encodeURIComponent(email)}`, { 
-                verificationCode: code 
+            const response = await api.post(`/verify-email?email=${encodeURIComponent(email)}`, {
+                verificationCode: code
             });
             return response.data;
         } catch (error) {
             throw error;
         }
     },
-    
+
     // Reset password with email, new password, and verification code
     resetPassword: async (email: string, newPassword: string, verificationCode: string) => {
         try {
-            const response = await api.post('/reset-password', { 
+            const response = await api.post('/reset-password', {
                 emailAddress: email,
                 newPassword: newPassword,
                 verificationCode: verificationCode

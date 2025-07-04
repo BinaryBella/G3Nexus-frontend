@@ -1,18 +1,7 @@
 // src/app/services/employeeService.ts
 import api from './api';
-import { ApiResponse } from '@/app/lib/types';
+import { ApiResponse, Employee } from '@/app/lib/types';
 
-// Define Employee type to match backend response
-export interface Employee {
-  employeeId: number;
-  name: string;
-  contactNo: string;
-  email: string;
-  address: string;
-  password: string;
-  role: string;
-  isActive: boolean;
-}
 
 export const employeeService = {
 
@@ -46,7 +35,7 @@ export const employeeService = {
   },
 
   // Add new employee
-  addEmployee: async (employeeData: Omit<Employee, 'employeeId'>): Promise<Employee> => {
+  addEmployee: async (employeeData: Employee): Promise<Employee> => {
     try {
       const response = await api.post<ApiResponse<Employee>>('/employee', employeeData);
 
@@ -61,9 +50,9 @@ export const employeeService = {
   },
 
   // Update employee
-  updateEmployee: async (id: number, employeeData: Partial<Omit<Employee, 'employeeId'>>): Promise<Employee> => {
+  updateEmployee: async (employeeData: Employee): Promise<Employee> => {
     try {
-      const response = await api.put<ApiResponse<Employee>>(`/employee/${id}`, employeeData);
+      const response = await api.put<ApiResponse<Employee>>(`/employee/`, employeeData);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update employee');

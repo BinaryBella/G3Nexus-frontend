@@ -6,33 +6,7 @@ import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
-
-// Modal Component
-const Modal = ({ isOpen, onClose, children = 'Notice' }: any) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg mx-auto relative h-52">
-                <button
-                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 focus:outline-none"
-                    onClick={onClose}
-                >
-                    ✕
-                </button>
-                <div className="text-gray-700 text-left mt-10 mb-16">{children}</div>
-                <div className="flex justify-end items-end">
-                    <button
-                        className="bg-[#FFBF00] hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-lg focus:outline-none"
-                        onClick={onClose}
-                    >
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-};
+import FeedbackPopup from '@/app/components/FeedbackPopup';
 
 const EditEmployeeForm = () => {
     const router = useRouter();
@@ -48,6 +22,16 @@ const EditEmployeeForm = () => {
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
+    const [modalType, setModalType] = useState<'info' | 'success' | 'error' | 'warning'>('info');
+
+    // Form validation states
+    const [errors, setErrors] = useState({
+        employeeName: '',
+        contactNo: '',
+        email: '',
+        designation: '',
+        address: ''
+    });
 
     // Fetch employee data
     const { data: employee, isLoading, error: fetchError } = useQuery({
@@ -69,25 +53,76 @@ const EditEmployeeForm = () => {
     }, [employee]);
 
     const updateEmployeeMutation = useMutation({
-        mutationFn: ({ id, data }: { id: number; data: Partial<Omit<Employee, 'employeeId'>> }) =>
-            employeeService.updateEmployee(id, data),
+        mutationFn: ({ data }: { data: Employee }) =>
+            employeeService.updateEmployee(data),
         onSuccess: () => {
             setModalMessage('Employee updated successfully!');
+            setModalType('success');
             setIsModalOpen(true);
         },
         onError: (error: Error) => {
             setModalMessage(`Error: ${error.message}`);
+            setModalType('error');
             setIsModalOpen(true);
         },
     });
+
+    const validateForm = () => {
+        let isValid = true;
+        const newErrors = {
+            employeeName: '',
+            contactNo: '',
+            email: '',
+            designation: '',
+            address: ''
+        };
+
+        // Validate employee name
+        if (!employeeName.trim()) {
+            newErrors.employeeName = 'Employee name is required';
+            isValid = false;
+        }
+
+        // Validate contact number
+        if (!contactNo.trim()) {
+            newErrors.contactNo = 'Contact number is required';
+            isValid = false;
+        } else if (!/^\d{10,15}$/.test(contactNo.replace(/[-()\s]/g, ''))) {
+            newErrors.contactNo = 'Please enter a valid contact number';
+            isValid = false;
+        }
+
+        // Validate email (even though it's read-only in this form)
+        if (!email.trim()) {
+            newErrors.email = 'Email is required';
+            isValid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            newErrors.email = 'Please enter a valid email address';
+            isValid = false;
+        }
+
+        // Validate designation
+        if (!designation.trim()) {
+            newErrors.designation = 'Designation is required';
+            isValid = false;
+        }
+
+        // Validate address
+        if (!address.trim()) {
+            newErrors.address = 'Address is required';
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
-        // Validate all required fields
-        if (!employeeName || !contactNo || !email || !address || !designation) {
-            setError('Please fill in all required fields');
+        // Validate all fields
+        if (!validateForm()) {
             return;
         }
 
@@ -96,13 +131,15 @@ const EditEmployeeForm = () => {
             return;
         }
 
-        const updatedEmployee: Partial<Omit<Employee, 'employeeId'>> = {
+        const updatedEmployee:Employee = {
             name: employeeName,
             contactNo,
             address,
             isActive,
+            email,
+            employeeId: Number(employeeId),
+            password: employee!.password,
             role: designation,
-            // Note: email is excluded from update as it's read-only
         };
 
         try {
@@ -169,8 +206,8 @@ const EditEmployeeForm = () => {
                     placeholder="Employee Name"
                     value={employeeName}
                     onChange={(e) => setEmployeeName(e.target.value)}
-                    required
                 />
+                {errors.employeeName && <p className="text-red-500 text-xs mt-2">{errors.employeeName}</p>}
             </div>
             <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="contactNo">
@@ -183,8 +220,8 @@ const EditEmployeeForm = () => {
                     placeholder="Contact No"
                     value={contactNo}
                     onChange={(e) => setContactNo(e.target.value)}
-                    required
                 />
+                {errors.contactNo && <p className="text-red-500 text-xs mt-2">{errors.contactNo}</p>}
             </div>
             <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
@@ -198,6 +235,7 @@ const EditEmployeeForm = () => {
                     value={email}
                     readOnly
                 />
+                {errors.email && <p className="text-red-500 text-xs mt-2">{errors.email}</p>}
             </div>
             <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="address">
@@ -210,8 +248,8 @@ const EditEmployeeForm = () => {
                     placeholder="Address"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    required
                 />
+                {errors.address && <p className="text-red-500 text-xs mt-2">{errors.address}</p>}
             </div>
             <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="designation">
@@ -224,8 +262,8 @@ const EditEmployeeForm = () => {
                     placeholder="Designation"
                     value={designation}
                     onChange={(e) => setDesignation(e.target.value)}
-                    required
                 />
+                {errors.designation && <p className="text-red-500 text-xs mt-2">{errors.designation}</p>}
             </div>
             <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="isActive">
@@ -269,9 +307,9 @@ const EditEmployeeForm = () => {
             </div>
 
             {/* Modal */}
-            <Modal isOpen={isModalOpen} onClose={closeModal}>
+            <FeedbackPopup isOpen={isModalOpen} onClose={closeModal} type={modalType}>
                 {modalMessage}
-            </Modal>
+            </FeedbackPopup>
         </form>
     );
 };
