@@ -4,27 +4,47 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { authService } from '@/app/lib/services/api';
 
 export default function ForgotPasswordPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setError('');
+        setSuccessMessage('');
 
         try {
-            // Store email in sessionStorage before redirecting
+            // Call the backend /forget-password endpoint
+            const response = await authService.requestPasswordReset(email);
+            
+            // Store email in sessionStorage for next steps
             sessionStorage.setItem('resetEmail', email);
-
-            // Simulate API call delay (remove this in production)
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Redirect to verification page
-            router.push('/auth/verification-code');
-        } catch (error) {
-            console.error('Error:', error);
+            
+            // Show success message
+            setSuccessMessage('Verification code has been sent to your email address.');
+            
+            // Wait a moment to show success message, then redirect
+            setTimeout(() => {
+                router.push('/auth/verification-code');
+            }, 2000);
+            
+        } catch (error: any) {
+            console.error('Password reset request failed:', error);
+            
+            // Handle different types of errors
+            if (error.response?.data?.message) {
+                setError(error.response.data.message);
+            } else if (error.message) {
+                setError(error.message);
+            } else {
+                setError('Failed to send verification code. Please try again.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -79,9 +99,23 @@ export default function ForgotPasswordPage() {
                     </h1>
 
                     <form onSubmit={handleSubmit} className="space-y-8">
+                        {/* Error Message */}
+                        {error && (
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        {/* Success Message */}
+                        {successMessage && (
+                            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+                                <span>{successMessage}</span>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
                             <p className="text-white text-sm text-center mb-6">
-                                Enter your email starting with john******.com to continue
+                                Enter your email address to receive a verification code
                             </p>
                             <label htmlFor="email" className="block text-white text-sm font-medium mb-1">
                                 Email Address
@@ -91,20 +125,23 @@ export default function ForgotPasswordPage() {
                                 id="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Email Address"
+                                placeholder="Enter your email address"
                                 className="w-full px-4 py-3 rounded-lg bg-white text-gray-900 focus:outline-none"
                                 required
+                                disabled={isSubmitting || !!successMessage}
                             />
                         </div>
 
                         <div className="pt-8">
                             <button
                                 type="submit"
-                                disabled={isSubmitting || !email}
-                                className="w-full bg-[#F5B316] text-white py-3 rounded-lg font-medium hover:bg-[#E5A714] transition-colors flex items-center justify-center"
+                                disabled={isSubmitting || !email || !!successMessage}
+                                className="w-full bg-[#F5B316] text-white py-3 rounded-lg font-medium hover:bg-[#E5A714] transition-colors flex items-center justify-center disabled:bg-opacity-70"
                             >
                                 {isSubmitting ? (
                                     <span>Sending...</span>
+                                ) : successMessage ? (
+                                    <span>Code Sent!</span>
                                 ) : (
                                     <span>Send Verification Code</span>
                                 )}

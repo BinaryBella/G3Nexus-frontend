@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { authService } from '@/app/lib/services/api';
 
 export default function VerificationCodePage() {
     const router = useRouter();
@@ -93,15 +94,26 @@ export default function VerificationCodePage() {
             const code = verificationCode.join('');
             console.log('Verifying code:', code, 'for email:', email);
 
-            // Simulate API verification call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Call the backend verification endpoint
+            const response = await authService.verifyResetCode(email, code);
+            console.log('Verification response:', response);
 
-            // If verification is successful, redirect to new password page
-            // Make sure the email is still available in sessionStorage
+            // If verification is successful, store the verification code for password reset
+            sessionStorage.setItem('verificationCode', code);
+            
             router.push('/auth/new-password');
-        } catch (error) {
-            console.error('Error:', error);
-            setError('Invalid verification code. Please try again.');
+        } catch (error: any) {
+            console.error('Verification failed:', error);
+            
+            // Handle different types of errors
+            if (error.response?.data?.message) {
+                setError(error.response.data.message);
+            } else if (error.message) {
+                setError(error.message);
+            } else {
+                setError('Invalid verification code. Please try again.');
+            }
+            
             // Clear the verification code inputs
             setVerificationCode(Array(6).fill(''));
             // Focus the first input
@@ -179,7 +191,9 @@ export default function VerificationCodePage() {
                                 {[0, 1, 2, 3, 4, 5].map((index) => (
                                     <input
                                         key={index}
-                                        ref={(el) => inputRefs.current[index] = el}
+                                        ref={(el) => {
+                                            inputRefs.current[index] = el;
+                                        }}
                                         type="text"
                                         maxLength={1}
                                         value={verificationCode[index]}

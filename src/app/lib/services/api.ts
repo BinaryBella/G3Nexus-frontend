@@ -125,17 +125,33 @@ export const authService = {
     // Request password reset
     requestPasswordReset: async (email: string) => {
         try {
-            const response = await api.post('/auth/forgot-password', { email });
+            const response = await api.post('/forget-password', { email });
             return response.data;
         } catch (error) {
             throw error;
         }
     },
     
-    // Reset password with token
-    resetPassword: async (token: string, newPassword: string) => {
+    // Verify reset code (email as query param, code in body)
+    verifyResetCode: async (email: string, code: string) => {
         try {
-            const response = await api.post('/auth/reset-password', { token, newPassword });
+            const response = await api.post(`/verify-email?email=${encodeURIComponent(email)}`, { 
+                verificationCode: code 
+            });
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+    
+    // Reset password with email, new password, and verification code
+    resetPassword: async (email: string, newPassword: string, verificationCode: string) => {
+        try {
+            const response = await api.post('/reset-password', { 
+                emailAddress: email,
+                newPassword: newPassword,
+                verificationCode: verificationCode
+            });
             return response.data;
         } catch (error) {
             throw error;

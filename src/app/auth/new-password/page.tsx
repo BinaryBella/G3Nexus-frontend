@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
+import { authService } from '@/app/lib/services/api';
 
 interface PasswordState {
     value: string;
@@ -13,6 +14,7 @@ interface PasswordState {
 export default function NewPasswordPage() {
     const router = useRouter();
     const [email, setEmail] = useState<string>('');
+    const [verificationCode, setVerificationCode] = useState<string>('');
     const [newPassword, setNewPassword] = useState<PasswordState>({
         value: '',
         visible: false,
@@ -25,14 +27,18 @@ export default function NewPasswordPage() {
     const [error, setError] = useState<string>('');
 
     useEffect(() => {
-        // Get email from sessionStorage
+        // Get email and verification code from sessionStorage
         const storedEmail = sessionStorage.getItem('resetEmail');
-        if (!storedEmail) {
-            // Redirect back to reset password page if no email is found
+        const storedVerificationCode = sessionStorage.getItem('verificationCode');
+        
+        if (!storedEmail || !storedVerificationCode) {
+            // Redirect back to reset password page if no email or verification code is found
             router.push('/auth/reset-password');
             return;
         }
+        
         setEmail(storedEmail);
+        setVerificationCode(storedVerificationCode);
     }, [router]);
 
     const togglePasswordVisibility = (field: 'new' | 'confirm') => {
@@ -59,18 +65,28 @@ export default function NewPasswordPage() {
 
         setIsSubmitting(true);
         try {
-            // Add your password update API call here
-            console.log('Updating password for email:', email);
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+            // Call the backend reset password endpoint with email, new password, and verification code
+            const response = await authService.resetPassword(email, newPassword.value, verificationCode);
+            console.log('Password reset response:', response);
 
-            // Clear stored email
+            // Clear stored data
             sessionStorage.removeItem('resetEmail');
+            sessionStorage.removeItem('verificationCode');
 
-            // Redirect to login page
+            // Show success message and redirect to login
+            alert('Password has been reset successfully! Please log in with your new password.');
             router.push('/auth/login');
-        } catch (error) {
-            console.error('Error:', error);
-            setError('Failed to update password. Please try again.');
+        } catch (error: any) {
+            console.error('Password reset failed:', error);
+            
+            // Handle different types of errors
+            if (error.response?.data?.message) {
+                setError(error.response.data.message);
+            } else if (error.message) {
+                setError(error.message);
+            } else {
+                setError('Failed to update password. Please try again.');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -121,11 +137,11 @@ export default function NewPasswordPage() {
                 {/* New Password Form */}
                 <div className="flex-1 flex flex-col justify-center max-w-[440px] mx-auto w-full">
                     <h1 className="text-white text-4xl font-semibold mb-16 text-center">
-                        Reset Password Verification
+                        Create New Password
                     </h1>
 
                     <p className="text-white text-center mb-12">
-                        Create new password
+                        Enter your new password below
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-8">
