@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { debugAuthState } from '@/app/utils/authDebug';
 
 interface LoginFormData {
     email: string;
@@ -28,9 +29,17 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
+            console.log('Starting login process...');
             await login(formData.email, formData.password);
-            // No need to redirect here as it's handled in the context
+            console.log('Login successful, checking auth state...');
+            
+            // Debug the auth state after login
+            setTimeout(() => {
+                debugAuthState();
+            }, 1000);
+            
         } catch (error: any) {
+            console.error('Login failed:', error);
             setError(error.message || 'Login failed');
         } finally {
             setIsLoading(false);
@@ -137,13 +146,13 @@ export default function LoginPage() {
                                     ) : (
                                         <Eye className="h-5 w-5" />
                                     )}
-                                    {error && (
-                                        <div className="text-red-300 mt-2 text-sm">
-                                            {error}
-                                        </div>
-                                    )}
                                 </button>
                             </div>
+                            {error && (
+                                <div className="text-red-300 mt-2 text-sm">
+                                    {error}
+                                </div>
+                            )}
                         </div>
 
                         <div className="pt-8">

@@ -4,27 +4,26 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/app/lib/services';
-import { Client, Employee } from "@/app/lib/types";
-
-
-// Define a User type that can be either a Client or an Employee
-export type User = Client | Employee;
+import { AuthUser } from "@/app/lib/types";
+import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    user: User | null;
+    user: AuthUser | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
     loading: boolean;
     isClient: () => boolean;
-    isEmployee: () => boolean;
+    isCompanyUser: () => boolean;
+    isAdmin: () => boolean;
+    hasRole: (role: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
@@ -32,10 +31,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const checkAuth = async () => {
             const { accessToken } = authService.getTokens();
-            if (accessToken) {
+            if (accessToken && !authService.isTokenExpired()) {
                 try {
-                    // Here you would typically validate the token and get user data
-                    const userData = await authService.getCurrentUser();
+                    const userData = authService.getCurrentUser();
                     setUser(userData);
                     setIsAuthenticated(true);
                 } catch (error) {
@@ -44,6 +42,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setIsAuthenticated(false);
                     setUser(null);
                 }
+            } else {
+                // Token expired or doesn't exist
+                authService.clearTokens();
+                setIsAuthenticated(false);
+                setUser(null);
             }
             setLoading(false);
         };
@@ -59,20 +62,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const { accessToken, refreshToken } = response.data;
                 authService.setTokens(accessToken, refreshToken);
 
-                // Fetch user data after successful login
+                // Get user data from token
                 try {
-                    const userData = await authService.getCurrentUser();
+                    const userData = authService.getCurrentUser();
                     setUser(userData);
                     setIsAuthenticated(true);
 
                     // Redirect based on user role
-                    if (userData.role === 'client') {
-                        router.push('/client/projects');
-                    } else if (userData.role === 'employee') {
-                        router.push('/employee/dashboard');
-                    } else {
-                        router.push('/dashboard');
-                    }
+                    redirectUserBasedOnRole(userData.role);
                 } catch (userError) {
                     console.error('Error fetching user data:', userError);
                     throw new Error('Could not retrieve user information');
@@ -88,6 +85,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const redirectUserBasedOnRole = (role: string) => {
+        console.log('Redirecting user with role:', role);
+        console.log('Available constants:', { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER });
+        
+        switch (role) {
+            case CLIENT_ADMIN:
+            case CLIENT_USER:
+                console.log('Redirecting to client projects');
+                router.push('/client/projects');
+                break;
+            case COMPANY_ADMIN:
+                console.log('Redirecting to company dashboard');
+                router.push('/company/dashboard');
+                break;
+            case COMPANY_DEVELOPER:
+                console.log('Redirecting to company projects');
+                router.push('/company/projects');
+                break;
+            default:
+                console.log('Unknown role, redirecting to home. Role was:', role);
+                router.push('/');
+                break;
+        }
+    };
+
     const logout = () => {
         authService.clearTokens();
         setIsAuthenticated(false);
@@ -95,13 +117,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         router.push('/auth/login');
     };
 
-    // Helper functions to check user type
-    const isClient = (): boolean => {
-        return !!user && user.role === 'client';
+    // Helper functions to check user type and roles
+    const hasRole = (role: string): boolean => {
+        return user?.role === role;
     };
 
-    const isEmployee = (): boolean => {
-        return !!user && user.role === 'employee';
+    const isClient = (): boolean => {
+        return hasRole(CLIENT_ADMIN) || hasRole(CLIENT_USER);
+    };
+
+    const isCompanyUser = (): boolean => {
+        return hasRole(COMPANY_ADMIN) || hasRole(COMPANY_DEVELOPER);
+    };
+
+    const isAdmin = (): boolean => {
+        return hasRole(CLIENT_ADMIN) || hasRole(COMPANY_ADMIN);
     };
 
     return (
@@ -112,7 +142,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             logout,
             loading,
             isClient,
-            isEmployee
+            isCompanyUser,
+            isAdmin,
+            hasRole
         }}>
             {children}
         </AuthContext.Provider>

@@ -4,6 +4,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
@@ -27,12 +28,20 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
                 // Check if user's role is allowed
                 if (!allowedRoles.includes(user.role)) {
                     // Redirect based on role if not authorized
-                    if (user.role === 'client') {
-                        router.push('/client/projects');
-                    } else if (user.role === 'employee') {
-                        router.push('/employee/dashboard');
-                    } else {
-                        router.push('/dashboard');
+                    switch (user.role) {
+                        case CLIENT_ADMIN:
+                        case CLIENT_USER:
+                            router.push('/client/projects');
+                            break;
+                        case COMPANY_ADMIN:
+                            router.push('/company/dashboard');
+                            break;
+                        case COMPANY_DEVELOPER:
+                            router.push('/company/projects');
+                            break;
+                        default:
+                            router.push('/');
+                            break;
                     }
                 }
             }

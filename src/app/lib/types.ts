@@ -5,6 +5,48 @@ export interface ApiResponse<T> {
     message: string | null;
 }
 
+// Authentication related interfaces
+export interface LoginRequest {
+    emailAddress: string;
+    password: string;
+}
+
+export interface LoginResponse {
+    accessToken: string;
+    refreshToken: string;
+}
+
+export interface AuthUser {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+    // Additional fields that might be present in the user data
+    organizationName?: string;
+    contactNo?: string;
+    address?: string;
+    employeeId?: number;
+    clientId?: number;
+}
+
+// JWT Token payload interface
+export interface JWTPayload {
+    sub: string; // user id
+    email: string;
+    name: string;
+    role: string;
+    organizationName?: string;
+    contactNo?: string;
+    address?: string;
+    employeeId?: number;
+    clientId?: number;
+    iat?: number;
+    exp?: number;
+    // Additional possible fields from different JWT implementations
+    [key: string]: any; // Allow any additional claims
+}
+
 export interface Client {
     id: number;
     organizationName: string;
