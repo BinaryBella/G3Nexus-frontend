@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/app/components/Navbar';
 import { FileText, Plus, Edit, Trash2, Eye } from 'lucide-react';
 import { projectService, Project } from '@/app/lib/services/projectService';
 
 const ProjectsPage = () => {
+    const router = useRouter();
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -95,7 +97,10 @@ const ProjectsPage = () => {
                                 Project Management
                             </h1>
                         </div>
-                        <button className="bg-[#3450A3] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors">
+                        <button 
+                            className="bg-[#3450A3] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
+                            onClick={() => router.push('/company/projects/add-project')}
+                        >
                             <Plus className="h-4 w-4" />
                             Add New Project
                         </button>
