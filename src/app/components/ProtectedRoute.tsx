@@ -2,69 +2,78 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
     allowedRoles?: string[];
+    requireAuth?: boolean;
 }
 
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export default function ProtectedRoute({ 
+    children, 
+    allowedRoles = [], 
+    requireAuth = true 
+}: ProtectedRouteProps) {
     const { isAuthenticated, user, loading } = useAuth();
+    const { canAccessRoute, getRedirectUrl } = useRoleAccess();
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         if (!loading) {
-            // If not authenticated, redirect to login
-            if (!isAuthenticated) {
+            // If authentication is required but user is not authenticated
+            if (requireAuth && !isAuthenticated) {
                 router.push('/auth/login');
                 return;
             }
 
-            // If role-based access control is enabled
-            if (allowedRoles && allowedRoles.length > 0 && user) {
-                // Check if user's role is allowed
-                if (!allowedRoles.includes(user.role)) {
-                    // Redirect based on role if not authorized
-                    switch (user.role) {
-                        case CLIENT_ADMIN:
-                        case CLIENT_USER:
-                            router.push('/client/projects');
-                            break;
-                        case COMPANY_ADMIN:
-                            router.push('/company/dashboard');
-                            break;
-                        case COMPANY_DEVELOPER:
-                            router.push('/company/projects');
-                            break;
-                        default:
-                            router.push('/');
-                            break;
+            // If user is authenticated, check route access
+            if (isAuthenticated && user) {
+                // If specific roles are required for this route
+                if (allowedRoles.length > 0) {
+                    const hasPermission = allowedRoles.includes(user.role);
+                    if (!hasPermission) {
+                        // Redirect to appropriate dashboard based on user role
+                        const redirectUrl = getRedirectUrl();
+                        router.push(redirectUrl);
+                        return;
+                    }
+                } else {
+                    // Use general route access check if no specific roles defined
+                    const canAccess = canAccessRoute(pathname);
+                    if (!canAccess) {
+                        const redirectUrl = getRedirectUrl();
+                        router.push(redirectUrl);
+                        return;
                     }
                 }
             }
         }
-    }, [isAuthenticated, loading, router, user, allowedRoles]);
+    }, [isAuthenticated, user, loading, allowedRoles, requireAuth, router, pathname, canAccessRoute, getRedirectUrl]);
 
-    // Show loading state
     if (loading) {
-        return <div className="flex items-center justify-center min-h-screen">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        );
     }
 
-    // If not authenticated, return null (will redirect in useEffect)
-    if (!isAuthenticated) {
+    if (requireAuth && !isAuthenticated) {
         return null;
     }
 
-    // If role checking is enabled but user doesn't have the right role, return null
-    if (allowedRoles && allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
+    if (allowedRoles.length > 0 && user && !allowedRoles.includes(user.role)) {
         return null;
     }
 
-    // If all checks pass, render the children
+    if (isAuthenticated && user && allowedRoles.length === 0 && !canAccessRoute(pathname)) {
+        return null;
+    }
+
     return <>{children}</>;
 }

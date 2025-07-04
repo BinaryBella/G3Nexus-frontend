@@ -71,6 +71,24 @@ export default function AuthTestPage() {
                 <h2 className="text-lg font-semibold mb-2">Debug Information</h2>
                 <p>Check the browser console for detailed authentication debug information.</p>
                 <p>If you're not being redirected correctly, the role in your JWT token might not match the expected constants.</p>
+                
+                <div className="mt-4 space-y-2">
+                    <h3 className="font-semibold">Test Role-Based Access:</h3>
+                    <div className="flex gap-2 flex-wrap">
+                        <a href="/client/projects" className="bg-blue-500 text-white px-3 py-1 rounded text-sm">
+                            Client Projects (CLIENT_ADMIN/CLIENT_USER)
+                        </a>
+                        <a href="/client/financial" className="bg-red-500 text-white px-3 py-1 rounded text-sm">
+                            Client Financial (CLIENT_ADMIN only)
+                        </a>
+                        <a href="/company/dashboard" className="bg-green-500 text-white px-3 py-1 rounded text-sm">
+                            Company Dashboard (COMPANY_ADMIN/COMPANY_DEVELOPER)
+                        </a>
+                        <a href="/company/payments" className="bg-purple-500 text-white px-3 py-1 rounded text-sm">
+                            Company Payments (COMPANY_ADMIN only)
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     );

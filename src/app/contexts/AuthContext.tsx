@@ -96,12 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 router.push('/client/projects');
                 break;
             case COMPANY_ADMIN:
+            case COMPANY_DEVELOPER:
                 console.log('Redirecting to company dashboard');
                 router.push('/company/dashboard');
-                break;
-            case COMPANY_DEVELOPER:
-                console.log('Redirecting to company projects');
-                router.push('/company/projects');
                 break;
             default:
                 console.log('Unknown role, redirecting to home. Role was:', role);

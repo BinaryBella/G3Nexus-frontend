@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import {Edit, FileSearch, Search, Settings, Trash} from 'lucide-react';
 import Link from "next/link";
+import ProtectedRoute from '@/app/components/ProtectedRoute';
+import { COMPANY_ADMIN } from '@/app/lib/constants';
 
 // Payment data
 const payments = [
@@ -47,35 +49,36 @@ const PaymentTable = () => {
     const [searchText, setSearchText] = useState("");
 
     return (
-        <div className="p-4">
-            <h1 className="text-4xl font-bold text-[#3450A3] mb-8">
-                Payments
-            </h1>
-            <div className="flex justify-between mb-4">
-                <div className="relative">
-                    <input
-                        type="text"
-                        placeholder="Search text"
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        className="pl-8 pr-2 py-1 border rounded"
-                    />
-                    <Search className="absolute left-2 top-2 h-4 w-4 border rounded-lg text-gray-400"/>
+        <ProtectedRoute allowedRoles={[COMPANY_ADMIN]}>
+            <div className="p-4">
+                <h1 className="text-4xl font-bold text-[#3450A3] mb-8">
+                    Payments
+                </h1>
+                <div className="flex justify-between mb-4">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search text"
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            className="pl-8 pr-2 py-1 border rounded"
+                        />
+                        <Search className="absolute left-2 top-2 h-4 w-4 border rounded-lg text-gray-400"/>
+                    </div>
+                    <Link href="/company/payments/add-payment">
+                        <button className="bg-[#3450A3] text-white px-4 py-2 rounded-lg hover:bg-[#2a4084]">
+                            ADD NEW PAYMENT
+                        </button>
+                    </Link>
                 </div>
-                <Link href="/company/payments/add-payment">
-                    <button className="bg-[#3450A3] text-white px-4 py-2 rounded-lg hover:bg-[#2a4084]">
-                        ADD NEW PAYMENT
-                    </button>
-                </Link>
-            </div>
 
-            <div className="bg-white rounded-lg overflow-hidden shadow">
-                <table className="w-full border-collapse">
-                    <thead>
-                    <tr className="bg-[#3450A3] text-white">
-                        <th className="p-3 text-left">Project Name</th>
-                        <th className="p-3 text-left">Amount</th>
-                        <th className="p-3 text-left">Description</th>
+                <div className="bg-white rounded-lg overflow-hidden shadow">
+                    <table className="w-full border-collapse">
+                        <thead>
+                        <tr className="bg-[#3450A3] text-white">
+                            <th className="p-3 text-left">Project Name</th>
+                            <th className="p-3 text-left">Amount</th>
+                            <th className="p-3 text-left">Description</th>
                         <th className="p-3 text-left">Date</th>
                         <th className="p-3 text-left">Actions</th>
                     </tr>
@@ -134,6 +137,7 @@ const PaymentTable = () => {
                 ))}
             </div>
         </div>
+        </ProtectedRoute>
     );
 };
 

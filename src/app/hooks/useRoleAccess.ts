@@ -5,18 +5,33 @@ import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/a
 export const useRoleAccess = () => {
     const { user, hasRole, isClient, isCompanyUser, isAdmin } = useAuth();
 
+    // Route access control functions
     const canAccessClientRoutes = () => {
-        return isClient();
+        return hasRole(CLIENT_ADMIN) || hasRole(CLIENT_USER);
     };
 
     const canAccessCompanyRoutes = () => {
-        return isCompanyUser();
+        return hasRole(COMPANY_ADMIN) || hasRole(COMPANY_DEVELOPER);
     };
 
     const canAccessAdminRoutes = () => {
-        return isAdmin();
+        return hasRole(CLIENT_ADMIN) || hasRole(COMPANY_ADMIN);
     };
 
+    // Specific route access checks
+    const canAccessClientFinancial = () => {
+        return hasRole(CLIENT_ADMIN); // Only CLIENT_ADMIN can access financial
+    };
+
+    const canAccessCompanyPayments = () => {
+        return hasRole(COMPANY_ADMIN); // Only COMPANY_ADMIN can access payments
+    };
+
+    const canAccessCompanyTerms = () => {
+        return hasRole(COMPANY_ADMIN); // Only COMPANY_ADMIN can access terms
+    };
+
+    // Feature-based permissions
     const canManageClients = () => {
         return hasRole(COMPANY_ADMIN);
     };
@@ -34,7 +49,7 @@ export const useRoleAccess = () => {
     };
 
     const canManageRequirements = () => {
-        return hasRole(CLIENT_ADMIN) || hasRole(CLIENT_USER) || hasRole(COMPANY_ADMIN);
+        return hasRole(CLIENT_ADMIN) || hasRole(CLIENT_USER) || hasRole(COMPANY_ADMIN) || hasRole(COMPANY_DEVELOPER);
     };
 
     const canManageBugs = () => {
@@ -49,11 +64,55 @@ export const useRoleAccess = () => {
         return hasRole(COMPANY_ADMIN);
     };
 
+    // Get redirect URL based on role
+    const getRedirectUrl = () => {
+        if (hasRole(CLIENT_ADMIN) || hasRole(CLIENT_USER)) {
+            return '/client/projects';
+        }
+        if (hasRole(COMPANY_ADMIN) || hasRole(COMPANY_DEVELOPER)) {
+            return '/company/dashboard';
+        }
+        return '/auth/login';
+    };
+
+    // Check if user can access a specific route
+    const canAccessRoute = (route: string): boolean => {
+        // Auth routes - accessible to everyone
+        if (route.startsWith('/auth')) {
+            return true;
+        }
+
+        // Client routes
+        if (route.startsWith('/client')) {
+            if (route.includes('/financial')) {
+                return canAccessClientFinancial();
+            }
+            return canAccessClientRoutes();
+        }
+
+        // Company routes
+        if (route.startsWith('/company')) {
+            if (route.includes('/payments')) {
+                return canAccessCompanyPayments();
+            }
+            if (route.includes('/terms')) {
+                return canAccessCompanyTerms();
+            }
+            return canAccessCompanyRoutes();
+        }
+
+        // Default deny
+        return false;
+    };
+
     return {
         user,
         canAccessClientRoutes,
         canAccessCompanyRoutes,
         canAccessAdminRoutes,
+        canAccessClientFinancial,
+        canAccessCompanyPayments,
+        canAccessCompanyTerms,
         canManageClients,
         canManageEmployees,
         canManageProjects,
@@ -62,6 +121,8 @@ export const useRoleAccess = () => {
         canManageBugs,
         canManagePayments,
         canManageTerms,
+        canAccessRoute,
+        getRedirectUrl,
         hasRole,
         isClient,
         isCompanyUser,
