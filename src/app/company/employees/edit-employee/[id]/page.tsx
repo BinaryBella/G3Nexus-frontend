@@ -144,7 +144,6 @@ const EditEmployeeForm = () => {
 
         try {
             await updateEmployeeMutation.mutateAsync({
-                id: Number(employeeId),
                 data: updatedEmployee
             });
         } catch (error) {

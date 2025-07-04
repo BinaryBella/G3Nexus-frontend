@@ -18,7 +18,7 @@ export default function VerificationCodePage() {
         const storedEmail = sessionStorage.getItem('resetEmail');
         if (!storedEmail) {
             // Redirect back to reset password page if no email is found
-            router.push('/auth/reset-password');
+            router.push('/auth/forget-password');
             return;
         }
         setEmail(storedEmail);
@@ -75,10 +75,6 @@ export default function VerificationCodePage() {
             inputRefs.current[nextEmptyIndex]?.focus();
         } else {
             inputRefs.current[5]?.focus();
-            // If all digits are filled after paste, automatically submit
-            if (newVerificationCode.every(digit => digit !== '')) {
-                handleSubmit();
-            }
         }
     };
 
@@ -91,20 +87,25 @@ export default function VerificationCodePage() {
         setIsSubmitting(true);
 
         try {
+            // Join the verificationCode array into a string before sending
+            console.log(verificationCode)
             const code = verificationCode.join('');
-            console.log('Verifying code:', code, 'for email:', email);
-
+            if (code.length !== 6) {
+                setError('Please enter the 6-digit verification code.');
+                setIsSubmitting(false);
+                return;
+            }
             // Call the backend verification endpoint
             const response = await authService.verifyResetCode(email, code);
             console.log('Verification response:', response);
 
             // If verification is successful, store the verification code for password reset
             sessionStorage.setItem('verificationCode', code);
-            
-            router.push('/auth/new-password');
+
+            router.push('/auth/reset-password');
         } catch (error: any) {
             console.error('Verification failed:', error);
-            
+
             // Handle different types of errors
             if (error.response?.data?.message) {
                 setError(error.response.data.message);
@@ -113,12 +114,11 @@ export default function VerificationCodePage() {
             } else {
                 setError('Invalid verification code. Please try again.');
             }
-            
+
             // Clear the verification code inputs
             setVerificationCode(Array(6).fill(''));
             // Focus the first input
             inputRefs.current[0]?.focus();
-        } finally {
             setIsSubmitting(false);
         }
     };
@@ -172,7 +172,7 @@ export default function VerificationCodePage() {
                     </h1>
 
                     <p className="text-white text-center mb-12">
-                        We want to make sure it's really you. In order to verify your identity,
+                        We want to make sure it is really you. In order to verify your identity,
                         enter the verification code that was sent to {email}
                     </p>
 
@@ -197,7 +197,6 @@ export default function VerificationCodePage() {
                                         type="text"
                                         maxLength={1}
                                         value={verificationCode[index]}
-                                        onChange={(e) => handleInput(index, e.target.value)}
                                         onKeyDown={(e) => handleKeyDown(index, e)}
                                         onPaste={handlePaste}
                                         className="w-full h-12 text-center text-xl font-semibold rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#F5B316]"
@@ -211,9 +210,19 @@ export default function VerificationCodePage() {
                         <button
                             type="submit"
                             disabled={isSubmitting || verificationCode.some(v => v === '')}
-                            className="w-full  mt-7 bg-[#F5B316] text-white py-3 rounded-lg font-medium hover:bg-[#E5A714] transition-colors"
+                            className="w-full mt-7 bg-[#F5B316] text-white py-3 rounded-lg font-medium hover:bg-[#E5A714] transition-colors flex items-center justify-center"
                         >
-                            {isSubmitting ? 'Verifying...' : 'Verify'}
+                            {isSubmitting ? (
+                                <span className="flex items-center justify-center">
+                                    <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                    </svg>
+                                    Verifying...
+                                </span>
+                            ) : (
+                                'Verify'
+                            )}
                         </button>
                     </form>
                 </div>

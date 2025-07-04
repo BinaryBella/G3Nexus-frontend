@@ -93,33 +93,33 @@ const getUserFromToken = (accessToken: string): AuthUser | null => {
     console.log('JWT Payload:', payload);
 
     // Extract role - check multiple possible field names
-    const role = payload.role || 
-                 payload['Role'] || 
+    const role = payload.role ||
+                 payload['Role'] ||
                  payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
                  payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role'] ||
                  payload['roles'] ||
                  payload['authorities'] ||
                  'UNKNOWN_ROLE';
-    
+
     // Extract user ID - check multiple possible field names
-    const userId = payload.sub || 
-                   payload['id'] || 
-                   payload['userId'] || 
-                   payload['nameid'] || 
+    const userId = payload.sub ||
+                   payload['id'] ||
+                   payload['userId'] ||
+                   payload['nameid'] ||
                    payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
                    '0';
-    
+
     // Extract name - check multiple possible field names
-    const userName = payload.name || 
-                     payload['Name'] || 
-                     payload['unique_name'] || 
+    const userName = payload.name ||
+                     payload['Name'] ||
+                     payload['unique_name'] ||
                      payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
                      'Unknown User';
-    
+
     // Extract email - check multiple possible field names
-    const userEmail = payload.email || 
-                      payload['Email'] || 
-                      payload['email_address'] || 
+    const userEmail = payload.email ||
+                      payload['Email'] ||
+                      payload['email_address'] ||
                       payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
                       '';
 
@@ -204,7 +204,7 @@ export const authService = {
     hasRole: (role: string): boolean => {
         const { accessToken } = authService.getTokens();
         if (!accessToken) return false;
-        
+
         const user = getUserFromToken(accessToken);
         return user?.role === role;
     },
@@ -248,7 +248,7 @@ export const authService = {
     // Request password reset
     requestPasswordReset: async (email: string) => {
         try {
-            const response = await api.post('/forget-password', { email });
+            const response = await api.post('auth/forget-password', email);
             return response.data;
         } catch (error) {
             throw error;
@@ -258,9 +258,9 @@ export const authService = {
     // Verify reset code (email as query param, code in body)
     verifyResetCode: async (email: string, code: string) => {
         try {
-            const response = await api.post(`/verify-email?email=${encodeURIComponent(email)}`, {
-                verificationCode: code
-            });
+            console.log(code)
+            const response = await api.post(`auth/verify-email`, { verificationCode: code, email: email });
+            console.log(response)
             return response.data;
         } catch (error) {
             throw error;
@@ -270,7 +270,7 @@ export const authService = {
     // Reset password with email, new password, and verification code
     resetPassword: async (email: string, newPassword: string, verificationCode: string) => {
         try {
-            const response = await api.post('/reset-password', {
+            const response = await api.post('auth/reset-password', {
                 emailAddress: email,
                 newPassword: newPassword,
                 verificationCode: verificationCode
@@ -283,3 +283,6 @@ export const authService = {
 };
 
 export default api;
+
+
+

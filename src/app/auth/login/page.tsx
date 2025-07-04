@@ -32,12 +32,12 @@ export default function LoginPage() {
             console.log('Starting login process...');
             await login(formData.email, formData.password);
             console.log('Login successful, checking auth state...');
-            
+
             // Debug the auth state after login
             setTimeout(() => {
                 debugAuthState();
             }, 1000);
-            
+
         } catch (error: any) {
             console.error('Login failed:', error);
             setError(error.message || 'Login failed');
@@ -166,7 +166,7 @@ export default function LoginPage() {
 
                             <div className="text-center mt-4">
                                 <Link
-                                    href="/auth/reset-password"
+                                    href="/auth/forget-password"
                                     className="text-white text-sm hover:underline"
                                 >
                                     Forgot Password

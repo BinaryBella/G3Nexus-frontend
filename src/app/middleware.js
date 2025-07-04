@@ -6,7 +6,7 @@ const publicRoutes = [
     "/auth/login",
     "/auth/verify-email",
     "/auth/verification-code",
-    "/auth/reset-password",
+    "/auth/forget-password",
     "/auth/verification-success",
 ];
 
