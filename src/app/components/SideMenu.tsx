@@ -14,10 +14,10 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
     { title: 'Clients', path: '/company/clients', icon: User },
     { title: 'Employees', path: '/company/employees', icon: Users },
-    { title: 'Projects', path: '/client/projects', icon: FolderOpen },
-    { title: 'Requirements', path: '/client/requirements', icon: FileText },
-    { title: 'Bug Reports', path: '/client/bugs', icon: Bug },
-    { title: 'Financial Details', path: '/client/financial', icon: ClipboardList },
+    { title: 'Projects', path: '/company/projects', icon: FolderOpen },
+    { title: 'Requirements', path: '/company/requirements', icon: FileText },
+    { title: 'Bug Reports', path: '/company/bugs', icon: Bug },
+    { title: 'Financial Details', path: '/company/financial', icon: ClipboardList },
     { title: 'Payments', path: '/company/payments', icon: DollarSign },
     { title: 'Terms & Conditions', path: '/company/terms', icon: File },
 ];
