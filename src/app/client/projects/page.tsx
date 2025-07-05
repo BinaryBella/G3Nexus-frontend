@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import ProjectCard from '@/app/components/ProjectCard';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { projectService, Project } from '@/app/lib/services/projectService';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, ChevronRightIcon, SparklesIcon, XCircleIcon } from '@heroicons/react/24/outline';
 
 const ProjectsPage = () => {
     const { user } = useAuth();
@@ -14,28 +14,138 @@ const ProjectsPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
 
-    // Hero images for the carousel
-    const heroImages = [
+    // Hero carousel data with casual project environment images
+    const heroSlides = [
         {
-            src: '/images/hero1.jpeg',
-            alt: 'Professional workspace with team collaboration',
-            title: 'Collaborative Project Management'
+            image: '/images/hero1.jpeg',
+            title: 'Collaborative',
+            subtitle: 'Project Management',
+            description: 'Work together seamlessly on projects with real-time collaboration and progress tracking',
+            badge: 'Welcome to Your Projects'
         },
         {
-            src: '/images/hero2.png',
-            alt: 'Modern office environment with digital screens',
-            title: 'Digital Project Solutions'
+            image: '/images/hero2.png',
+            title: 'Digital',
+            subtitle: 'Project Solutions',
+            description: 'Modern tools and workflows designed to streamline your project development process',
+            badge: 'Innovation Hub'
         },
         {
-            src: '/images/hero3.jpg',
-            alt: 'Casual team meeting in contemporary office',
-            title: 'Agile Team Workflows'
+            image: '/images/hero3.jpg',
+            title: 'Agile',
+            subtitle: 'Team Workflows',
+            description: 'Adaptive project management that grows with your team and evolving requirements',
+            badge: 'Agile Excellence'
+        }
+    ];
+
+    // Dummy projects data for demonstration
+    const dummyProjects: Project[] = [
+        {
+            projectId: 1,
+            projectName: "E-Commerce Platform Redesign",
+            projectDescription: "Complete overhaul of the existing e-commerce platform with modern UI/UX design, improved performance, and mobile optimization.",
+            projectType: "Web Development",
+            projectSize: "Large",
+            creationDate: "2024-01-15",
+            actualStartDate: "2024-01-20",
+            actualEndDate: "2024-06-15",
+            status: "In Progress",
+            estimatedBudget: 45000,
+            totalBudget: 48000,
+            paymentType: "Fixed",
+            paymentStatus: "Partial",
+            isActive: true
+        },
+        {
+            projectId: 2,
+            projectName: "Mobile Banking Application",
+            projectDescription: "Secure mobile banking app with biometric authentication, real-time transactions, and comprehensive financial management tools.",
+            projectType: "Mobile Development",
+            projectSize: "Medium",
+            creationDate: "2024-02-20",
+            actualStartDate: "2024-02-25",
+            actualEndDate: "2024-08-20",
+            status: "Active",
+            estimatedBudget: 75000,
+            totalBudget: 75000,
+            paymentType: "Milestone",
+            paymentStatus: "Paid",
+            isActive: true
+        },
+        {
+            projectId: 3,
+            projectName: "CRM System Integration",
+            projectDescription: "Custom CRM solution integrated with existing business processes, featuring advanced analytics and automated workflows.",
+            projectType: "Enterprise Software",
+            projectSize: "Medium",
+            creationDate: "2024-01-08",
+            actualStartDate: "2024-01-15",
+            actualEndDate: "2024-04-08",
+            status: "Completed",
+            estimatedBudget: 32000,
+            totalBudget: 34000,
+            paymentType: "Fixed",
+            paymentStatus: "Paid",
+            isActive: false
+        },
+        {
+            projectId: 4,
+            projectName: "AI-Powered Analytics Dashboard",
+            projectDescription: "Intelligent dashboard with machine learning capabilities for predictive analytics and data visualization.",
+            projectType: "Data Analytics",
+            projectSize: "Large",
+            creationDate: "2024-03-10",
+            actualStartDate: "2024-03-15",
+            actualEndDate: "2024-09-10",
+            status: "Planning",
+            estimatedBudget: 58000,
+            totalBudget: 58000,
+            paymentType: "Hourly",
+            paymentStatus: "Pending",
+            isActive: true
+        },
+        {
+            projectId: 5,
+            projectName: "Cloud Migration Strategy",
+            projectDescription: "Comprehensive cloud migration plan with infrastructure optimization, security implementation, and cost analysis.",
+            projectType: "Cloud Services",
+            projectSize: "Small",
+            creationDate: "2024-02-05",
+            actualStartDate: "2024-02-10",
+            actualEndDate: "2024-05-05",
+            status: "In Progress",
+            estimatedBudget: 42000,
+            totalBudget: 45000,
+            paymentType: "Milestone",
+            paymentStatus: "Partial",
+            isActive: true
+        },
+        {
+            projectId: 6,
+            projectName: "Inventory Management System",
+            projectDescription: "Real-time inventory tracking system with automated alerts, supplier integration, and comprehensive reporting features.",
+            projectType: "Business Software",
+            projectSize: "Medium",
+            creationDate: "2024-01-25",
+            actualStartDate: "2024-02-01",
+            actualEndDate: "2024-06-25",
+            status: "Active",
+            estimatedBudget: 28000,
+            totalBudget: 30000,
+            paymentType: "Fixed",
+            paymentStatus: "Paid",
+            isActive: true
         }
     ];
 
     // Fetch projects based on user's client ID
     useEffect(() => {
         const fetchProjects = async () => {
+            // For demonstration, we'll use dummy data
+            // In production, uncomment the API call below
+            
+            /*
             if (!user || !user.clientId) {
                 setError('Client information not available');
                 setLoading(false);
@@ -53,6 +163,21 @@ const ProjectsPage = () => {
             } finally {
                 setLoading(false);
             }
+            */
+
+            // Using dummy data for demonstration
+            try {
+                setLoading(true);
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                setProjects(dummyProjects);
+                setError(null);
+            } catch (err) {
+                console.error('Error loading projects:', err);
+                setError('Failed to load projects. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
         };
 
         fetchProjects();
@@ -61,18 +186,18 @@ const ProjectsPage = () => {
     // Auto-advance carousel
     useEffect(() => {
         const interval = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+            setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [heroImages.length]);
+    }, [heroSlides.length]);
 
     const nextSlide = () => {
-        setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+        setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
     };
 
     const prevSlide = () => {
-        setCurrentSlide((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+        setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
     };
 
     const goToSlide = (index: number) => {
@@ -80,131 +205,332 @@ const ProjectsPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Hero Section with Carousel */}
-            <section className="relative h-96 overflow-hidden -mx-6 -mt-6">
-                <div className="relative w-full h-full">
-                    {heroImages.map((image, index) => (
-                        <div
+        <div className="min-h-screen">
+            {/* Hero Carousel Section */}
+            <div className="relative h-96 overflow-hidden">
+                {/* Carousel Slides */}
+                {heroSlides.map((slide, index) => (
+                    <div
+                        key={index}
+                        className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
+                            index === currentSlide ? 'opacity-100' : 'opacity-0'
+                        }`}
+                        style={{ backgroundImage: `url('${slide.image}')` }}
+                    >
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/60"></div>
+
+                        {/* Content */}
+                        <div className="relative z-10 flex items-center justify-center h-full px-4">
+                            <div className="text-center max-w-4xl mx-auto">
+                                {/* Badge */}
+                                <div className="inline-flex items-center px-4 py-2 bg-blue-500/20 backdrop-blur-sm rounded-full text-blue-200 text-sm font-semibold mb-6">
+                                    <SparklesIcon className="w-4 h-4 mr-2" />
+                                    {slide.badge}
+                                </div>
+
+                                {/* Title */}
+                                <h1 className="text-5xl md:text-7xl font-bold text-white mb-4">
+                                    <span className="block">{slide.title}</span>
+                                    <span className="block bg-gradient-to-r from-[#ffbf00] to-[#ffbf00] bg-clip-text text-transparent">{slide.subtitle}</span>
+                                </h1>
+
+                                {/* Description */}
+                                <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
+                                    {slide.description}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+
+                {/* Navigation Arrows */}
+                <button
+                    onClick={prevSlide}
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white p-3 rounded-full transition-all duration-300 hover:scale-110"
+                    aria-label="Previous slide"
+                >
+                    <ChevronLeftIcon className="w-6 h-6" />
+                </button>
+
+                <button
+                    onClick={nextSlide}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white p-3 rounded-full transition-all duration-300 hover:scale-110"
+                    aria-label="Next slide"
+                >
+                    <ChevronRightIcon className="w-6 h-6" />
+                </button>
+
+                {/* Dots Indicator */}
+                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 flex space-x-3">
+                    {heroSlides.map((_, index) => (
+                        <button
                             key={index}
-                            className={`absolute inset-0 transition-opacity duration-1000 ${
-                                index === currentSlide ? 'opacity-100' : 'opacity-0'
+                            onClick={() => goToSlide(index)}
+                            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                                index === currentSlide
+                                    ? 'bg-white scale-125'
+                                    : 'bg-white/50 hover:bg-white/75'
                             }`}
-                        >
-                            <div
-                                className="w-full h-full bg-cover bg-center"
-                                style={{ backgroundImage: `url('${image.src}')` }}
+                            aria-label={`Go to slide ${index + 1}`}
+                        />
+                    ))}
+                </div>
+
+                {/* Progress Bar */}
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20 z-20">
+                    <div
+                        className="h-full bg-gradient-to-r from-[#ffbf00] to-[#ffbf00] transition-all duration-300"
+                        style={{ width: `${((currentSlide + 1) / heroSlides.length) * 100}%` }}
+                    ></div>
+                </div>
+            </div>
+
+            {/* Projects Listing Section */}
+            <section className="py-16 px-6 bg-gradient-to-br from-gray-50 to-blue-50/30 relative">
+                {/* Floating Background Elements */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100/20 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-100/15 rounded-full blur-3xl"></div>
+                </div>
+
+                <div className="relative z-10 max-w-7xl mx-auto">
+                    {/* Section Header */}
+                    <div className="text-center mb-12">
+                        <div className="inline-flex items-center px-4 py-2 bg-blue-100/50 backdrop-blur-sm rounded-full text-blue-800 text-sm font-semibold mb-4">
+                            <SparklesIcon className="w-4 h-4 mr-2" />
+                            Your Portfolio
+                        </div>
+                        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                            Active Projects
+                        </h2>
+                        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                            {user?.organizationName ? 
+                                `Explore and manage all projects for ${user.organizationName}` :
+                                'Discover your ongoing projects and track their progress'
+                            }
+                        </p>
+                    </div>
+
+                    {/* Loading State */}
+                    {loading && (
+                        <div className="flex items-center justify-center py-16">
+                            <div className="relative">
+                                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+                                <div className="absolute inset-0 rounded-full bg-blue-50/20"></div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Error State */}
+                    {error && (
+                        <div className="bg-white/80 backdrop-blur-sm border border-red-200 rounded-2xl p-8 text-center shadow-lg">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <XCircleIcon className="h-8 w-8 text-red-500" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-red-600 mb-2">Oops! Something went wrong</h3>
+                            <p className="text-red-600 mb-6">{error}</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="bg-red-600 text-white px-6 py-3 rounded-xl hover:bg-red-700 transition-colors duration-200 font-medium"
                             >
-                                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                                    <div className="text-center text-white px-4">
-                                        <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                                            {image.title}
-                                        </h1>
-                                        <p className="text-xl md:text-2xl">
-                                            Manage Your Projects with Ease
+                                Try Again
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Projects Grid */}
+                    {!loading && !error && (
+                        <>
+                            {projects.length === 0 ? (
+                                <div className="text-center py-16">
+                                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 shadow-lg border border-gray-100">
+                                        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <img
+                                                src="/images/project.png"
+                                                alt="No projects"
+                                                className="w-12 h-12 opacity-50"
+                                            />
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-gray-700 mb-3">
+                                            No Projects Yet
+                                        </h3>
+                                        <p className="text-gray-500 max-w-md mx-auto">
+                                            Your project portfolio is waiting to be filled. New projects will appear here once they're assigned to your organization.
                                         </p>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    ))}
-
-                    {/* Navigation Arrows */}
-                    <button
-                        onClick={prevSlide}
-                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition-all duration-200"
-                    >
-                        <ChevronLeftIcon className="h-6 w-6 text-white" />
-                    </button>
-                    <button
-                        onClick={nextSlide}
-                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition-all duration-200"
-                    >
-                        <ChevronRightIcon className="h-6 w-6 text-white" />
-                    </button>
-
-                    {/* Slide Indicators */}
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                        {heroImages.map((_, index) => (
-                            <button
-                                key={index}
-                                onClick={() => goToSlide(index)}
-                                className={`w-3 h-3 rounded-full transition-all duration-200 ${
-                                    index === currentSlide
-                                        ? 'bg-white'
-                                        : 'bg-white bg-opacity-50 hover:bg-opacity-75'
-                                }`}
-                            />
-                        ))}
-                    </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {projects.map((project) => (
+                                        <ProjectCard
+                                            key={project.projectId}
+                                            id={project.projectId.toString()}
+                                            title={project.projectName}
+                                            description={project.projectDescription}
+                                            status={project.status}
+                                            createdAt={new Date(project.creationDate).toLocaleDateString()}
+                                            projectType={project.projectType}
+                                            budget={project.estimatedBudget}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             </section>
 
-            {/* Projects Listing Section */}
-            <section className="py-12">
-                <div className="mb-8">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Your Projects</h2>
-                    <p className="text-gray-600">
-                        {user?.organizationName && `Projects for ${user.organizationName}`}
-                    </p>
+            {/* Footer Section */}
+            <footer className="bg-gradient-to-br from-black to-[#2a4086] text-white relative overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 to-purple-500/20"></div>
+                    <div className="absolute top-10 left-10 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-400/10 rounded-full blur-3xl"></div>
                 </div>
 
-                {/* Loading State */}
-                {loading && (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                    </div>
-                )}
-
-                {/* Error State */}
-                {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                        <p className="text-red-600 text-lg">{error}</p>
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
-                        >
-                            Retry
-                        </button>
-                    </div>
-                )}
-
-                {/* Projects Grid */}
-                {!loading && !error && (
-                    <>
-                        {projects.length === 0 ? (
-                            <div className="text-center py-12">
-                                <div className="bg-gray-100 rounded-lg p-12">
-                                    <img
-                                        src="/images/project.png"
-                                        alt="No projects"
-                                        className="mx-auto mb-6 w-24 h-24 opacity-50"
-                                    />
-                                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        No Projects Found
+                <div className="relative z-10 max-w-7xl mx-auto px-6 py-16">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {/* Company Info */}
+                        <div className="space-y-4">
+                            <div className="flex items-center space-x-2">
+                                <img 
+                                    src="/images/logo-white.png" 
+                                    alt="G3 Nexus" 
+                                    className="h-8 w-auto"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.style.display = 'none';
+                                        target.nextElementSibling?.classList.remove('hidden');
+                                    }}
+                                />
+                                <div className="hidden">
+                                    <h3 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                        G3 Nexus
                                     </h3>
-                                    <p className="text-gray-500">
-                                        There are no projects associated with your account at this time.
-                                    </p>
                                 </div>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {projects.map((project) => (
-                                    <ProjectCard
-                                        key={project.projectId}
-                                        id={project.projectId.toString()}
-                                        title={project.projectName}
-                                        description={project.projectDescription}
-                                        status={project.status}
-                                        createdAt={new Date(project.creationDate).toLocaleDateString()}
-                                    />
-                                ))}
+                            <p className="text-gray-300 text-sm leading-relaxed">
+                                Empowering businesses with innovative project management solutions and seamless collaboration tools.
+                            </p>
+                            <div className="flex space-x-4">
+                                <div className="w-10 h-10 bg-blue-600/20 rounded-full flex items-center justify-center hover:bg-blue-600/30 transition-colors cursor-pointer">
+                                    <span className="text-blue-400 text-sm font-semibold">f</span>
+                                </div>
+                                <div className="w-10 h-10 bg-blue-600/20 rounded-full flex items-center justify-center hover:bg-blue-600/30 transition-colors cursor-pointer">
+                                    <span className="text-blue-400 text-sm font-semibold">in</span>
+                                </div>
+                                <div className="w-10 h-10 bg-blue-600/20 rounded-full flex items-center justify-center hover:bg-blue-600/30 transition-colors cursor-pointer">
+                                    <span className="text-blue-400 text-sm font-semibold">@</span>
+                                </div>
                             </div>
-                        )}
-                    </>
-                )}
-            </section>
+                        </div>
+
+                        {/* Quick Links */}
+                        <div className="space-y-4">
+                            <h4 className="text-lg font-semibold text-white">Quick Links</h4>
+                            <ul className="space-y-2">
+                                <li>
+                                    <a href="/client/projects" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                                        My Projects
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/client/requirements" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                                        Requirements
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/client/bugs" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                                        Bug Reports
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="/client/financial" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                                        Financial
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Support */}
+                        <div className="space-y-4">
+                            <h4 className="text-lg font-semibold text-white">Support</h4>
+                            <ul className="space-y-2">
+                                <li>
+                                    <a href="#" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                                        Help Center
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                                        Documentation
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                                        Contact Us
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#" className="text-gray-300 hover:text-blue-400 transition-colors text-sm">
+                                        System Status
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Contact Info */}
+                        <div className="space-y-4">
+                            <h4 className="text-lg font-semibold text-white">Get in Touch</h4>
+                            <div className="space-y-3">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-8 h-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                                        <span className="text-blue-400 text-xs">📧</span>
+                                    </div>
+                                    <span className="text-gray-300 text-sm">support@g3nexus.com</span>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-8 h-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                                        <span className="text-blue-400 text-xs">📞</span>
+                                    </div>
+                                    <span className="text-gray-300 text-sm">+1 (555) 123-4567</span>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-8 h-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                                        <span className="text-blue-400 text-xs">📍</span>
+                                    </div>
+                                    <span className="text-gray-300 text-sm">123 Business Ave, Suite 100</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Bottom Section */}
+                    <div className="border-t border-gray-700/50 mt-12 pt-8">
+                        <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                            <div className="text-gray-400 text-sm">
+                                © 2024 G3 Nexus. All rights reserved.
+                            </div>
+                            <div className="flex space-x-6 text-sm">
+                                <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+                                    Privacy Policy
+                                </a>
+                                <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+                                    Terms of Service
+                                </a>
+                                <a href="#" className="text-gray-400 hover:text-blue-400 transition-colors">
+                                    Cookie Policy
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Decorative Elements */}
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-[#ffbf00]"></div>
+            </footer>
         </div>
     );
 };
