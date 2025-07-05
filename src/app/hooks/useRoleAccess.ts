@@ -24,7 +24,7 @@ export const useRoleAccess = () => {
     };
 
     const canAccessCompanyPayments = () => {
-        return hasRole(COMPANY_ADMIN); // Only COMPANY_ADMIN can access payments
+        return hasRole(COMPANY_ADMIN) || hasRole(COMPANY_DEVELOPER); // Allow both COMPANY_ADMIN and COMPANY_DEVELOPER
     };
 
     const canAccessCompanyTerms = () => {
@@ -57,7 +57,7 @@ export const useRoleAccess = () => {
     };
 
     const canManagePayments = () => {
-        return hasRole(COMPANY_ADMIN);
+        return hasRole(COMPANY_ADMIN) || hasRole(COMPANY_DEVELOPER);
     };
 
     const canManageTerms = () => {

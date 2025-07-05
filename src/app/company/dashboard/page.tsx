@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Navbar from '@/app/components/Navbar';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
-import { Users, FileText, ClipboardList, Bug, DollarSign, User, Bell } from 'lucide-react';
+import { Users, FileText, ClipboardList, Bug, DollarSign, User, Bell, CreditCard } from 'lucide-react';
 import { COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -41,6 +41,12 @@ const sectionsConfig = [
         icon: DollarSign,
         route: '/company/financial',
         description: 'Track payments and invoices'
+    },
+    {
+        title: 'Payment Records',
+        icon: CreditCard,
+        route: '/company/payments',
+        description: 'Manage payment transactions'
     },
     {
         title: 'Employee Details',

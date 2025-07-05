@@ -1,32 +1,66 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/app/components/Navbar';
-import { FileText, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { FileSearch, Search, Plus, FileText, AlertTriangle, CheckCircle, Clock, DollarSign, Edit, Trash2, Eye } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { projectService, Project } from '@/app/lib/services/projectService';
 
-const ProjectsPage = () => {
+const StatusBadge = ({ status }: { status: string }) => {
+    const colorMap: Record<string, string> = {
+        Active: "bg-green-100 text-green-800 border-green-200",
+        Completed: "bg-blue-100 text-blue-800 border-blue-200",
+        "On Hold": "bg-yellow-100 text-yellow-800 border-yellow-200",
+        Cancelled: "bg-red-100 text-red-800 border-red-200"
+    };
+
+    const colorClass = colorMap[status] || "bg-gray-100 text-gray-800 border-gray-200";
+
+    return (
+        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${colorClass}`}>
+            {status}
+        </span>
+    );
+};
+
+const PaymentStatusBadge = ({ status }: { status: string }) => {
+    const colorMap: Record<string, string> = {
+        Paid: "bg-green-100 text-green-800 border-green-200",
+        Pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+        Overdue: "bg-red-100 text-red-800 border-red-200",
+        Partial: "bg-orange-100 text-orange-800 border-orange-200"
+    };
+
+    const colorClass = colorMap[status] || "bg-gray-100 text-gray-800 border-gray-200";
+
+    return (
+        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${colorClass}`}>
+            {status}
+        </span>
+    );
+};
+
+export default function CompanyProjectsPage() {
     const router = useRouter();
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [searchText, setSearchText] = useState("");
 
-    useEffect(() => {
-        fetchProjects();
-    }, []);
+    const { data: projects = [], error, isLoading } = useQuery<Project[], Error>({
+        queryKey: ['projects'],
+        queryFn: projectService.getAllProjects,
+    });
 
-    const fetchProjects = async () => {
-        try {
-            setLoading(true);
-            const projectsData = await projectService.getAllProjects();
-            setProjects(projectsData);
-            setError(null);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch projects');
-        } finally {
-            setLoading(false);
-        }
+    const filteredProjects = projects.filter(project =>
+        project.projectName?.toLowerCase().includes(searchText.toLowerCase()) ||
+        project.projectDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
+        project.projectType?.toLowerCase().includes(searchText.toLowerCase()) ||
+        project.status?.toLowerCase().includes(searchText.toLowerCase())
+    );
+
+    const stats = {
+        total: projects.length,
+        active: projects.filter(project => project.status === 'Active').length,
+        completed: projects.filter(project => project.status === 'Completed').length,
+        totalBudget: projects.reduce((sum, project) => sum + (project.totalBudget || 0), 0)
     };
 
     const formatDate = (dateString: string) => {
@@ -44,196 +78,197 @@ const ProjectsPage = () => {
         }).format(amount);
     };
 
-    const getStatusBadge = (status: string) => {
-        const statusColors = {
-            'Active': 'bg-green-100 text-green-800',
-            'Completed': 'bg-blue-100 text-blue-800',
-            'On Hold': 'bg-yellow-100 text-yellow-800',
-            'Cancelled': 'bg-red-100 text-red-800',
-        };
-
+    if (isLoading) {
         return (
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
-                {status}
-            </span>
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                    <p className="mt-2 text-gray-600">Loading projects...</p>
+                </div>
+            </div>
         );
-    };
+    }
 
-    const getPaymentStatusBadge = (status: string) => {
-        const statusColors = {
-            'Paid': 'bg-green-100 text-green-800',
-            'Pending': 'bg-yellow-100 text-yellow-800',
-            'Overdue': 'bg-red-100 text-red-800',
-            'Partial': 'bg-orange-100 text-orange-800',
-        };
-
+    if (error) {
         return (
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
-                {status}
-            </span>
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-gray-600">Error loading projects. Please try again.</p>
+                </div>
+            </div>
         );
-    };
+    }
 
     return (
-        <div className="relative w-full min-h-screen">
-            {/* Background Image with Opacity */}
-            <div
-                className="absolute inset-0 bg-cover bg-center opacity-70"
-                style={{ backgroundImage: "url('/images/background-image.png')" }}
-            ></div>
-
-            {/* Content on Top of the Background */}
-            <div className="relative z-10 w-full h-full">
-                {/* Navbar */}
-                <Navbar />
-
-                {/* Page Content */}
-                <section className="container mx-auto py-8 px-4">
-                    {/* Header */}
-                    <div className="flex justify-between items-center mb-8 mt-20">
-                        <div className="flex items-center gap-3">
-                            <FileText className="h-8 w-8 text-[#3450A3]" />
-                            <h1 className="text-3xl font-bold text-[#3450A3]">
-                                Project Management
-                            </h1>
-                        </div>
-                        <button 
-                            className="bg-[#3450A3] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
-                            onClick={() => router.push('/company/projects/add-project')}
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add New Project
-                        </button>
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                            <FileText className="h-8 w-8 text-blue-600" />
+                            Project Management
+                        </h1>
+                        <p className="text-gray-600 mt-2">Manage and track your projects</p>
                     </div>
+                    <button
+                        onClick={() => router.push('/company/projects/add-project')}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                    >
+                        <Plus className="h-5 w-5" />
+                        Add New Project
+                    </button>
+                </div>
 
-                    {/* Error State */}
-                    {error && (
-                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-                            <p>{error}</p>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Total Projects</p>
+                                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                            </div>
+                            <FileText className="h-8 w-8 text-gray-400" />
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Active</p>
+                                <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                            </div>
+                            <Clock className="h-8 w-8 text-green-400" />
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Completed</p>
+                                <p className="text-2xl font-bold text-blue-600">{stats.completed}</p>
+                            </div>
+                            <CheckCircle className="h-8 w-8 text-blue-400" />
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Total Budget</p>
+                                <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalBudget)}</p>
+                            </div>
+                            <DollarSign className="h-8 w-8 text-green-400" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <input
+                        type="text"
+                        placeholder="Search projects by name, description, type, or status..."
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Projects Table */}
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                {filteredProjects.length === 0 ? (
+                    <div className="text-center py-12">
+                        <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
+                        <p className="text-gray-600">
+                            {searchText ? 'Try adjusting your search criteria.' : 'Get started by adding your first project.'}
+                        </p>
+                        {!searchText && (
                             <button
-                                onClick={fetchProjects}
-                                className="mt-2 text-sm underline hover:no-underline"
+                                onClick={() => router.push('/company/projects/add-project')}
+                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                             >
-                                Try again
+                                Add New Project
                             </button>
-                        </div>
-                    )}
-
-                    {/* Loading State */}
-                    {loading ? (
-                        <div className="bg-white rounded-lg shadow-md p-8 text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3450A3] mx-auto mb-4"></div>
-                            <p className="text-gray-600">Loading projects...</p>
-                        </div>
-                    ) : (
-                        /* Projects Table */
-                        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                            {projects.length === 0 ? (
-                                <div className="p-8 text-center">
-                                    <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
-                                    <p className="text-gray-600">Get started by creating your first project.</p>
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Project Name
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Type & Size
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Status
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Budget
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Payment Status
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Dates
-                                                </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Actions
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {projects.map((project) => (
-                                                <tr key={project.projectId} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div>
-                                                            <div className="text-sm font-medium text-gray-900">
-                                                                {project.projectName}
-                                                            </div>
-                                                            <div className="text-sm text-gray-500 truncate max-w-xs">
-                                                                {project.projectDescription}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-900">{project.projectType}</div>
-                                                        <div className="text-sm text-gray-500">{project.projectSize}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {getStatusBadge(project.status)}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-900">
-                                                            {formatCurrency(project.totalBudget)}
-                                                        </div>
-                                                        <div className="text-sm text-gray-500">
-                                                            Est: {formatCurrency(project.estimatedBudget)}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        {getPaymentStatusBadge(project.paymentStatus)}
-                                                        <div className="text-xs text-gray-500 mt-1">
-                                                            {project.paymentType}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <div>Start: {formatDate(project.actualStartDate)}</div>
-                                                        <div>End: {formatDate(project.actualEndDate)}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                        <div className="flex space-x-2">
-                                                            <button
-                                                                className="text-blue-600 hover:text-blue-900"
-                                                                title="View Details"
-                                                            >
-                                                                <Eye className="h-4 w-4" />
-                                                            </button>
-                                                            <button
-                                                                className="text-green-600 hover:text-green-900"
-                                                                title="Edit Project"
-                                                            >
-                                                                <Edit className="h-4 w-4" />
-                                                            </button>
-                                                            <button
-                                                                className="text-red-600 hover:text-red-900"
-                                                                title="Delete Project"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </section>
+                        )}
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50 border-b">
+                                <tr>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type & Size</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Budget</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredProjects.map((project) => (
+                                    <tr key={project.projectId} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">{project.projectName}</p>
+                                                <p className="text-sm text-gray-600 truncate max-w-xs">{project.projectDescription}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm text-gray-900">{project.projectType}</div>
+                                            <div className="text-sm text-gray-500">{project.projectSize}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <StatusBadge status={project.status} />
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm text-gray-900">
+                                                {formatCurrency(project.totalBudget)}
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                                Est: {formatCurrency(project.estimatedBudget)}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <PaymentStatusBadge status={project.paymentStatus} />
+                                            <div className="text-xs text-gray-500 mt-1">
+                                                {project.paymentType}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">
+                                            <div>Start: {formatDate(project.actualStartDate)}</div>
+                                            <div>End: {formatDate(project.actualEndDate)}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex space-x-2">
+                                                <button
+                                                    onClick={() => router.push(`/company/projects/${project.projectId}`)}
+                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                >
+                                                    View
+                                                </button>
+                                                <button
+                                                    onClick={() => console.log(`Edit project ${project.projectId}`)}
+                                                    className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => console.log(`Delete project ${project.projectId}`)}
+                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );
-};
-
-export default ProjectsPage;
+}
