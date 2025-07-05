@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { Building2, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, Users, CheckCircle } from 'lucide-react';
-import { companyService, Company } from '@/app/lib/services/companyService';
-
+import { companyService } from '@/app/lib/services/companyService';
+import { Company } from '@/app/lib/types';
 const CompaniesPage = () => {
     const router = useRouter();
     const [companies, setCompanies] = useState<Company[]>([]);
@@ -200,7 +200,7 @@ const CompaniesPage = () => {
                         </p>
                         {!searchText && (
                             <button
-                                onClick={() => router.push('/company/add-company')}
+                                onClick={() => router.push('/company/companies/add-company')}
                                 className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                             >
                                 Add New Company
@@ -255,23 +255,21 @@ const CompaniesPage = () => {
                                             {getStatusBadge(company.isActive)}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex space-x-2">
+                                            <div className="flex space-x-3">
                                                 <button
                                                     onClick={() => handleEdit(company.companyId)}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+                                                    title="Edit Company"
                                                 >
+                                                    <Edit className="h-4 w-4" />
                                                     Edit
                                                 </button>
                                                 <button
-                                                    onClick={() => console.log(`View details for company ${company.companyId}`)}
-                                                    className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                                                >
-                                                    View
-                                                </button>
-                                                <button
                                                     onClick={() => handleDelete(company.companyId)}
-                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                    className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                                                    title="Delete Company"
                                                 >
+                                                    <Trash2 className="h-4 w-4" />
                                                     Delete
                                                 </button>
                                             </div>
