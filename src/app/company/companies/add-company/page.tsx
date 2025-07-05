@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { companyService, Company } from '@/app/lib/services/companyService';
-
+import { companyService } from '@/app/lib/services/companyService';
+import {Company} from '@/app/lib/types';
 // Modal Component
 const Modal = ({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
     if (!isOpen) return null;
@@ -36,6 +36,7 @@ const AddCompanyForm = () => {
     const router = useRouter();
     const [companyName, setCompanyName] = useState('');
     const [address, setAddress] = useState('');
+    const [isActive, setIsActive] = useState(true); // Default to active (checked)
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
@@ -54,7 +55,7 @@ const AddCompanyForm = () => {
         const newCompany: Omit<Company, 'companyId'> = {
             companyName,
             address,
-            isActive: true, // New companies are active by default
+            isActive,
         };
 
         try {
@@ -112,6 +113,24 @@ const AddCompanyForm = () => {
                     onChange={(e) => setAddress(e.target.value)}
                     required
                 />
+            </div>
+            
+            <div className="mb-4">
+                <div className="flex items-center">
+                    <input
+                        className="mr-2 leading-tight"
+                        id="isActive"
+                        type="checkbox"
+                        checked={isActive}
+                        onChange={(e) => setIsActive(e.target.checked)}
+                    />
+                    <label className="text-gray-700 text-sm font-bold" htmlFor="isActive">
+                        Active Status
+                    </label>
+                </div>
+                <p className="text-gray-600 text-xs mt-1">
+                    {isActive}
+                </p>
             </div>
             
             <div className="w-3/6 flex justify-end mt-16 gap-x-6">

@@ -111,3 +111,10 @@ export interface TermsConditions {
     updatedDate: string;
     isActive: boolean;
 }
+
+export interface Company {
+  companyId: number;
+  companyName: string;
+  address: string;
+  isActive: boolean;
+}

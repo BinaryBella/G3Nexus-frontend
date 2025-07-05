@@ -1,14 +1,8 @@
 // src/app/services/companyService.ts
 import api from './api';
 import { ApiResponse } from '@/app/lib/types';
+import { Company } from '@/app/lib/types';
 
-// Define Company interface to match backend response
-export interface Company {
-  companyId: number;
-  companyName: string;
-  address: string;
-  isActive: boolean;
-}
 
 export const companyService = {
   // Get all companies
