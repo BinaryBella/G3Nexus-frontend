@@ -109,4 +109,5 @@ export interface TermsConditions {
     tcId: number;
     content: string;
     updatedDate: string;
+    isActive: boolean;
 }

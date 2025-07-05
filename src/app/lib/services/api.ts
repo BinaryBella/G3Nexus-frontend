@@ -1,6 +1,6 @@
 // src/services/api.ts
 import axios from 'axios';
-import { AuthUser, LoginRequest, LoginResponse, ApiResponse, JWTPayload } from '@/app/lib/types';
+import { AuthUser, LoginRequest, LoginResponse, ApiResponse, JWTPayload, TermsConditions } from '@/app/lib/types';
 import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 
 // Create an axios instance with default config
@@ -283,6 +283,3 @@ export const authService = {
 };
 
 export default api;
-
-
-

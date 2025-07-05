@@ -6,7 +6,7 @@ export const termsService = {
   // Get current terms and conditions
   getTerms: async (): Promise<TermsConditions> => {
     try {
-      const response = await api.get<ApiResponse<TermsConditions>>('/terms');
+      const response = await api.get<ApiResponse<TermsConditions>>('/TermsConditions');
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch terms and conditions');
@@ -21,7 +21,7 @@ export const termsService = {
   // Add new terms
   addTerms: async (content: string): Promise<TermsConditions> => {
     try {
-      const response = await api.post<ApiResponse<TermsConditions>>('/terms', { content });
+      const response = await api.post<ApiResponse<TermsConditions>>('/TermsConditions', { content });
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add terms and conditions');
@@ -36,7 +36,7 @@ export const termsService = {
   // Update terms
   updateTerms: async (tcId: number, content: string): Promise<TermsConditions> => {
     try {
-      const response = await api.put<ApiResponse<TermsConditions>>(`/terms/${tcId}`, { content });
+      const response = await api.put<ApiResponse<TermsConditions>>(`/TermsConditions/${tcId}`, { content });
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update terms and conditions');
