@@ -34,6 +34,12 @@ const heroSlides = [
 // Titles, icons, and routes for the sections
 const sectionsConfig = [
     {
+        title: 'Company Details',
+        icon: Users,
+        route: '/company/companies',
+        description: 'Manage companies and their information'
+    },
+    {
         title: 'Client Details',
         icon: Users,
         route: '/company/clients',
@@ -74,13 +80,7 @@ const sectionsConfig = [
         icon: User,
         route: '/company/employees',
         description: 'Manage team members'
-    },
-    {
-        title: 'Terms & Conditions',
-        icon: Scale,
-        route: '/company/terms',
-        description: 'View and manage legal terms'
-    },
+    }
 ];
 
 const ProjectsPage = () => {
