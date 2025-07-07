@@ -6,7 +6,40 @@ import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
-import FeedbackPopup from '@/app/components/FeedbackPopup';
+import { ArrowLeft, User, X } from 'lucide-react';
+
+// Modal Component
+interface ModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    children?: React.ReactNode;
+}
+
+const Modal = ({ isOpen, onClose, children = 'Notice' }: ModalProps) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg mx-auto relative">
+                <button
+                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    onClick={onClose}
+                >
+                    <X className="h-5 w-5" />
+                </button>
+                <div className="text-gray-700 text-left mt-6 mb-8">{children}</div>
+                <div className="flex justify-end">
+                    <button
+                        className="bg-[#3450A3] hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3]"
+                        onClick={onClose}
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const EditEmployeeForm = () => {
     const router = useRouter();
@@ -22,7 +55,7 @@ const EditEmployeeForm = () => {
     const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
-    const [modalType, setModalType] = useState<'info' | 'success' | 'error' | 'warning'>('info');
+    const [success, setSuccess] = useState(false);
 
     // Form validation states
     const [errors, setErrors] = useState({
@@ -56,13 +89,13 @@ const EditEmployeeForm = () => {
         mutationFn: ({ data }: { data: Employee }) =>
             employeeService.updateEmployee(data),
         onSuccess: () => {
-            setModalMessage('Employee updated successfully!');
-            setModalType('success');
-            setIsModalOpen(true);
+            setSuccess(true);
+            setTimeout(() => {
+                router.push('/company/employees');
+            }, 1500);
         },
         onError: (error: Error) => {
             setModalMessage(`Error: ${error.message}`);
-            setModalType('error');
             setIsModalOpen(true);
         },
     });
@@ -153,16 +186,33 @@ const EditEmployeeForm = () => {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        if (modalMessage.startsWith('Employee updated successfully')) {
-            router.push('/company/employees'); // Redirect to employee list page after success
-        }
     };
+
+    const handleCancel = () => {
+        router.push('/company/employees');
+    };
+
+    if (success) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+                <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Employee Updated Successfully!</h3>
+                    <p className="text-gray-600">Redirecting to employees list...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (
-            <div className="bg-white px-8 pt-6 h-screen">
-                <div className="flex justify-center items-center h-64">
-                    <div className="text-lg">Loading employee data...</div>
+            <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+                <div className="text-center">
+                    <div className="text-lg text-gray-600">Loading employee data...</div>
                 </div>
             </div>
         );
@@ -170,8 +220,8 @@ const EditEmployeeForm = () => {
 
     if (fetchError) {
         return (
-            <div className="bg-white px-8 pt-6 h-screen">
-                <div className="flex justify-center items-center h-64">
+            <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+                <div className="text-center">
                     <div className="text-lg text-red-500">Error loading employee data</div>
                 </div>
             </div>
@@ -180,8 +230,8 @@ const EditEmployeeForm = () => {
 
     if (!employeeId) {
         return (
-            <div className="bg-white px-8 pt-6 h-screen">
-                <div className="flex justify-center items-center h-64">
+            <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+                <div className="text-center">
                     <div className="text-lg text-red-500">Employee ID is required</div>
                 </div>
             </div>
@@ -189,127 +239,199 @@ const EditEmployeeForm = () => {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="bg-white px-8 pt-6 h-screen">
-            <h1 className="text-4xl font-bold text-[#3450A3] mb-8">
-                Edit Employee Information
-            </h1>
-            {error && <p className="text-red-500 mb-4">{error}</p>}
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="employeeName">
-                    Employee Name
-                </label>
-                <input
-                    className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="employeeName"
-                    type="text"
-                    placeholder="Employee Name"
-                    value={employeeName}
-                    onChange={(e) => setEmployeeName(e.target.value)}
-                />
-                {errors.employeeName && <p className="text-red-500 text-xs mt-2">{errors.employeeName}</p>}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="contactNo">
-                    Contact No
-                </label>
-                <input
-                    className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="contactNo"
-                    type="text"
-                    placeholder="Contact No"
-                    value={contactNo}
-                    onChange={(e) => setContactNo(e.target.value)}
-                />
-                {errors.contactNo && <p className="text-red-500 text-xs mt-2">{errors.contactNo}</p>}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-                    Email Address
-                </label>
-                <input
-                    className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-500 leading-tight bg-gray-100 cursor-not-allowed"
-                    id="email"
-                    type="email"
-                    placeholder="Email Address"
-                    value={email}
-                    readOnly
-                />
-                {errors.email && <p className="text-red-500 text-xs mt-2">{errors.email}</p>}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="address">
-                    Address
-                </label>
-                <input
-                    className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="address"
-                    type="text"
-                    placeholder="Address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                />
-                {errors.address && <p className="text-red-500 text-xs mt-2">{errors.address}</p>}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="designation">
-                    Designation
-                </label>
-                <input
-                    className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="designation"
-                    type="text"
-                    placeholder="Designation"
-                    value={designation}
-                    onChange={(e) => setDesignation(e.target.value)}
-                />
-                {errors.designation && <p className="text-red-500 text-xs mt-2">{errors.designation}</p>}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="isActive">
-                    Status
-                </label>
-                <select
-                    className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                    id="isActive"
-                    value={isActive ? 'active' : 'inactive'}
-                    onChange={(e) => setIsActive(e.target.value === 'active')}
-                >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-            <div className="w-3/6 flex justify-end mt-16 gap-x-6">
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
                 <button
-                    className="w-28 bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline"
-                    type="button"
-                    onClick={() => router.push('/company/employees')}
+                    onClick={handleCancel}
+                    className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
                 >
-                    Cancel
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back to Employees
                 </button>
-                <button
-                    className="w-28 bg-[#FFBF00] hover:bg-[#FFBF00] text-black font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    type="submit"
-                    disabled={updateEmployeeMutation.isPending}
-                >
-                    {updateEmployeeMutation.isPending ? 'Updating...' : 'Update'}
-                </button>
+                
+                <div className="flex items-center gap-3">
+                    <User className="h-8 w-8 text-[#3450A3]" />
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Edit Employee</h1>
+                        <p className="text-gray-600 mt-1">Update employee information</p>
+                    </div>
+                </div>
             </div>
 
-            {/* Illustration */}
-            <div className="hidden lg:block absolute bottom-0 right-0 mb-10 mr-10">
-                <Image
-                    src="/images/project.png"
-                    alt="Employee illustration"
-                    width={400}
-                    height={320}
-                />
+            {/* Form */}
+            <div className="max-w-4xl mx-auto">
+                <div className="bg-white rounded-lg shadow-sm border p-8">
+                    {(error || Object.values(errors).some(err => err)) && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                            <div className="flex">
+                                <X className="h-5 w-5 text-red-400" />
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-red-800">Please fix the following errors:</h3>
+                                    <ul className="mt-1 text-sm text-red-700 list-disc list-inside">
+                                        {error && <li>{error}</li>}
+                                        {Object.values(errors).filter(err => err).map((errorMsg, index) => (
+                                            <li key={index}>{errorMsg}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit}>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Employee Information</h2>
+                        
+                        <div className="space-y-6">
+                            {/* Employee Name */}
+                            <div>
+                                <label htmlFor="employeeName" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Employee Name *
+                                </label>
+                                <input
+                                    type="text"
+                                    id="employeeName"
+                                    placeholder="Enter employee name"
+                                    value={employeeName}
+                                    onChange={(e) => setEmployeeName(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.employeeName ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.employeeName && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.employeeName}</p>
+                                )}
+                            </div>
+
+                            {/* Contact No */}
+                            <div>
+                                <label htmlFor="contactNo" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Contact Number *
+                                </label>
+                                <input
+                                    type="tel"
+                                    id="contactNo"
+                                    placeholder="Enter contact number"
+                                    value={contactNo}
+                                    onChange={(e) => setContactNo(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.contactNo ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.contactNo && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.contactNo}</p>
+                                )}
+                            </div>
+
+                            {/* Email */}
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email Address *
+                                </label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    placeholder="Enter email address"
+                                    value={email}
+                                    readOnly
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed"
+                                />
+                                <p className="text-sm text-gray-500 mt-1">Email cannot be changed</p>
+                                {errors.email && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                                )}
+                            </div>
+
+                            {/* Address */}
+                            <div>
+                                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Address *
+                                </label>
+                                <textarea
+                                    id="address"
+                                    rows={3}
+                                    placeholder="Enter employee address"
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.address ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.address && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+                                )}
+                            </div>
+
+                            {/* Designation */}
+                            <div>
+                                <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Designation *
+                                </label>
+                                <input
+                                    type="text"
+                                    id="designation"
+                                    placeholder="Enter designation"
+                                    value={designation}
+                                    onChange={(e) => setDesignation(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.designation ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.designation && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.designation}</p>
+                                )}
+                            </div>
+
+                            {/* Status */}
+                            <div>
+                                <label htmlFor="isActive" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Status *
+                                </label>
+                                <select
+                                    id="isActive"
+                                    value={isActive ? 'active' : 'inactive'}
+                                    onChange={(e) => setIsActive(e.target.value === 'active')}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                >
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Inactive employees will be hidden from most views
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Form Actions */}
+                        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 mt-8">
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={updateEmployeeMutation.isPending}
+                                className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                {updateEmployeeMutation.isPending ? 'Updating...' : 'Update Employee'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             {/* Modal */}
-            <FeedbackPopup isOpen={isModalOpen} onClose={closeModal} type={modalType}>
+            <Modal isOpen={isModalOpen} onClose={closeModal}>
                 {modalMessage}
-            </FeedbackPopup>
-        </form>
+            </Modal>
+        </div>
     );
 };
 

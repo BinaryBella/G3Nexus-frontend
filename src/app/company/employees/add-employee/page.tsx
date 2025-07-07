@@ -6,6 +6,7 @@ import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { ArrowLeft, User, X } from 'lucide-react';
 
 // Modal Component
 interface ModalProps {
@@ -19,17 +20,17 @@ const Modal = ({ isOpen, onClose, children = 'Notice' }: ModalProps) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg mx-auto relative h-52">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg mx-auto relative">
                 <button
                     className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 focus:outline-none"
                     onClick={onClose}
                 >
-                    ✕
+                    <X className="h-5 w-5" />
                 </button>
-                <div className="text-gray-700 text-left mt-10 mb-16">{children}</div>
-                <div className="flex justify-end items-end">
+                <div className="text-gray-700 text-left mt-6 mb-8">{children}</div>
+                <div className="flex justify-end">
                     <button
-                        className="bg-[#FFBF00] hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-lg focus:outline-none"
+                        className="bg-[#3450A3] hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3]"
                         onClick={onClose}
                     >
                         Close
@@ -63,6 +64,7 @@ const EmployeeForm = () => {
     const [errors, setErrors] = useState<FormErrors>({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
+    const [success, setSuccess] = useState(false);
 
     // Validation functions
     const validateEmail = (email: string): boolean => {
@@ -132,8 +134,10 @@ const EmployeeForm = () => {
     const addEmployeeMutation = useMutation({
         mutationFn: employeeService.addEmployee,
         onSuccess: () => {
-            setModalMessage('Employee added successfully!');
-            setIsModalOpen(true);
+            setSuccess(true);
+            setTimeout(() => {
+                router.push('/company/employees');
+            }, 1500);
         },
         onError: (error: Error) => {
             setModalMessage(`Error: ${error.message}`);
@@ -249,187 +253,246 @@ const EmployeeForm = () => {
 
     const closeModal = () => {
         setIsModalOpen(false);
-        if (modalMessage.startsWith('Employee added successfully')) {
-            router.push('/company/employees'); // Redirect to employee list page after success
-        }
     };
 
+    const handleCancel = () => {
+        router.push('/company/employees');
+    };
+
+    if (success) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+                <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Employee Added Successfully!</h3>
+                    <p className="text-gray-600">Redirecting to employees list...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <form onSubmit={handleSubmit} className="bg-white px-8 pt-6 h-screen">
-            <h1 className="text-4xl font-bold text-[#3450A3] mb-8">
-                New Employee Information
-            </h1>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="employeeName">
-                    Employee Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                    className={`shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
-                        errors.employeeName ? 'border-red-500' : ''
-                    }`}
-                    id="employeeName"
-                    type="text"
-                    placeholder="Employee Name"
-                    value={employeeName}
-                    onChange={(e) => handleEmployeeNameChange(e.target.value)}
-                />
-                {errors.employeeName && (
-                    <p className="text-red-500 text-xs mt-2">
-                        {errors.employeeName}
-                    </p>
-                )}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="contactNo">
-                    Contact No <span className="text-red-500">*</span>
-                </label>
-                <input
-                    className={`shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
-                        errors.contactNo ? 'border-red-500' : ''
-                    }`}
-                    id="contactNo"
-                    type="tel"
-                    placeholder="Contact No (e.g., 123-456-7890)"
-                    value={contactNo}
-                    onChange={(e) => handleContactNoChange(e.target.value)}
-                />
-                {errors.contactNo && (
-                    <p className="text-red-500 text-xs mt-2">
-                        {errors.contactNo}
-                    </p>
-                )}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-                    Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                    className={`shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
-                        errors.email ? 'border-red-500' : ''
-                    }`}
-                    id="email"
-                    placeholder="Email Address"
-                    value={email}
-                    onChange={(e) => handleEmailChange(e.target.value)}
-                />
-                {errors.email && (
-                    <p className="text-red-500 text-xs mt-2">
-                        {errors.email}
-                    </p>
-                )}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="address">
-                    Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                    className={`shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
-                        errors.address ? 'border-red-500' : ''
-                    }`}
-                    id="address"
-                    type="text"
-                    placeholder="Address"
-                    value={address}
-                    onChange={(e) => handleAddressChange(e.target.value)}
-                />
-                {errors.address && (
-                    <p className="text-red-500 text-xs mt-2">
-                        {errors.address}
-                    </p>
-                )}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="designation">
-                    Designation <span className="text-red-500">*</span>
-                </label>
-                <input
-                    className={`shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
-                        errors.designation ? 'border-red-500' : ''
-                    }`}
-                    id="designation"
-                    type="text"
-                    placeholder="Designation"
-                    value={designation}
-                    onChange={(e) => handleDesignationChange(e.target.value)}
-                />
-                {errors.designation && (
-                    <p className="text-red-500 text-xs mt-2">
-                        {errors.designation}
-                    </p>
-                )}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-                    Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                    className={`shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
-                        errors.password ? 'border-red-500' : ''
-                    }`}
-                    id="password"
-                    type="password"
-                    placeholder="Password (minimum 8 characters)"
-                    value={password}
-                    onChange={(e) => handlePasswordChange(e.target.value)}
-                />
-                {errors.password && (
-                    <p className="text-red-500 text-xs mt-2">
-                        {errors.password}
-                    </p>
-                )}
-            </div>
-            <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
-                    Confirm Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                    className={`shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline ${
-                        errors.confirmPassword ? 'border-red-500' : ''
-                    }`}
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirm Password"
-                    value={confirmPassword}
-                    onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                />
-                {errors.confirmPassword && (
-                    <p className="text-red-500 text-xs mt-2">
-                        {errors.confirmPassword}
-                    </p>
-                )}
-            </div>
-            <div className="w-3/6 flex justify-end mt-16 gap-x-6">
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
                 <button
-                    className="w-28 bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline"
-                    type="button"
-                    onClick={() => router.push('/company/employees')}
+                    onClick={handleCancel}
+                    className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
                 >
-                    Cancel
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back to Employees
                 </button>
-                <button
-                    className="w-28 bg-[#FFBF00] hover:bg-[#FFBF00] text-black font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    type="submit"
-                    disabled={addEmployeeMutation.isPending}
-                >
-                    {addEmployeeMutation.isPending ? 'Adding...' : 'Submit'}
-                </button>
+                
+                <div className="flex items-center gap-3">
+                    <User className="h-8 w-8 text-[#3450A3]" />
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Add New Employee</h1>
+                        <p className="text-gray-600 mt-1">Create a new employee record</p>
+                    </div>
+                </div>
             </div>
 
-            {/* Illustration */}
-            <div className="hidden lg:block absolute bottom-0 right-0 mb-10 mr-10">
-                <Image
-                    src="/images/project.png" // Use an appropriate image for employees
-                    alt="Employee illustration"
-                    width={400}
-                    height={320}
-                />
+            {/* Form */}
+            <div className="max-w-4xl mx-auto">
+                <div className="bg-white rounded-lg shadow-sm border p-8">
+                    {Object.keys(errors).length > 0 && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                            <div className="flex">
+                                <X className="h-5 w-5 text-red-400" />
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-red-800">Please fix the following errors:</h3>
+                                    <ul className="mt-1 text-sm text-red-700 list-disc list-inside">
+                                        {Object.values(errors).map((error, index) => (
+                                            <li key={index}>{error}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit}>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Employee Information</h2>
+                        
+                        <div className="space-y-6">
+                            {/* Employee Name */}
+                            <div>
+                                <label htmlFor="employeeName" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Employee Name *
+                                </label>
+                                <input
+                                    type="text"
+                                    id="employeeName"
+                                    placeholder="Enter employee name"
+                                    value={employeeName}
+                                    onChange={(e) => handleEmployeeNameChange(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.employeeName ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.employeeName && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.employeeName}</p>
+                                )}
+                            </div>
+
+                            {/* Contact No */}
+                            <div>
+                                <label htmlFor="contactNo" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Contact Number *
+                                </label>
+                                <input
+                                    type="tel"
+                                    id="contactNo"
+                                    placeholder="Enter contact number"
+                                    value={contactNo}
+                                    onChange={(e) => handleContactNoChange(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.contactNo ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.contactNo && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.contactNo}</p>
+                                )}
+                            </div>
+
+                            {/* Email */}
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email Address *
+                                </label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    placeholder="Enter email address"
+                                    value={email}
+                                    onChange={(e) => handleEmailChange(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.email ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.email && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                                )}
+                            </div>
+
+                            {/* Address */}
+                            <div>
+                                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Address *
+                                </label>
+                                <textarea
+                                    id="address"
+                                    rows={3}
+                                    placeholder="Enter employee address"
+                                    value={address}
+                                    onChange={(e) => handleAddressChange(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.address ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.address && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+                                )}
+                            </div>
+
+                            {/* Designation */}
+                            <div>
+                                <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Designation *
+                                </label>
+                                <input
+                                    type="text"
+                                    id="designation"
+                                    placeholder="Enter designation"
+                                    value={designation}
+                                    onChange={(e) => handleDesignationChange(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.designation ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.designation && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.designation}</p>
+                                )}
+                            </div>
+
+                            {/* Password */}
+                            <div>
+                                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Password *
+                                </label>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    placeholder="Enter password (minimum 8 characters)"
+                                    value={password}
+                                    onChange={(e) => handlePasswordChange(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.password ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.password && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                                )}
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div>
+                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Confirm Password *
+                                </label>
+                                <input
+                                    type="password"
+                                    id="confirmPassword"
+                                    placeholder="Confirm password"
+                                    value={confirmPassword}
+                                    onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                        errors.confirmPassword ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {errors.confirmPassword && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Form Actions */}
+                        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 mt-8">
+                            <button
+                                type="button"
+                                onClick={handleCancel}
+                                className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={addEmployeeMutation.isPending}
+                                className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                {addEmployeeMutation.isPending ? 'Adding...' : 'Add Employee'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             {/* Modal */}
             <Modal isOpen={isModalOpen} onClose={closeModal}>
                 {modalMessage}
             </Modal>
-        </form>
+        </div>
     );
 };
 
