@@ -28,6 +28,7 @@ export interface AuthUser {
     address?: string;
     employeeId?: number;
     clientId?: number;
+    companyId?: number;
 }
 
 // JWT Token payload interface
@@ -41,6 +42,7 @@ export interface JWTPayload {
     address?: string;
     employeeId?: number;
     clientId?: number;
+    companyId?: number;
     iat?: number;
     exp?: number;
     // Additional possible fields from different JWT implementations
@@ -117,4 +119,22 @@ export interface Company {
   companyName: string;
   address: string;
   isActive: boolean;
+}
+
+export interface Project {
+  projectId: number;
+  projectName: string;
+  projectType: string;
+  projectSize: string;
+  creationDate: string;
+  projectDescription: string;
+  estimatedBudget: number;
+  actualStartDate: string;
+  actualEndDate: string;
+  totalBudget: number;
+  paymentType: string;
+  paymentStatus: string;
+  status: string;
+  isActive: boolean;
+  companyId?: number;
 }

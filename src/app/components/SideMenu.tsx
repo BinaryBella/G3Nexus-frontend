@@ -12,6 +12,7 @@ interface MenuItem {
 
 // Expanded menu items based on the image
 const menuItems: MenuItem[] = [
+    { title: 'Companies', path: '/company/companies', icon: User },
     { title: 'Clients', path: '/company/clients', icon: User },
     { title: 'Employees', path: '/company/employees', icon: Users },
     { title: 'Projects', path: '/company/projects', icon: FolderOpen },
