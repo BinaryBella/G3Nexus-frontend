@@ -49,7 +49,6 @@ export interface JWTPayload {
 
 export interface Client {
     id: number;
-    organizationName: string;
     name: string;
     contactNo: string;
     email: string;
@@ -57,6 +56,7 @@ export interface Client {
     password: string;
     role: string;
     isActive: boolean;
+    companyId: number;
 }
 
 export interface Employee {

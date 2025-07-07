@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { clientService } from '@/app/lib/services/clientService'; // Import clientService
+import { companyService } from '@/app/lib/services/companyService'; // Import companyService
 import { Client } from '../../../lib/types'; // Client type definition
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -40,7 +41,6 @@ const ClientsPage: React.FC = () => {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState(0);
     const [clientData, setClientData] = useState<Omit<Client, 'id'>>({
-        organizationName: '',
         name: '',
         contactNo: '',
         address: '',
@@ -48,11 +48,18 @@ const ClientsPage: React.FC = () => {
         password: '',
         role: '',
         isActive: true,
+        companyId: 0,
     });
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
+
+    // Fetch companies data
+    const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery({
+        queryKey: ['companies'],
+        queryFn: companyService.getAllCompanies,
+    });
 
     const addClientMutation = useMutation({
         mutationFn: clientService.addClient,
@@ -71,7 +78,11 @@ const ClientsPage: React.FC = () => {
         const { name, value, type } = e.target;
         setClientData((prev) => ({
             ...prev,
-            [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+            [name]: type === 'checkbox' 
+                ? (e.target as HTMLInputElement).checked 
+                : name === 'companyId' 
+                    ? parseInt(value, 10) || 0 
+                    : value,
         }));
     };
 
@@ -80,7 +91,7 @@ const ClientsPage: React.FC = () => {
         setError(null);
         
         // Validate all required fields
-        if (!clientData.organizationName || !clientData.name || !clientData.contactNo || !clientData.address) {
+        if (!clientData.companyId || !clientData.name || !clientData.contactNo || !clientData.address) {
             setError('Please fill in all personal information fields');
             return;
         }
@@ -113,7 +124,7 @@ const ClientsPage: React.FC = () => {
     };
 
     const validatePersonalInfo = () => {
-        if (!clientData.organizationName || !clientData.name || !clientData.contactNo || !clientData.address) {
+        if (!clientData.companyId || !clientData.name || !clientData.contactNo || !clientData.address) {
             setError('Please fill in all personal information fields');
             return false;
         }
@@ -157,16 +168,31 @@ const ClientsPage: React.FC = () => {
                     <div className="w-2/4">
                         <h2 className="text-2xl font-semibold text-[#3450A3] mb-4">Personal Information</h2>
                         <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Organization Name</label>
-                            <input
-                                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                name="organizationName"
-                                type="text"
-                                placeholder="Organization Name"
-                                value={clientData.organizationName}
-                                onChange={handleChange}
-                                required
-                            />
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Company</label>
+                            {companiesLoading ? (
+                                <div className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight">
+                                    Loading companies...
+                                </div>
+                            ) : companiesError ? (
+                                <div className="shadow appearance-none border rounded w-full py-2 px-3 text-red-700 leading-tight">
+                                    Error loading companies
+                                </div>
+                            ) : (
+                                <select
+                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    name="companyId"
+                                    value={clientData.companyId}
+                                    onChange={handleChange}
+                                    required
+                                >
+                                    <option value={0}>Select Company</option>
+                                    {companies.map((company) => (
+                                        <option key={company.companyId} value={company.companyId}>
+                                            {company.companyName}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
                         <div className="mb-4">
                             <label className="block text-gray-700 text-sm font-bold mb-2">Client Name</label>
