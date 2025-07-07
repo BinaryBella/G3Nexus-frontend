@@ -2,6 +2,7 @@
 import axios from 'axios';
 import { AuthUser, LoginRequest, LoginResponse, ApiResponse, JWTPayload, TermsConditions } from '@/app/lib/types';
 import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
+import { createHmac } from 'crypto';
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -32,7 +33,12 @@ api.interceptors.response.use(
     },
     async (error) => {
         const originalRequest = error.config;
-        if (error.response?.status === 401 && !originalRequest._retry) {
+
+        // Skip token refresh for login endpoints to avoid infinite loops and page refreshes
+        const isLoginEndpoint = originalRequest.url?.includes('/Auth/login') ||
+                               originalRequest.url?.includes('/auth/login');
+
+        if (error.response?.status === 401 && !originalRequest._retry && !isLoginEndpoint) {
             originalRequest._retry = true;
             try {
                 // Attempt to refresh the token
@@ -68,29 +74,32 @@ api.interceptors.response.use(
 
 // Utility function to decode JWT token
 const decodeJWTToken = (token: string): JWTPayload | null => {
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(
-            atob(base64)
-                .split('')
-                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                .join('')
-        );
-        return JSON.parse(jsonPayload);
-    } catch (error) {
-        console.error('Error decoding JWT token:', error);
-        return null;
-    }
+    const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET;
+    // Implement JWT decoding logic here using JWT_SECRET
+    if (!token || !JWT_SECRET) return null;
+
+    const [header, payload, signature] = token.split('.');
+    const decodedPayload = JSON.parse(atob(payload));
+    const isValid = verifyJWTSignature(header, payload, signature, JWT_SECRET);
+
+    return isValid ? decodedPayload : null;
+};
+
+// Utility function to verify JWT signature (simplified example)
+const verifyJWTSignature = (header: string, payload: string, signature: string, secret: string): boolean => {
+    const expectedSignature = createHmac('sha256', secret)
+        .update(`${header}.${payload}`)
+        .digest('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    return expectedSignature === signature;
 };
 
 // Function to extract user data from JWT token
 const getUserFromToken = (accessToken: string): AuthUser | null => {
     const payload = decodeJWTToken(accessToken);
     if (!payload) return null;
-
-    // Debug: log the payload to see what's actually in the token
-    console.log('JWT Payload:', payload);
 
     // Extract role - check multiple possible field names
     const role = payload.role ||
@@ -101,21 +110,6 @@ const getUserFromToken = (accessToken: string): AuthUser | null => {
                  payload['authorities'] ||
                  'UNKNOWN_ROLE';
 
-    // Extract user ID - check multiple possible field names
-    const userId = payload.sub ||
-                   payload['id'] ||
-                   payload['userId'] ||
-                   payload['nameid'] ||
-                   payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
-                   '0';
-
-    // Extract name - check multiple possible field names
-    const userName = payload.name ||
-                     payload['Name'] ||
-                     payload['unique_name'] ||
-                     payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
-                     'Unknown User';
-
     // Extract email - check multiple possible field names
     const userEmail = payload.email ||
                       payload['Email'] ||
@@ -124,15 +118,11 @@ const getUserFromToken = (accessToken: string): AuthUser | null => {
                       '';
 
     console.log('Extracted user data:', {
-        id: userId,
-        name: userName,
         email: userEmail,
         role: role
     });
 
     return {
-        id: parseInt(userId) || 0,
-        name: userName,
         email: userEmail,
         role: role,
         isActive: true,
@@ -177,7 +167,7 @@ export const authService = {
     // Store tokens in localStorage when user logs in
     setTokens: (accessToken: string, refreshToken: string) => {
         if (typeof window === 'undefined') return;
-        localStorage.setItem('accessToken', accessToken);
+        sessionStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
     },
 
@@ -188,7 +178,7 @@ export const authService = {
         }
 
         return {
-            accessToken: localStorage.getItem('accessToken'),
+            accessToken: sessionStorage.getItem('accessToken'),
             refreshToken: localStorage.getItem('refreshToken'),
         };
     },

@@ -6,6 +6,8 @@ import ProjectCard from '@/app/components/ProjectCard';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { projectService, Project } from '@/app/lib/services/projectService';
 import { ChevronLeftIcon, ChevronRightIcon, SparklesIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { authService } from '@/app/lib/services';
+import { log } from 'console';
 
 const ProjectsPage = () => {
     const { user } = useAuth();
@@ -39,138 +41,17 @@ const ProjectsPage = () => {
         }
     ];
 
-    // Dummy projects data for demonstration
-    const dummyProjects: Project[] = [
-        {
-            projectId: 1,
-            projectName: "E-Commerce Platform Redesign",
-            projectDescription: "Complete overhaul of the existing e-commerce platform with modern UI/UX design, improved performance, and mobile optimization.",
-            projectType: "Web Development",
-            projectSize: "Large",
-            creationDate: "2024-01-15",
-            actualStartDate: "2024-01-20",
-            actualEndDate: "2024-06-15",
-            status: "In Progress",
-            estimatedBudget: 45000,
-            totalBudget: 48000,
-            paymentType: "Fixed",
-            paymentStatus: "Partial",
-            isActive: true
-        },
-        {
-            projectId: 2,
-            projectName: "Mobile Banking Application",
-            projectDescription: "Secure mobile banking app with biometric authentication, real-time transactions, and comprehensive financial management tools.",
-            projectType: "Mobile Development",
-            projectSize: "Medium",
-            creationDate: "2024-02-20",
-            actualStartDate: "2024-02-25",
-            actualEndDate: "2024-08-20",
-            status: "Active",
-            estimatedBudget: 75000,
-            totalBudget: 75000,
-            paymentType: "Milestone",
-            paymentStatus: "Paid",
-            isActive: true
-        },
-        {
-            projectId: 3,
-            projectName: "CRM System Integration",
-            projectDescription: "Custom CRM solution integrated with existing business processes, featuring advanced analytics and automated workflows.",
-            projectType: "Enterprise Software",
-            projectSize: "Medium",
-            creationDate: "2024-01-08",
-            actualStartDate: "2024-01-15",
-            actualEndDate: "2024-04-08",
-            status: "Completed",
-            estimatedBudget: 32000,
-            totalBudget: 34000,
-            paymentType: "Fixed",
-            paymentStatus: "Paid",
-            isActive: false
-        },
-        {
-            projectId: 4,
-            projectName: "AI-Powered Analytics Dashboard",
-            projectDescription: "Intelligent dashboard with machine learning capabilities for predictive analytics and data visualization.",
-            projectType: "Data Analytics",
-            projectSize: "Large",
-            creationDate: "2024-03-10",
-            actualStartDate: "2024-03-15",
-            actualEndDate: "2024-09-10",
-            status: "Planning",
-            estimatedBudget: 58000,
-            totalBudget: 58000,
-            paymentType: "Hourly",
-            paymentStatus: "Pending",
-            isActive: true
-        },
-        {
-            projectId: 5,
-            projectName: "Cloud Migration Strategy",
-            projectDescription: "Comprehensive cloud migration plan with infrastructure optimization, security implementation, and cost analysis.",
-            projectType: "Cloud Services",
-            projectSize: "Small",
-            creationDate: "2024-02-05",
-            actualStartDate: "2024-02-10",
-            actualEndDate: "2024-05-05",
-            status: "In Progress",
-            estimatedBudget: 42000,
-            totalBudget: 45000,
-            paymentType: "Milestone",
-            paymentStatus: "Partial",
-            isActive: true
-        },
-        {
-            projectId: 6,
-            projectName: "Inventory Management System",
-            projectDescription: "Real-time inventory tracking system with automated alerts, supplier integration, and comprehensive reporting features.",
-            projectType: "Business Software",
-            projectSize: "Medium",
-            creationDate: "2024-01-25",
-            actualStartDate: "2024-02-01",
-            actualEndDate: "2024-06-25",
-            status: "Active",
-            estimatedBudget: 28000,
-            totalBudget: 30000,
-            paymentType: "Fixed",
-            paymentStatus: "Paid",
-            isActive: true
-        }
-    ];
-
     // Fetch projects based on user's client ID
     useEffect(() => {
         const fetchProjects = async () => {
-            // For demonstration, we'll use dummy data
-            // In production, uncomment the API call below
-            
-            /*
-            if (!user || !user.clientId) {
-                setError('Client information not available');
-                setLoading(false);
-                return;
-            }
-
-            try {
-                setLoading(true);
-                const userProjects = await projectService.getProjectsByClient(user.clientId);
-                setProjects(userProjects);
-                setError(null);
-            } catch (err) {
-                console.error('Error fetching projects:', err);
-                setError('Failed to load projects. Please try again later.');
-            } finally {
-                setLoading(false);
-            }
-            */
-
             // Using dummy data for demonstration
             try {
+                var user = authService.getCurrentUser();
+                console.log('Current user:', user);
+
                 setLoading(true);
-                // Simulate API delay
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                setProjects(dummyProjects);
+                var projects = await projectService.getProjectsByClient(user.email);
+                setProjects(projects);
                 setError(null);
             } catch (err) {
                 console.error('Error loading projects:', err);
@@ -305,7 +186,7 @@ const ProjectsPage = () => {
                             Active Projects
                         </h2>
                         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                            {user?.organizationName ? 
+                            {user?.organizationName ?
                                 `Explore and manage all projects for ${user.organizationName}` :
                                 'Discover your ongoing projects and track their progress'
                             }
@@ -395,9 +276,9 @@ const ProjectsPage = () => {
                         {/* Company Info */}
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2">
-                                <img 
-                                    src="/images/logo-white.png" 
-                                    alt="G3 Nexus" 
+                                <img
+                                    src="/images/logo-white.png"
+                                    alt="G3 Nexus"
                                     className="h-8 w-auto"
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;

@@ -6,7 +6,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { debugAuthState } from '@/app/utils/authDebug';
 
 interface LoginFormData {
     email: string;
@@ -32,15 +31,9 @@ export default function LoginPage() {
             console.log('Starting login process...');
             await login(formData.email, formData.password);
             console.log('Login successful, checking auth state...');
-
-            // Debug the auth state after login
-            setTimeout(() => {
-                debugAuthState();
-            }, 1000);
-
         } catch (error: any) {
             console.error('Login failed:', error);
-            setError(error.message || 'Login failed');
+            setError("Invalid email or password. Please try again.");
         } finally {
             setIsLoading(false);
         }
@@ -149,7 +142,7 @@ export default function LoginPage() {
                                 </button>
                             </div>
                             {error && (
-                                <div className="text-red-300 mt-2 text-sm">
+                                <div className="text-red-300 mt-20 text-sm text-center">
                                     {error}
                                 </div>
                             )}

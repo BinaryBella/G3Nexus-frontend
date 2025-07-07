@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     const userData = authService.getCurrentUser();
                     setUser(userData);
                     setIsAuthenticated(true);
-
+                    debugger;
                     // Redirect based on user role
                     redirectUserBasedOnRole(userData.role);
                 } catch (userError) {
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const redirectUserBasedOnRole = (role: string) => {
         console.log('Redirecting user with role:', role);
         console.log('Available constants:', { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER });
-        
+
         switch (role) {
             case CLIENT_ADMIN:
             case CLIENT_USER:
