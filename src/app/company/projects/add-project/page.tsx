@@ -1,8 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
+import { useQuery } from '@tanstack/react-query';
+import { companyService } from '@/app/lib/services/companyService';
+import { projectService } from '@/app/lib/services/projectService';
+import { Company } from '@/app/lib/types';
 
 interface ProjectFormProps {
     projectId: string;
@@ -10,14 +14,14 @@ interface ProjectFormProps {
 
 interface ProjectFormData {
     // Project Initialization fields
-    clientName: string;
+    companyId: string;
     projectName: string;
     projectType: string;
     projectSize: string;
     creationDate: string;
     projectDescription: string;
     estimatedBudget: string;
-    status: boolean;
+    status: string;
     // More Details fields
     actualStartDate: string;
     actualEndDate: string;
@@ -30,19 +34,25 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('initialization');
     const [formData, setFormData] = useState<ProjectFormData>({
-        clientName: '',
+        companyId: '',
         projectName: '',
         projectType: '',
         projectSize: '',
         creationDate: '',
         projectDescription: '',
         estimatedBudget: '',
-        status: false,
+        status: 'Active',
         actualStartDate: '',
         actualEndDate: '',
         totalBudget: '',
         paymentType: '',
         paymentStatus: '',
+    });
+
+    // Fetch companies for dropdown
+    const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery<Company[], Error>({
+        queryKey: ['companies'],
+        queryFn: companyService.getAllCompanies,
     });
 
     const handleChange = (
@@ -58,9 +68,27 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            // Add your API call here to save the project data
-            console.log('Submitting form data:', formData);
-            router.push('/client/projects'); // Redirect after successful submission
+            // Prepare data for API call
+            const projectData = {
+                projectName: formData.projectName,
+                projectType: formData.projectType,
+                projectSize: formData.projectSize,
+                creationDate: formData.creationDate,
+                projectDescription: formData.projectDescription,
+                estimatedBudget: parseFloat(formData.estimatedBudget) || 0,
+                actualStartDate: formData.actualStartDate,
+                actualEndDate: formData.actualEndDate,
+                totalBudget: parseFloat(formData.totalBudget) || 0,
+                paymentType: formData.paymentType,
+                paymentStatus: formData.paymentStatus,
+                status: formData.status,
+                isActive: true,
+                companyId: parseInt(formData.companyId)
+            };
+
+            await projectService.addProject(projectData);
+            console.log('Project added successfully');
+            router.push('/company/projects'); // Redirect after successful submission
         } catch (error) {
             console.error('Error submitting form:', error);
         }
@@ -101,21 +129,28 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {activeTab === 'initialization' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Client Name */}
+                            {/* Company Name */}
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium text-gray-700">
-                                    Client Name
+                                    Company Name
                                 </label>
                                 <select
-                                    name="clientName"
-                                    value={formData.clientName}
+                                    name="companyId"
+                                    value={formData.companyId}
                                     onChange={handleChange}
                                     className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    disabled={companiesLoading}
                                 >
-                                    <option value="">Select Client Name</option>
-                                    <option value="client1">Client 1</option>
-                                    <option value="client2">Client 2</option>
+                                    <option value="">Select Company</option>
+                                    {companies.map((company) => (
+                                        <option key={company.companyId} value={company.companyId}>
+                                            {company.companyName}
+                                        </option>
+                                    ))}
                                 </select>
+                                {companiesError && (
+                                    <p className="text-red-500 text-sm">Error loading companies</p>
+                                )}
                             </div>
 
                             {/* Project Name */}
@@ -297,16 +332,20 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
 
                             {/* Status */}
                             <div className="space-y-2">
-                                <label className="flex items-center space-x-2">
-                                    <input
-                                        type="checkbox"
-                                        name="status"
-                                        checked={formData.status}
-                                        onChange={(e) => setFormData((prev) => ({...prev, status: e.target.checked}))}
-                                        className="form-checkbox h-5 w-5 text-blue-600"
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">Status</span>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Project Status
                                 </label>
+                                <select
+                                    name="status"
+                                    value={formData.status}
+                                    onChange={handleChange}
+                                    className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                    <option value="Completed">Completed</option>
+                                    <option value="On Hold">On Hold</option>
+                                </select>
                             </div>
                         </div>
                     )}
