@@ -167,15 +167,6 @@ const EmployeesPage = () => {
                     <div className="bg-white rounded-lg shadow-sm border p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-600">Inactive</p>
-                                <p className="text-2xl font-bold text-red-600">{stats.inactive}</p>
-                            </div>
-                            <UserX className="h-8 w-8 text-red-400" />
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-lg shadow-sm border p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
                                 <p className="text-sm font-medium text-gray-600">Admins</p>
                                 <p className="text-2xl font-bold text-purple-600">{stats.admins}</p>
                             </div>
