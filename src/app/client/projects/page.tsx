@@ -44,13 +44,16 @@ const ProjectsPage = () => {
     // Fetch projects based on user's client ID
     useEffect(() => {
         const fetchProjects = async () => {
-            // Using dummy data for demonstration
             try {
                 var user = authService.getCurrentUser();
                 console.log('Current user:', user);
 
+                if (!user.clientId) {
+                    throw new Error('Client ID not found in user data');
+                }
+
                 setLoading(true);
-                var projects = await projectService.getProjectsByClient(user.email);
+                var projects = await projectService.getProjectsByClient(user.clientId);
                 setProjects(projects);
                 setError(null);
             } catch (err) {

@@ -52,9 +52,9 @@ export const projectService = {
   },
 
   // Get projects by client
-  getProjectsByClient: async (email: string): Promise<Project[]> => {
+  getProjectsByClient: async (clientId: number): Promise<Project[]> => {
     try {
-      const response = await api.get<ApiResponse<Project[]>>(`/project/client/${email}`);
+      const response = await api.get<ApiResponse<Project[]>>(`/project/client/${clientId}`);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch projects for client');

@@ -74,15 +74,42 @@ api.interceptors.response.use(
 
 // Utility function to decode JWT token
 const decodeJWTToken = (token: string): JWTPayload | null => {
-    const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET;
-    // Implement JWT decoding logic here using JWT_SECRET
-    if (!token || !JWT_SECRET) return null;
+    console.log('decodeJWTToken called with token:', token?.substring(0, 50) + '...');
+    
+    try {
+        if (!token) {
+            console.error('No token provided to decodeJWTToken');
+            return null;
+        }
 
-    const [header, payload, signature] = token.split('.');
-    const decodedPayload = JSON.parse(atob(payload));
-    const isValid = verifyJWTSignature(header, payload, signature, JWT_SECRET);
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+            console.error('Invalid JWT format - expected 3 parts, got:', parts.length);
+            return null;
+        }
 
-    return isValid ? decodedPayload : null;
+        const [header, payload, signature] = parts;
+        console.log('JWT parts:', { 
+            headerLength: header.length, 
+            payloadLength: payload.length, 
+            signatureLength: signature.length 
+        });
+
+        // Decode the payload (base64url)
+        const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+        
+        const decodedPayload = JSON.parse(atob(padded));
+        console.log('Successfully decoded JWT payload:', decodedPayload);
+        
+        // For client-side usage, we don't need to verify the signature
+        // The server should handle verification
+        return decodedPayload;
+        
+    } catch (error) {
+        console.error('Error decoding JWT token:', error);
+        return null;
+    }
 };
 
 // Utility function to verify JWT signature (simplified example)
@@ -98,69 +125,108 @@ const verifyJWTSignature = (header: string, payload: string, signature: string, 
 
 // Function to extract user data from JWT token
 const getUserFromToken = (accessToken: string): AuthUser | null => {
-    const payload = decodeJWTToken(accessToken);
-    if (!payload) return null;
+    console.log('getUserFromToken called with token preview:', accessToken?.substring(0, 50) + '...');
+    
+    try {
+        const payload = decodeJWTToken(accessToken);
+        console.log('Decoded JWT payload:', payload);
+        
+        if (!payload) {
+            console.error('Failed to decode JWT token');
+            return null;
+        }
 
-    // Extract role - check multiple possible field names
-    const role = payload.role ||
-                 payload['Role'] ||
-                 payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
-                 payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role'] ||
-                 payload['roles'] ||
-                 payload['authorities'] ||
-                 'UNKNOWN_ROLE';
+        // Extract role - check multiple possible field names
+        const role = payload.role ||
+                     payload['Role'] ||
+                     payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+                     payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role'] ||
+                     payload['roles'] ||
+                     payload['authorities'] ||
+                     'UNKNOWN_ROLE';
 
-    // Extract email - check multiple possible field names
-    const userEmail = payload.email ||
-                      payload['Email'] ||
-                      payload['email_address'] ||
-                      payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
-                      '';
+        // Extract email - check multiple possible field names
+        const userEmail = payload.email ||
+                          payload['Email'] ||
+                          payload['email_address'] ||
+                          payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
+                          '';
 
-    console.log('Extracted user data:', {
-        email: userEmail,
-        role: role
-    });
+        console.log('Extracted user data:', {
+            email: userEmail,
+            role: role,
+            allPayloadKeys: Object.keys(payload)
+        });
 
-    return {
-        email: userEmail,
-        role: role,
-        isActive: true,
-        organizationName: payload.organizationName || payload['OrganizationName'],
-        contactNo: payload.contactNo || payload['ContactNo'],
-        address: payload.address || payload['Address'],
-        employeeId: payload.employeeId || payload['EmployeeId'],
-        clientId: payload.clientId || payload['ClientId'],
-    };
+        const user = {
+            email: userEmail,
+            role: role,
+            isActive: true,
+            organizationName: payload.organizationName || payload['OrganizationName'],
+            contactNo: payload.contactNo || payload['ContactNo'],
+            address: payload.address || payload['Address'],
+            employeeId: payload.employeeId || payload['EmployeeId'],
+            clientId: payload.clientId || payload['ClientId'],
+        };
+        
+        console.log('Returning user object:', user);
+        return user;
+    } catch (error) {
+        console.error('Error in getUserFromToken:', error);
+        return null;
+    }
 };
 
 // reset password function
 export const authService = {
     login: async (email: string, password: string): Promise<ApiResponse<LoginResponse>> => {
         try {
+            console.log('AuthService login called with email:', email);
             const loginData: LoginRequest = {
                 emailAddress: email,
                 password: password
             };
+            console.log('Sending login request with data:', { ...loginData, password: '[REDACTED]' });
+            
             const response = await api.post('/Auth/login', loginData);
+            console.log('Raw axios response:', {
+                status: response.status,
+                statusText: response.statusText,
+                data: response.data
+            });
+            
             return response.data;
         } catch (error) {
+            console.error('AuthService login error:', error);
+            console.error('Error details:', {
+                message: error instanceof Error ? error.message : 'Unknown error',
+                response: error && typeof error === 'object' && 'response' in error ? (error as any).response : 'No response',
+                request: error && typeof error === 'object' && 'request' in error ? 'Request exists' : 'No request'
+            });
             throw error;
         }
     },
 
     // Get the current user's information from the stored access token
     getCurrentUser: (): AuthUser => {
+        console.log('getCurrentUser called');
         const { accessToken } = authService.getTokens();
+        console.log('Retrieved token from storage:', { hasToken: !!accessToken });
+        
         if (!accessToken) {
+            console.error('No access token found in storage');
             throw new Error('No access token found');
         }
 
         const user = getUserFromToken(accessToken);
+        console.log('getUserFromToken result:', user);
+        
         if (!user) {
+            console.error('Failed to extract user from token');
             throw new Error('Invalid access token');
         }
 
+        console.log('getCurrentUser returning user:', user);
         return user;
     },
 
@@ -186,7 +252,7 @@ export const authService = {
     // Clear tokens on logout
     clearTokens: () => {
         if (typeof window === 'undefined') return;
-        localStorage.removeItem('accessToken');
+        sessionStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
     },
 
