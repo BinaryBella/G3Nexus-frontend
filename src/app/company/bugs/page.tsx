@@ -213,7 +213,7 @@ export default function CompanyBugsPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
                                                 <button
-                                                    onClick={() => router.push(`/company/bugs/edit-bug-report/${bug.bugId}`)}
+                                                    onClick={() => router.push(`/company/bugs/edit-bug-report?id=${bug.bugId}`)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                 >
                                                     Edit
