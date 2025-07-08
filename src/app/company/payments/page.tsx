@@ -222,7 +222,7 @@ export default function CompanyPaymentsPage() {
                                             <td className="px-6 py-4">
                                                 <div className="flex space-x-2">
                                                     <button
-                                                        onClick={() => router.push(`/company/payments/edit-payment/${payment.paymentId}`)}
+                                                        onClick={() => router.push(`/company/payments/edit-payment?id=${payment.paymentId}`)}
                                                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                     >
                                                         Edit
