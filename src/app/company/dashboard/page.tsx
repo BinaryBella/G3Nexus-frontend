@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, FileText, ClipboardList, Bug, DollarSign, User, Bell, CreditCard, ChevronLeft, ChevronRight, Scale } from 'lucide-react';
+import { Users, FileText, ClipboardList, Bug, DollarSign, User, Bell, CreditCard, ChevronLeft, ChevronRight, Scale, Mail, Phone, MapPin, Globe, Twitter, Linkedin, Facebook, Instagram, ArrowUp } from 'lucide-react';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import { useAuth } from '@/app/contexts/AuthContext';
 
@@ -393,6 +393,162 @@ const ProjectsPage = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Footer Section */}
+                <footer className="relative z-10 bg-gradient-to-br from-[#0f1b3f] to-[#2a4086] text-white">
+                    {/* Main Footer Content */}
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {/* Company Info */}
+                            <div className="space-y-6">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-gradient-to-r from-[#ffbf00] to-[#ffbf00] rounded-lg flex items-center justify-center">
+                                        <FileText className="w-6 h-6 text-[#0f1b3f]" />
+                                    </div>
+                                    <h3 className="text-xl font-bold">G3 Nexus</h3>
+                                </div>
+                                <p className="text-blue-200 leading-relaxed">
+                                    Empowering businesses with innovative project management solutions and seamless collaboration tools.
+                                </p>
+                                <div className="flex space-x-4">
+                                    <a href="#" className="w-10 h-10 bg-white/10 hover:bg-[#ffbf00] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110">
+                                        <Twitter className="w-5 h-5" />
+                                    </a>
+                                    <a href="#" className="w-10 h-10 bg-white/10 hover:bg-[#ffbf00] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110">
+                                        <Linkedin className="w-5 h-5" />
+                                    </a>
+                                    <a href="#" className="w-10 h-10 bg-white/10 hover:bg-[#ffbf00] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110">
+                                        <Facebook className="w-5 h-5" />
+                                    </a>
+                                    <a href="#" className="w-10 h-10 bg-white/10 hover:bg-[#ffbf00] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110">
+                                        <Instagram className="w-5 h-5" />
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Quick Links */}
+                            <div className="space-y-6">
+                                <h4 className="text-lg font-semibold text-[#ffbf00]">Quick Links</h4>
+                                <ul className="space-y-3">
+                                    <li>
+                                        <Link href="/company/projects" className="text-blue-200 hover:text-white transition-colors duration-300 flex items-center group">
+                                            <span className="w-2 h-2 bg-[#ffbf00] rounded-full mr-3 transition-transform duration-300 group-hover:scale-125"></span>
+                                            Projects
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link href="/company/clients" className="text-blue-200 hover:text-white transition-colors duration-300 flex items-center group">
+                                            <span className="w-2 h-2 bg-[#ffbf00] rounded-full mr-3 transition-transform duration-300 group-hover:scale-125"></span>
+                                            Clients
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link href="/company/employees" className="text-blue-200 hover:text-white transition-colors duration-300 flex items-center group">
+                                            <span className="w-2 h-2 bg-[#ffbf00] rounded-full mr-3 transition-transform duration-300 group-hover:scale-125"></span>
+                                            Team
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link href="/company/financial" className="text-blue-200 hover:text-white transition-colors duration-300 flex items-center group">
+                                            <span className="w-2 h-2 bg-[#ffbf00] rounded-full mr-3 transition-transform duration-300 group-hover:scale-125"></span>
+                                            Financial
+                                        </Link>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Resources */}
+                            <div className="space-y-6">
+                                <h4 className="text-lg font-semibold text-[#ffbf00]">Resources</h4>
+                                <ul className="space-y-3">
+                                    <li>
+                                        <a href="#" className="text-blue-200 hover:text-white transition-colors duration-300 flex items-center group">
+                                            <span className="w-2 h-2 bg-[#ffbf00] rounded-full mr-3 transition-transform duration-300 group-hover:scale-125"></span>
+                                            Documentation
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" className="text-blue-200 hover:text-white transition-colors duration-300 flex items-center group">
+                                            <span className="w-2 h-2 bg-[#ffbf00] rounded-full mr-3 transition-transform duration-300 group-hover:scale-125"></span>
+                                            API Reference
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" className="text-blue-200 hover:text-white transition-colors duration-300 flex items-center group">
+                                            <span className="w-2 h-2 bg-[#ffbf00] rounded-full mr-3 transition-transform duration-300 group-hover:scale-125"></span>
+                                            Support Center
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="#" className="text-blue-200 hover:text-white transition-colors duration-300 flex items-center group">
+                                            <span className="w-2 h-2 bg-[#ffbf00] rounded-full mr-3 transition-transform duration-300 group-hover:scale-125"></span>
+                                            Community
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* Contact Info */}
+                            <div className="space-y-6">
+                                <h4 className="text-lg font-semibold text-[#ffbf00]">Contact Us</h4>
+                                <div className="space-y-4">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-8 h-8 bg-[#ffbf00]/20 rounded-lg flex items-center justify-center">
+                                            <Mail className="w-4 h-4 text-[#ffbf00]" />
+                                        </div>
+                                        <span className="text-blue-200">support@g3nexus.com</span>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-8 h-8 bg-[#ffbf00]/20 rounded-lg flex items-center justify-center">
+                                            <Phone className="w-4 h-4 text-[#ffbf00]" />
+                                        </div>
+                                        <span className="text-blue-200">+1 (555) 123-4567</span>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-8 h-8 bg-[#ffbf00]/20 rounded-lg flex items-center justify-center">
+                                            <MapPin className="w-4 h-4 text-[#ffbf00]" />
+                                        </div>
+                                        <span className="text-blue-200">123 Business Ave, Suite 100</span>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-8 h-8 bg-[#ffbf00]/20 rounded-lg flex items-center justify-center">
+                                            <Globe className="w-4 h-4 text-[#ffbf00]" />
+                                        </div>
+                                        <span className="text-blue-200">www.g3nexus.com</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer Bottom */}
+                    <div className="border-t border-white/10">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                                <div className="text-blue-200 text-sm">
+                                    © 2025 G3 Nexus. All rights reserved. Built with friendly for better project management.
+                                </div>
+                                <div className="flex items-center space-x-6">
+                                    <a href="#" className="text-blue-200 hover:text-white text-sm transition-colors duration-300">
+                                        Privacy Policy
+                                    </a>
+                                    <a href="#" className="text-blue-200 hover:text-white text-sm transition-colors duration-300">
+                                        Terms of Service
+                                    </a>
+                                    <a href="#" className="text-blue-200 hover:text-white text-sm transition-colors duration-300">
+                                        Cookie Policy
+                                    </a>
+                                    <button
+                                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                        className="w-10 h-10 bg-[#ffbf00] hover:bg-[#ffbf00]/80 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110"
+                                    >
+                                        <ArrowUp className="w-5 h-5 text-[#0f1b3f]" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
             </div>
             </div>
     );
