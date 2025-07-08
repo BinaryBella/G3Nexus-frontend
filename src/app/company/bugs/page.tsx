@@ -91,14 +91,14 @@ export default function CompanyBugsPage() {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <Bug className="h-8 w-8 text-red-600" />
+                            <Bug className="h-8 w-8 text-[#3450A3]" />
                             Bug Reports
                         </h1>
                         <p className="text-gray-600 mt-2">Manage and track bug reports</p>
                     </div>
                     <button
                         onClick={() => router.push('/company/bugs/add-bug-report')}
-                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
                     >
                         <Plus className="h-5 w-5" />
                         Add Bug Report

@@ -130,14 +130,14 @@ const EmployeesPage = () => {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <Users className="h-8 w-8 text-blue-600" />
+                            <Users className="h-8 w-8 text-[#3450A3]" />
                             Employee Management
                         </h1>
                         <p className="text-gray-600 mt-2">Manage and track your employees</p>
                     </div>
                     <button
                         onClick={() => router.push('/company/employees/add-employee')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
                     >
                         <Plus className="h-5 w-5" />
                         Add New Employee
@@ -225,7 +225,7 @@ const EmployeesPage = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
                                                 <div className="flex-shrink-0 h-10 w-10">
-                                                    <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
+                                                    <div className="h-10 w-10 rounded-full bg-[#3450A3] flex items-center justify-center text-white font-medium">
                                                         {employee.name?.charAt(0).toUpperCase()}
                                                     </div>
                                                 </div>

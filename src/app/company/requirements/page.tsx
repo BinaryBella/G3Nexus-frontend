@@ -74,14 +74,14 @@ export default function CompanyRequirementsPage() {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <FileText className="h-8 w-8 text-blue-600" />
+                            <FileText className="h-8 w-8 text-[#3450A3]" />
                             Requirements
                         </h1>
                         <p className="text-gray-600 mt-2">Manage project requirements and specifications</p>
                     </div>
                     <button
                         onClick={() => router.push('/company/requirements/add-requirement')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
                     >
                         <Plus className="h-5 w-5" />
                         Add Requirement

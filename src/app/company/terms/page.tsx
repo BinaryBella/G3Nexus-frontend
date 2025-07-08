@@ -144,7 +144,7 @@ const TermsAndConditionsPage = () => {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <FileText className="h-8 w-8 text-blue-600" />
+                            <FileText className="h-8 w-8 text-[#3450A3]" />
                             Terms and Conditions
                         </h1>
                         <p className="text-gray-600 mt-2">Manage your company's terms and conditions</p>
@@ -171,7 +171,7 @@ const TermsAndConditionsPage = () => {
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
                 <div className="p-6 border-b bg-gray-50">
                     <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <Edit className="h-5 w-5 text-blue-600" />
+                        <Edit className="h-5 w-5 text-[#3450A3]" />
                         Terms and Conditions Editor
                     </h2>
                     <p className="text-sm text-gray-600 mt-1">Use the rich text editor below to create and modify your terms and conditions</p>
@@ -204,7 +204,7 @@ const TermsAndConditionsPage = () => {
                     <button
                         onClick={handleSave}
                         disabled={createMutation.isPending || updateMutation.isPending}
-                        className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
+                        className="px-6 py-2 bg-[#3450A3] hover:bg-blue-700 text-white disabled:bg-gray-400 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
                         type="button"
                     >
                         <Save className="h-4 w-4" />
