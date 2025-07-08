@@ -1,17 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from "next/image";
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useRouter, useParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { companyService } from '@/app/lib/services/companyService';
 import { projectService } from '@/app/lib/services/projectService';
 import { Company } from '@/app/lib/types';
-import { FolderPlus, ArrowLeft, ArrowRight, X } from 'lucide-react';
-
-interface ProjectFormProps {
-    projectId: string;
-}
+import { Edit3, ArrowLeft, ArrowRight, X } from 'lucide-react';
 
 interface ProjectFormData {
     // Project Initialization fields
@@ -31,8 +26,12 @@ interface ProjectFormData {
     paymentStatus: string;
 }
 
-export default function ProjectForm({ projectId }: ProjectFormProps) {
+export default function EditProjectForm() {
     const router = useRouter();
+    const params = useParams();
+    const queryClient = useQueryClient();
+    const projectId = params.projectId as string;
+    
     const [activeTab, setActiveTab] = useState(0);
     const [formData, setFormData] = useState<ProjectFormData>({
         companyId: '',
@@ -53,23 +52,53 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
 
+    // Fetch project data
+    const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => projectService.getProjectById(parseInt(projectId)),
+        enabled: !!projectId,
+    });
+
     // Fetch companies for dropdown
     const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery<Company[], Error>({
         queryKey: ['companies'],
         queryFn: companyService.getAllCompanies,
     });
 
-    const addProjectMutation = useMutation({
-        mutationFn: projectService.addProject,
+    // Populate form when project data is loaded
+    useEffect(() => {
+        if (project) {
+            setFormData({
+                companyId: project.companyId?.toString() || '',
+                projectName: project.projectName || '',
+                projectType: project.projectType || '',
+                projectSize: project.projectSize || '',
+                creationDate: project.creationDate ? new Date(project.creationDate).toISOString().split('T')[0] : '',
+                projectDescription: project.projectDescription || '',
+                estimatedBudget: project.estimatedBudget?.toString() || '',
+                status: project.status || 'Active',
+                actualStartDate: project.actualStartDate ? new Date(project.actualStartDate).toISOString().split('T')[0] : '',
+                actualEndDate: project.actualEndDate ? new Date(project.actualEndDate).toISOString().split('T')[0] : '',
+                totalBudget: project.totalBudget?.toString() || '',
+                paymentType: project.paymentType || '',
+                paymentStatus: project.paymentStatus || '',
+            });
+        }
+    }, [project]);
+
+    const updateProjectMutation = useMutation({
+        mutationFn: (projectData: any) => projectService.updateProject(parseInt(projectId), projectData),
         onSuccess: () => {
             setSuccess(true);
+            queryClient.invalidateQueries({ queryKey: ['projects'] });
+            queryClient.invalidateQueries({ queryKey: ['project', projectId] });
             setTimeout(() => {
                 router.push('/company/projects');
             }, 1500);
         },
         onError: (error: Error) => {
-            console.error('Error adding project:', error);
-            setError(error.message || 'Failed to add project');
+            console.error('Error updating project:', error);
+            setError(error.message || 'Failed to update project');
         },
     });
 
@@ -113,7 +142,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                 companyId: parseInt(formData.companyId)
             };
 
-            await addProjectMutation.mutateAsync(projectData);
+            await updateProjectMutation.mutateAsync(projectData);
         } catch (error) {
             // Error handling is done in the mutation's onError callback
         } finally {
@@ -140,6 +169,33 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         return true;
     };
 
+    if (projectLoading) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                    <p className="mt-2 text-gray-600">Loading project...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (projectError) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <p className="text-red-600">Error loading project. Please try again.</p>
+                    <button
+                        onClick={handleCancel}
+                        className="mt-4 text-blue-600 hover:text-blue-800"
+                    >
+                        Back to Projects
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (success) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
@@ -149,7 +205,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Project Added Successfully!</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Project Updated Successfully!</h3>
                     <p className="text-gray-600">Redirecting to projects list...</p>
                 </div>
             </div>
@@ -169,10 +225,10 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                 </button>
                 
                 <div className="flex items-center gap-3">
-                    <FolderPlus className="h-8 w-8 text-[#3450A3]" />
+                    <Edit3 className="h-8 w-8 text-[#3450A3]" />
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Add New Project</h1>
-                        <p className="text-gray-600 mt-1">Create a new project record</p>
+                        <h1 className="text-3xl font-bold text-gray-900">Edit Project</h1>
+                        <p className="text-gray-600 mt-1">Update project information</p>
                     </div>
                 </div>
             </div>
@@ -504,7 +560,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         disabled={isSubmitting}
                                         className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                     >
-                                        {isSubmitting ? 'Adding...' : 'Add Project'}
+                                        {isSubmitting ? 'Updating...' : 'Update Project'}
                                     </button>
                                 </div>
                             </div>

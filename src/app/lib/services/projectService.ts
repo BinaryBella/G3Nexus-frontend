@@ -18,6 +18,7 @@ export interface Project {
   paymentStatus: string;
   status: string;
   isActive: boolean;
+  companyId?: number; // Optional for backwards compatibility
 }
 
 export const projectService = {

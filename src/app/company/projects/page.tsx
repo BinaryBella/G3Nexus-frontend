@@ -249,7 +249,7 @@ export default function CompanyProjectsPage() {
                                                     View
                                                 </button>
                                                 <button
-                                                    onClick={() => console.log(`Edit project ${project.projectId}`)}
+                                                    onClick={() => router.push(`/company/projects/${project.projectId}/edit`)}
                                                     className="text-green-600 hover:text-green-800 text-sm font-medium"
                                                 >
                                                     Edit
