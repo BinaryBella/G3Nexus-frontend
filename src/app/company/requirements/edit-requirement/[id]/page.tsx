@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService'; 
-import { Requirement } from '../../../lib/types';
-import { useRouter } from 'next/navigation';
+import { Requirement } from '../../../../lib/types';
 import { FileText, ArrowLeft, X } from 'lucide-react';
 
 // Modal Component for Notifications
@@ -34,8 +34,11 @@ const Modal = ({ isOpen, onClose, children = 'Notice' }: any) => {
     );
 };
 
-const RequirementForm = () => {
+const EditRequirementForm = () => {
     const router = useRouter();
+    const params = useParams();
+    const queryClient = useQueryClient();
+    const requirementId = parseInt(params.id as string, 10);
 
     // State variables for form fields and error handling
     const [requirementTitle, setRequirementTitle] = useState('');
@@ -44,17 +47,41 @@ const RequirementForm = () => {
     const [attachment, setAttachment] = useState('');
     const [clientId, setClientId] = useState<number | null>(null);
     const [projectId, setProjectId] = useState<number | null>(null);
-    const [isActive, setIsActive] = useState(true); // Default value for isActive
+    const [isActive, setIsActive] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Mutation for adding requirement
-    const addRequirementMutation = useMutation({
-        mutationFn: requirementService.addRequirement,
+    // Fetch requirement data
+    const { data: requirement, isLoading: requirementLoading, error: requirementError } = useQuery({
+        queryKey: ['requirement', requirementId],
+        queryFn: () => requirementService.getRequirementById(requirementId),
+        enabled: !!requirementId
+    });
+
+    // Update form state when requirement data is loaded
+    useEffect(() => {
+        if (requirement) {
+            setRequirementTitle(requirement.requirementTitle || '');
+            setPriority(requirement.priority || '');
+            setRequirementDescription(requirement.requirementDescription || '');
+            setAttachment(requirement.attachment || '');
+            setClientId(requirement.clientId || null);
+            setProjectId(requirement.projectId || null);
+            setIsActive(requirement.isActive ?? true);
+        }
+    }, [requirement]);
+
+    // Mutation for updating requirement
+    const updateRequirementMutation = useMutation({
+        mutationFn: (data: Partial<Omit<Requirement, 'requirementId'>>) => 
+            requirementService.updateRequirement(requirementId, data),
         onSuccess: () => {
-            setModalMessage('Requirement added successfully!');
+            setModalMessage('Requirement updated successfully!');
             setIsModalOpen(true);
+            queryClient.invalidateQueries({ queryKey: ['requirements'] });
+            queryClient.invalidateQueries({ queryKey: ['requirement', requirementId] });
         },
         onError: (error: Error) => {
             setModalMessage(`Error: ${error.message}`);
@@ -72,7 +99,7 @@ const RequirementForm = () => {
             return;
         }
 
-        const newRequirement: Omit<Requirement, 'requirementId'> = {
+        const updatedRequirement: Partial<Omit<Requirement, 'requirementId'>> = {
             requirementTitle,
             priority,
             requirementDescription,
@@ -83,21 +110,51 @@ const RequirementForm = () => {
         };
 
         try {
-            await addRequirementMutation.mutateAsync(newRequirement);
+            setIsSubmitting(true);
+            await updateRequirementMutation.mutateAsync(updatedRequirement);
         } catch (error) {
             // Error handling is done in mutation's onError callback
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     // Closing the modal
     const closeModal = () => {
         setIsModalOpen(false);
-        if (modalMessage.startsWith('Requirement added successfully')) {
-            router.push('/company/requirements'); // Redirect after successful addition
+        if (modalMessage.startsWith('Requirement updated successfully')) {
+            router.push('/company/requirements'); // Redirect after successful update
         }
     };
 
-    if (modalMessage.startsWith('Requirement added successfully')) {
+    if (requirementLoading) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                    <p className="mt-2 text-gray-600">Loading requirement...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (requirementError) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <p className="text-red-600">Error loading requirement. Please try again.</p>
+                    <button
+                        onClick={() => router.push('/company/requirements')}
+                        className="mt-4 text-blue-600 hover:text-blue-800"
+                    >
+                        Back to Requirements
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (modalMessage.startsWith('Requirement updated successfully')) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
@@ -106,7 +163,7 @@ const RequirementForm = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Requirement Added Successfully!</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Requirement Updated Successfully!</h3>
                     <p className="text-gray-600">Redirecting to requirements list...</p>
                 </div>
             </div>
@@ -128,8 +185,8 @@ const RequirementForm = () => {
                 <div className="flex items-center gap-3">
                     <FileText className="h-8 w-8 text-[#3450A3]" />
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Add New Requirement</h1>
-                        <p className="text-gray-600 mt-1">Create a new requirement record</p>
+                        <h1 className="text-3xl font-bold text-gray-900">Edit Requirement</h1>
+                        <p className="text-gray-600 mt-1">Update requirement information</p>
                     </div>
                 </div>
             </div>
@@ -271,9 +328,9 @@ const RequirementForm = () => {
                             <button
                                 className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed"
                                 type="submit"
-                                disabled={addRequirementMutation.isPending}
+                                disabled={isSubmitting || updateRequirementMutation.isPending}
                             >
-                                {addRequirementMutation.isPending ? 'Adding...' : 'Add Requirement'}
+                                {isSubmitting || updateRequirementMutation.isPending ? 'Updating...' : 'Update Requirement'}
                             </button>
                         </div>
                     </form>
@@ -288,4 +345,4 @@ const RequirementForm = () => {
     );
 };
 
-export default RequirementForm;
+export default EditRequirementForm;

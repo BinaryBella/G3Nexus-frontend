@@ -33,6 +33,21 @@ export const requirementService = {
     }
   },
 
+  // Get requirement by ID
+  getRequirementById: async (id: number): Promise<Requirement> => {
+    try {
+      const response = await api.get<ApiResponse<Requirement>>(`/requirement/${id}`);
+
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to fetch requirement');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Add requirement
   addRequirement: async (requirementData: Omit<Requirement, 'requirementId'>): Promise<Requirement> => {
     try {
