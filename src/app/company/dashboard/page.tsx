@@ -254,7 +254,7 @@ const ProjectsPage = () => {
                                         href={section.route}
                                         className="block h-full group"
                                     >
-                                        <div className="relative cursor-pointer h-full transition-all duration-700 transform bg-white/90 backdrop-blur-xl text-gray-700 border border-white/60 h-64 rounded-3xl p-8 flex flex-col justify-between overflow-hidden shadow-lg hover:bg-[#2a4086]">
+                                        <div className="relative cursor-pointer transition-all duration-700 transform bg-white/90 backdrop-blur-xl text-gray-700 border border-white/60 h-64 rounded-3xl p-8 flex flex-col justify-between overflow-hidden shadow-lg hover:bg-[#2a4086]">
                                             {/* Animated Background Gradient */}
                                             <div className="absolute inset-0 "></div>
 
