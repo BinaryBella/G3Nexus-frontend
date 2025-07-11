@@ -57,9 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (email: string, password: string) => {
         setLoading(true);
         try {
-            console.log('Starting login with email:', email);
+            console.log('Attempting login with email:', email);
             const response = await authService.login(email, password);
-            console.log('Auth service response:', response);
+            console.log('Login response:', response);
             
             if (response.status) {
                 const { accessToken, refreshToken } = response.data;
@@ -70,46 +70,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
                 
                 authService.setTokens(accessToken, refreshToken);
-                console.log('Tokens set in storage');
 
                 // Get user data from token
                 try {
-                    console.log('Attempting to get user data from token...');
                     const userData = authService.getCurrentUser();
-                    console.log('User data extracted:', userData);
-                    
+                    console.log('User data extracted from token:', userData);
                     setUser(userData);
                     setIsAuthenticated(true);
-                    console.log('Auth state updated successfully');
-                    
                     // Redirect based on user role
                     redirectUserBasedOnRole(userData.role);
                 } catch (userError) {
                     console.error('Error fetching user data:', userError);
-                    console.error('UserError details:', {
-                        message: userError instanceof Error ? userError.message : 'Unknown error',
-                        stack: userError instanceof Error ? userError.stack : 'No stack trace'
-                    });
-                    throw new Error('Could not retrieve user information: ' + (userError instanceof Error ? userError.message : 'Unknown error'));
+                    throw new Error('Could not retrieve user information');
                 }
             } else {
                 console.error('Login response status is false:', response);
                 throw new Error(response.message || 'Login failed');
             }
         } catch (error: unknown) {
-            console.error('Login error caught in context:', error);
-            console.error('Error details:', {
-                message: error instanceof Error ? error.message : 'Unknown error',
-                stack: error instanceof Error ? error.stack : 'No stack trace',
-                errorType: typeof error,
-                errorConstructor: error?.constructor?.name
-            });
-            
-            // Check if it's an axios error
-            if (error && typeof error === 'object' && 'response' in error) {
-                console.error('Axios error response:', (error as any).response);
-            }
-            
+            console.error('Login error:', error);
             throw error instanceof Error ? error : new Error('An unknown error occurred');
         } finally {
             setLoading(false);
@@ -119,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const redirectUserBasedOnRole = (role: string) => {
         console.log('Redirecting user with role:', role);
         console.log('Available constants:', { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER });
-
+        
         switch (role) {
             case CLIENT_ADMIN:
             case CLIENT_USER:

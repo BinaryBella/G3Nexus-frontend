@@ -2,7 +2,6 @@
 import axios from 'axios';
 import { AuthUser, LoginRequest, LoginResponse, ApiResponse, JWTPayload, TermsConditions } from '@/app/lib/types';
 import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
-import { createHmac } from 'crypto';
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -33,11 +32,11 @@ api.interceptors.response.use(
     },
     async (error) => {
         const originalRequest = error.config;
-
+        
         // Skip token refresh for login endpoints to avoid infinite loops and page refreshes
-        const isLoginEndpoint = originalRequest.url?.includes('/Auth/login') ||
+        const isLoginEndpoint = originalRequest.url?.includes('/Auth/login') || 
                                originalRequest.url?.includes('/auth/login');
-
+        
         if (error.response?.status === 401 && !originalRequest._retry && !isLoginEndpoint) {
             originalRequest._retry = true;
             try {
@@ -74,159 +73,137 @@ api.interceptors.response.use(
 
 // Utility function to decode JWT token
 const decodeJWTToken = (token: string): JWTPayload | null => {
-    console.log('decodeJWTToken called with token:', token?.substring(0, 50) + '...');
-    
     try {
+        console.log('Decoding JWT token:', token?.substring(0, 50) + '...');
+        
         if (!token) {
-            console.error('No token provided to decodeJWTToken');
+            console.error('No token provided');
             return null;
         }
-
+        
         const parts = token.split('.');
         if (parts.length !== 3) {
-            console.error('Invalid JWT format - expected 3 parts, got:', parts.length);
+            console.error('Invalid JWT format - should have 3 parts, got:', parts.length);
             return null;
         }
 
         const [header, payload, signature] = parts;
         console.log('JWT parts:', { 
-            headerLength: header.length, 
-            payloadLength: payload.length, 
-            signatureLength: signature.length 
+            hasHeader: !!header, 
+            hasPayload: !!payload, 
+            hasSignature: !!signature 
         });
-
-        // Decode the payload (base64url)
-        const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
         
-        const decodedPayload = JSON.parse(atob(padded));
-        console.log('Successfully decoded JWT payload:', decodedPayload);
+        // Decode the payload (we don't verify signature on client-side for security reasons)
+        const base64Url = payload;
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+            atob(base64)
+                .split('')
+                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+        );
         
-        // For client-side usage, we don't need to verify the signature
-        // The server should handle verification
+        console.log('Decoded JSON payload string:', jsonPayload);
+        const decodedPayload = JSON.parse(jsonPayload);
+        console.log('Parsed payload object:', decodedPayload);
+        
+        // Check if token is expired
+        if (decodedPayload.exp && Date.now() >= decodedPayload.exp * 1000) {
+            console.warn('JWT token is expired');
+            return null;
+        }
+        
         return decodedPayload;
-        
     } catch (error) {
         console.error('Error decoding JWT token:', error);
+        console.error('Token that failed to decode:', token);
         return null;
     }
 };
 
-// Utility function to verify JWT signature (simplified example)
-const verifyJWTSignature = (header: string, payload: string, signature: string, secret: string): boolean => {
-    const expectedSignature = createHmac('sha256', secret)
-        .update(`${header}.${payload}`)
-        .digest('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-    return expectedSignature === signature;
-};
+
 
 // Function to extract user data from JWT token
 const getUserFromToken = (accessToken: string): AuthUser | null => {
-    console.log('getUserFromToken called with token preview:', accessToken?.substring(0, 50) + '...');
+    console.log('Parsing JWT token...');
+    const payload = decodeJWTToken(accessToken);
+    console.log('JWT payload:', payload);
     
-    try {
-        const payload = decodeJWTToken(accessToken);
-        console.log('Decoded JWT payload:', payload);
-        
-        if (!payload) {
-            console.error('Failed to decode JWT token');
-            return null;
-        }
-
-        // Extract role - check multiple possible field names
-        const role = payload.role ||
-                     payload['Role'] ||
-                     payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
-                     payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role'] ||
-                     payload['roles'] ||
-                     payload['authorities'] ||
-                     'UNKNOWN_ROLE';
-
-        // Extract email - check multiple possible field names
-        const userEmail = payload.email ||
-                          payload['Email'] ||
-                          payload['email_address'] ||
-                          payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
-                          '';
-
-        console.log('Extracted user data:', {
-            email: userEmail,
-            role: role,
-            allPayloadKeys: Object.keys(payload)
-        });
-
-        const user = {
-            email: userEmail,
-            role: role,
-            isActive: true,
-            organizationName: payload.organizationName || payload['OrganizationName'],
-            contactNo: payload.contactNo || payload['ContactNo'],
-            address: payload.address || payload['Address'],
-            employeeId: payload.employeeId || payload['EmployeeId'],
-            clientId: payload.clientId || payload['ClientId'],
-        };
-        
-        console.log('Returning user object:', user);
-        return user;
-    } catch (error) {
-        console.error('Error in getUserFromToken:', error);
+    if (!payload) {
+        console.error('Failed to decode JWT token');
         return null;
     }
+
+    // Extract role - check multiple possible field names
+    const role = payload.role ||
+                 payload['Role'] ||
+                 payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+                 payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role'] ||
+                 payload['roles'] ||
+                 payload['authorities'] ||
+                 'UNKNOWN_ROLE';
+
+    // Extract email - check multiple possible field names
+    const userEmail = payload.email ||
+                      payload['Email'] ||
+                      payload['email_address'] ||
+                      payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
+                      '';
+
+    console.log('Extracted user data:', {
+        email: userEmail,
+        role: role,
+        payload: payload
+    });
+
+    const userData = {        
+        email: userEmail,
+        role: role,
+        isActive: true,
+        organizationName: payload.organizationName || payload['OrganizationName'],
+        contactNo: payload.contactNo || payload['ContactNo'],
+        address: payload.address || payload['Address'],
+        employeeId: payload.employeeId || payload['EmployeeId'],
+        clientId: payload.clientId || payload['ClientId'],
+    };
+    
+    console.log('Final user data object:', userData);
+    return userData;
 };
 
 // reset password function
 export const authService = {
     login: async (email: string, password: string): Promise<ApiResponse<LoginResponse>> => {
         try {
-            console.log('AuthService login called with email:', email);
             const loginData: LoginRequest = {
                 emailAddress: email,
                 password: password
             };
-            console.log('Sending login request with data:', { ...loginData, password: '[REDACTED]' });
-            
+            console.log('Sending login request with data:', loginData);
             const response = await api.post('/Auth/login', loginData);
-            console.log('Raw axios response:', {
-                status: response.status,
-                statusText: response.statusText,
-                data: response.data
-            });
-            
+            console.log('Raw login response:', response);
+            console.log('Login response data:', response.data);
             return response.data;
-        } catch (error) {
-            console.error('AuthService login error:', error);
-            console.error('Error details:', {
-                message: error instanceof Error ? error.message : 'Unknown error',
-                response: error && typeof error === 'object' && 'response' in error ? (error as any).response : 'No response',
-                request: error && typeof error === 'object' && 'request' in error ? 'Request exists' : 'No request'
-            });
+        } catch (error: any) {
+            console.error('Login request failed:', error);
+            console.error('Error response:', error.response?.data);
             throw error;
         }
     },
 
     // Get the current user's information from the stored access token
     getCurrentUser: (): AuthUser => {
-        console.log('getCurrentUser called');
         const { accessToken } = authService.getTokens();
-        console.log('Retrieved token from storage:', { hasToken: !!accessToken });
-        
         if (!accessToken) {
-            console.error('No access token found in storage');
             throw new Error('No access token found');
         }
 
         const user = getUserFromToken(accessToken);
-        console.log('getUserFromToken result:', user);
-        
         if (!user) {
-            console.error('Failed to extract user from token');
             throw new Error('Invalid access token');
         }
 
-        console.log('getCurrentUser returning user:', user);
         return user;
     },
 

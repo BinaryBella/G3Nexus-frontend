@@ -33,7 +33,16 @@ export default function LoginPage() {
             console.log('Login successful, checking auth state...');
         } catch (error: any) {
             console.error('Login failed:', error);
-            setError("Invalid email or password. Please try again.");
+            // Provide more specific error messages
+            if (error.response?.status === 401) {
+                setError("Invalid email or password. Please try again.");
+            } else if (error.message?.includes('Could not retrieve user information')) {
+                setError("Login successful but there was an issue with user data. Please try again.");
+            } else if (error.message?.includes('Invalid access token')) {
+                setError("Authentication issue. Please try again.");
+            } else {
+                setError(error.message || "Invalid email or password. Please try again.");
+            }
         } finally {
             setIsLoading(false);
         }

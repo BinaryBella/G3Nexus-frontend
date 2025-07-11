@@ -44,16 +44,13 @@ const ProjectsPage = () => {
     // Fetch projects based on user's client ID
     useEffect(() => {
         const fetchProjects = async () => {
+            // Using dummy data for demonstration
             try {
                 var user = authService.getCurrentUser();
                 console.log('Current user:', user);
-
-                if (!user.clientId) {
-                    throw new Error('Client ID not found in user data');
-                }
-
+                
                 setLoading(true);
-                var projects = await projectService.getProjectsByClient(user.clientId);
+                var projects = await projectService.getProjectsByClient(user.email);
                 setProjects(projects);
                 setError(null);
             } catch (err) {
@@ -189,7 +186,7 @@ const ProjectsPage = () => {
                             Active Projects
                         </h2>
                         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                            {user?.organizationName ?
+                            {user?.organizationName ? 
                                 `Explore and manage all projects for ${user.organizationName}` :
                                 'Discover your ongoing projects and track their progress'
                             }
@@ -279,9 +276,9 @@ const ProjectsPage = () => {
                         {/* Company Info */}
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2">
-                                <img
-                                    src="/images/logo-white.png"
-                                    alt="G3 Nexus"
+                                <img 
+                                    src="/images/logo-white.png" 
+                                    alt="G3 Nexus" 
                                     className="h-8 w-auto"
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
