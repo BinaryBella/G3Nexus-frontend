@@ -6,7 +6,7 @@ export const bugService = {
   // Get all bugs
   getAllBugs: async (): Promise<Bug[]> => {
     try {
-      const response = await api.get<ApiResponse<Bug[]>>('/bug');
+      const response = await api.get<ApiResponse<Bug[]>>('/Bug');
       
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch bugs');
@@ -21,13 +21,16 @@ export const bugService = {
   // Get bugs by project
   getBugsByProject: async (projectId: number): Promise<Bug[]> => {
     try {
-      const response = await api.get<ApiResponse<Bug[]>>(`/bug/project/${projectId}`);
+      // First try to get all bugs and filter by projectId
+      const response = await api.get<ApiResponse<Bug[]>>('/Bug');
       
       if (!response.data.status) {
-        throw new Error(response.data.error || 'Failed to fetch bugs for project');
+        throw new Error(response.data.error || 'Failed to fetch bugs');
       }
       
-      return response.data.data;
+      // Filter bugs by projectId
+      const filteredBugs = response.data.data.filter(bug => bug.projectId === projectId);
+      return filteredBugs;
     } catch (error) {
       throw error;
     }
@@ -36,7 +39,7 @@ export const bugService = {
   // Add bug
   addBug: async (bugData: Omit<Bug, 'bugId'>): Promise<Bug> => {
     try {
-      const response = await api.post<ApiResponse<Bug>>('/bug', bugData);
+      const response = await api.post<ApiResponse<Bug>>('/Bug', bugData);
       
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add bug');
@@ -51,7 +54,7 @@ export const bugService = {
   // Update bug
   updateBug: async (id: number, bugData: Partial<Omit<Bug, 'bugId'>>): Promise<Bug> => {
     try {
-      const response = await api.put<ApiResponse<Bug>>(`/bug/${id}`, bugData);
+      const response = await api.put<ApiResponse<Bug>>(`/Bug/${id}`, bugData);
       
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update bug');
@@ -66,7 +69,7 @@ export const bugService = {
   // Delete bug
   deleteBug: async (id: number): Promise<boolean> => {
     try {
-      const response = await api.delete<ApiResponse<boolean>>(`/bug/${id}`);
+      const response = await api.delete<ApiResponse<boolean>>(`/Bug/${id}`);
       
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to delete bug');
@@ -85,7 +88,7 @@ export const bugService = {
       formData.append('file', file);
       
       const response = await api.post<ApiResponse<string>>(
-        `/bug/${bugId}/attachment`, 
+        `/Bug/${bugId}/attachment`, 
         formData,
         {
           headers: {

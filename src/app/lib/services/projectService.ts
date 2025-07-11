@@ -25,7 +25,7 @@ export const projectService = {
   // Get all projects
   getAllProjects: async (): Promise<Project[]> => {
     try {
-      const response = await api.get<ApiResponse<Project[]>>('/project');
+      const response = await api.get<ApiResponse<Project[]>>('/Project');
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch projects');
@@ -40,7 +40,7 @@ export const projectService = {
   // Get project by ID
   getProjectById: async (id: number): Promise<Project> => {
     try {
-      const response = await api.get<ApiResponse<Project>>(`/project/${id}`);
+      const response = await api.get<ApiResponse<Project>>(`/Project/${id}`);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch project');
@@ -55,7 +55,7 @@ export const projectService = {
   // Get projects by client
   getProjectsByClient: async (email: string): Promise<Project[]> => {
     try {
-      const response = await api.get<ApiResponse<Project[]>>(`/project/client/${email}`);
+      const response = await api.get<ApiResponse<Project[]>>(`/Project/client/${email}`);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch projects for client');
@@ -70,7 +70,7 @@ export const projectService = {
   // Add project
   addProject: async (projectData: Omit<Project, 'projectId'>): Promise<Project> => {
     try {
-      const response = await api.post<ApiResponse<Project>>('/project', projectData);
+      const response = await api.post<ApiResponse<Project>>('/Project', projectData);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add project');
@@ -85,7 +85,7 @@ export const projectService = {
   // Update project
   updateProject: async (id: number, projectData: Partial<Omit<Project, 'projectId'>>): Promise<Project> => {
     try {
-      const response = await api.put<ApiResponse<Project>>(`/project/${id}`, projectData);
+      const response = await api.put<ApiResponse<Project>>(`/Project/${id}`, projectData);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update project');
@@ -100,7 +100,7 @@ export const projectService = {
   // Delete project
   deleteProject: async (id: number): Promise<boolean> => {
     try {
-      const response = await api.delete<ApiResponse<boolean>>(`/project/${id}`);
+      const response = await api.delete<ApiResponse<boolean>>(`/Project/${id}`);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to delete project');
