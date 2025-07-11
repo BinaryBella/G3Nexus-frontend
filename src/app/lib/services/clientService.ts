@@ -36,6 +36,21 @@ export const clientService = {
     }
   },
 
+  // Get client by email
+  getClientByEmail: async (email: string): Promise<Client> => {
+    try {
+      const response = await api.get<ApiResponse<Client>>(`/client/email/${email}`);
+
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to fetch client by email');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Add new client
   addClient: async (clientData: Omit<Client, 'id'>): Promise<Client> => {
     try {

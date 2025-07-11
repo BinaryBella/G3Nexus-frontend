@@ -7,7 +7,6 @@ import { useAuth } from '@/app/contexts/AuthContext';
 import { projectService, Project } from '@/app/lib/services/projectService';
 import { ChevronLeftIcon, ChevronRightIcon, SparklesIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { authService } from '@/app/lib/services';
-import { log } from 'console';
 
 const ProjectsPage = () => {
     const { user } = useAuth();
@@ -48,7 +47,7 @@ const ProjectsPage = () => {
             try {
                 var user = authService.getCurrentUser();
                 console.log('Current user:', user);
-                
+
                 setLoading(true);
                 var projects = await projectService.getProjectsByClient(user.email);
                 setProjects(projects);
@@ -186,7 +185,7 @@ const ProjectsPage = () => {
                             Active Projects
                         </h2>
                         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                            {user?.organizationName ? 
+                            {user?.organizationName ?
                                 `Explore and manage all projects for ${user.organizationName}` :
                                 'Discover your ongoing projects and track their progress'
                             }
@@ -276,9 +275,9 @@ const ProjectsPage = () => {
                         {/* Company Info */}
                         <div className="space-y-4">
                             <div className="flex items-center space-x-2">
-                                <img 
-                                    src="/images/logo-white.png" 
-                                    alt="G3 Nexus" 
+                                <img
+                                    src="/images/logo-white.png"
+                                    alt="G3 Nexus"
                                     className="h-8 w-auto"
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
