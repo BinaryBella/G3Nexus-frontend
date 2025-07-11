@@ -6,7 +6,7 @@ export const requirementService = {
   // Get all requirements
   getAllRequirements: async (): Promise<Requirement[]> => {
     try {
-      const response = await api.get<ApiResponse<Requirement[]>>('/requirement');
+      const response = await api.get<ApiResponse<Requirement[]>>('/Requirement');
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch requirements');
@@ -21,14 +21,24 @@ export const requirementService = {
   // Get requirements by project
   getRequirementsByProject: async (projectId: number): Promise<Requirement[]> => {
     try {
-      const response = await api.get<ApiResponse<Requirement[]>>(`/requirement/project/${projectId}`);
-
+      // First try to get all requirements and filter by projectId
+      console.log(`Fetching requirements for project ID: ${projectId}`);
+      const response = await api.get<ApiResponse<Requirement[]>>('/Requirement');
+      
       if (!response.data.status) {
-        throw new Error(response.data.error || 'Failed to fetch requirements for project');
+        throw new Error(response.data.error || 'Failed to fetch requirements');
       }
 
-      return response.data.data;
+      // Filter requirements by projectId
+      const filteredRequirements = response.data.data.filter(req => {
+        console.log(`Requirement ${req.requirementId}: projectId = ${req.projectId}, target = ${projectId}`);
+        return req.projectId === projectId;
+      });
+
+      console.log(`Found ${filteredRequirements.length} requirements for project ${projectId}`);
+      return filteredRequirements;
     } catch (error) {
+      console.error('Error fetching requirements by project:', error);
       throw error;
     }
   },

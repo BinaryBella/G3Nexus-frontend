@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { useMutation } from '@tanstack/react-query';
-import { addRequirement } from '../../../lib/api';
+import { requirementService } from '@/app/lib/services/requirementService'; 
 import { Requirement } from '../../../lib/types';
 import { useRouter } from 'next/navigation';
+import { FileText, ArrowLeft, X } from 'lucide-react';
 
 // Modal Component for Notifications
 const Modal = ({ isOpen, onClose, children = 'Notice' }: any) => {
@@ -13,17 +13,17 @@ const Modal = ({ isOpen, onClose, children = 'Notice' }: any) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg mx-auto relative h-52">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg mx-auto relative">
                 <button
                     className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 focus:outline-none"
                     onClick={onClose}
                 >
-                    ✕
+                    <X className="h-5 w-5" />
                 </button>
-                <div className="text-gray-700 text-left mt-10 mb-16">{children}</div>
-                <div className="flex justify-end items-end">
+                <div className="text-gray-700 text-left mt-6 mb-8">{children}</div>
+                <div className="flex justify-end">
                     <button
-                        className="bg-[#FFBF00] hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-lg focus:outline-none"
+                        className="bg-[#3450A3] hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3450A3]"
                         onClick={onClose}
                     >
                         Close
@@ -51,7 +51,7 @@ const RequirementForm = () => {
 
     // Mutation for adding requirement
     const addRequirementMutation = useMutation({
-        mutationFn: addRequirement,
+        mutationFn: requirementService.addRequirement,
         onSuccess: () => {
             setModalMessage('Requirement added successfully!');
             setIsModalOpen(true);
@@ -93,144 +93,191 @@ const RequirementForm = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         if (modalMessage.startsWith('Requirement added successfully')) {
-            router.push('/requirements'); // Redirect after successful addition
+            router.push('/company/requirements'); // Redirect after successful addition
         }
     };
 
+    if (modalMessage.startsWith('Requirement added successfully')) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Requirement Added Successfully!</h3>
+                    <p className="text-gray-600">Redirecting to requirements list...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="bg-white px-8 pt-6 h-screen">
-            <h1 className="text-4xl font-bold text-[#3450A3] mb-8">New Requirement</h1>
-            {error && <p className="text-red-500 mb-4">{error}</p>}
-
-            <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="requirementTitle">
-                        Requirement Title
-                    </label>
-                    <input
-                        className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="requirementTitle"
-                        type="text"
-                        placeholder="Enter requirement title"
-                        value={requirementTitle}
-                        onChange={(e) => setRequirementTitle(e.target.value)}
-                        required
-                    />
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
+                <button
+                    onClick={() => router.push('/company/requirements')}
+                    className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+                >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back to Requirements
+                </button>
+                
+                <div className="flex items-center gap-3">
+                    <FileText className="h-8 w-8 text-[#3450A3]" />
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Add New Requirement</h1>
+                        <p className="text-gray-600 mt-1">Create a new requirement record</p>
+                    </div>
                 </div>
+            </div>
 
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="priority">
-                        Priority
-                    </label>
-                    <select
-                        className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="priority"
-                        value={priority}
-                        onChange={(e) => setPriority(e.target.value)}
-                        required
-                    >
-                        <option value="">Select Priority</option>
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
-                    </select>
+            {/* Form */}
+            <div className="max-w-4xl mx-auto">
+                <div className="bg-white rounded-lg shadow-sm border p-8">
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                            <div className="flex">
+                                <X className="h-5 w-5 text-red-400" />
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-red-800">Error</h3>
+                                    <p className="mt-1 text-sm text-red-700">{error}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Requirement Information</h2>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="requirementTitle">
+                                Requirement Title *
+                            </label>
+                            <input
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                id="requirementTitle"
+                                type="text"
+                                placeholder="Enter requirement title"
+                                value={requirementTitle}
+                                onChange={(e) => setRequirementTitle(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="priority">
+                                Priority *
+                            </label>
+                            <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                id="priority"
+                                value={priority}
+                                onChange={(e) => setPriority(e.target.value)}
+                                required
+                            >
+                                <option value="">Select Priority</option>
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="requirementDescription">
+                                Requirement Description *
+                            </label>
+                            <textarea
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                id="requirementDescription"
+                                placeholder="Describe the requirement"
+                                rows={4}
+                                value={requirementDescription}
+                                onChange={(e) => setRequirementDescription(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="attachment">
+                                Attachment (Optional)
+                            </label>
+                            <input
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                id="attachment"
+                                type="text"
+                                placeholder="Link to attachment"
+                                value={attachment}
+                                onChange={(e) => setAttachment(e.target.value)}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="clientId">
+                                Client ID *
+                            </label>
+                            <input
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                id="clientId"
+                                type="number"
+                                placeholder="Enter Client ID"
+                                value={clientId ?? ''}
+                                onChange={(e) => setClientId(Number(e.target.value))}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="projectId">
+                                Project ID *
+                            </label>
+                            <input
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                id="projectId"
+                                type="number"
+                                placeholder="Enter Project ID"
+                                value={projectId ?? ''}
+                                onChange={(e) => setProjectId(Number(e.target.value))}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="flex items-center">
+                                <input
+                                    className="h-4 w-4 text-[#3450A3] focus:ring-[#3450A3] border-gray-300 rounded"
+                                    type="checkbox"
+                                    checked={isActive}
+                                    onChange={() => setIsActive(!isActive)}
+                                />
+                                <span className="ml-2 text-sm font-medium text-gray-700">Active</span>
+                            </label>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Inactive requirements will be hidden from most views
+                            </p>
+                        </div>
+
+                        {/* Form Actions */}
+                        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                            <button
+                                className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                                type="button"
+                                onClick={() => router.push('/company/requirements')}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed"
+                                type="submit"
+                                disabled={addRequirementMutation.isPending}
+                            >
+                                {addRequirementMutation.isPending ? 'Adding...' : 'Add Requirement'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="requirementDescription">
-                        Requirement Description
-                    </label>
-                    <textarea
-                        className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="requirementDescription"
-                        placeholder="Describe the requirement"
-                        value={requirementDescription}
-                        onChange={(e) => setRequirementDescription(e.target.value)}
-                        required
-                    />
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="attachment">
-                        Attachment (Optional)
-                    </label>
-                    <input
-                        className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="attachment"
-                        type="text"
-                        placeholder="Link to attachment"
-                        value={attachment}
-                        onChange={(e) => setAttachment(e.target.value)}
-                    />
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="clientId">
-                        Client ID
-                    </label>
-                    <input
-                        className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="clientId"
-                        type="number"
-                        placeholder="Enter Client ID"
-                        value={clientId ?? ''}
-                        onChange={(e) => setClientId(Number(e.target.value))}
-                        required
-                    />
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="projectId">
-                        Project ID
-                    </label>
-                    <input
-                        className="shadow appearance-none border rounded w-1/2 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="projectId"
-                        type="number"
-                        placeholder="Enter Project ID"
-                        value={projectId ?? ''}
-                        onChange={(e) => setProjectId(Number(e.target.value))}
-                        required
-                    />
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">
-                        <input
-                            className="mr-2 leading-tight"
-                            type="checkbox"
-                            checked={isActive}
-                            onChange={() => setIsActive(!isActive)}
-                        />
-                        <span className="text-sm">Active</span>
-                    </label>
-                </div>
-
-                <div className="w-3/6 flex justify-end mt-16 gap-x-6">
-                    <button
-                        className="w-28 bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline"
-                        type="button"
-                        onClick={() => router.push('/requirements')}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        className="w-28 bg-[#FFBF00] hover:bg-[#FFBF00] text-black font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline"
-                        type="submit"
-                    >
-                        Submit
-                    </button>
-                </div>
-            </form>
-
-            {/* Illustration */}
-            <div className="hidden lg:block absolute bottom-0 right-0 mb-10 mr-10">
-                <Image
-                    src="/images/add-requirement.jpg" // Use an appropriate image for requirements
-                    alt="Requirement illustration"
-                    width={500}
-                    height={420}
-                />
             </div>
 
             {/* Modal */}

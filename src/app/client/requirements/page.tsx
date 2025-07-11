@@ -1,126 +1,282 @@
 "use client";
 
 import React, { useState } from 'react';
-import { FileSearch, Search } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { FileText, Search, Plus, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService';
+import { projectService } from '@/app/lib/services/projectService';
 import { Requirement } from '../../lib/types';
-import Link from "next/link";
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
-    let colorClass = "bg-gray-200 text-gray-800"; // default
+    const colorMap: Record<string, string> = {
+        Low: "bg-green-100 text-green-800 border-green-200",
+        Medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+        High: "bg-red-100 text-red-800 border-red-200"
+    };
 
-    if (priority === 'Low') {
-        colorClass = "bg-yellow-200 text-yellow-800";
-    } else if (priority === 'Medium') {
-        colorClass = "bg-green-200 text-green-800";
-    } else if (priority === 'High') {
-        colorClass = "bg-red-200 text-red-800";
-    }
+    const colorClass = colorMap[priority] || "bg-gray-100 text-gray-800 border-gray-200";
 
     return (
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colorClass}`}>
+        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${colorClass}`}>
             {priority}
         </span>
     );
 };
 
-const RequirementsTable = () => {
+export default function CompanyRequirementsPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const [searchText, setSearchText] = useState("");
+    
+    const projectId = searchParams.get('projectId');
 
-    const { data: requirements = [], error, isLoading } = useQuery<Requirement[], Error>({
-        queryKey: ['requirements'],
-        queryFn: requirementService.getAllRequirements,
+    // Fetch project details when projectId is available
+    const { data: project } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => projectService.getProjectById(parseInt(projectId!)),
+        enabled: !!projectId,
     });
 
-    const handleDetails = (id: number) => {
-        console.log(`View more details for requirement with id: ${id}`);
+    const { data: requirements = [], error, isLoading } = useQuery<Requirement[], Error>({
+        queryKey: ['requirements', projectId],
+        queryFn: () => {
+            console.log('Fetching requirements for projectId:', projectId);
+            if (projectId) {
+                return requirementService.getRequirementsByProject(parseInt(projectId));
+            }
+            return requirementService.getAllRequirements();
+        },
+    });
+
+    console.log('Requirements data:', requirements);
+    console.log('Project ID from URL:', projectId);
+
+    const filteredRequirements = requirements.filter(req =>
+        req.requirementTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
+        req.requirementDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
+        req.priority?.toLowerCase().includes(searchText.toLowerCase())
+    );
+
+    const stats = {
+        total: requirements.length,
+        high: requirements.filter(req => req.priority === 'High').length,
+        medium: requirements.filter(req => req.priority === 'Medium').length,
+        low: requirements.filter(req => req.priority === 'Low').length
     };
 
     if (isLoading) {
         return (
-            <div className="flex mt-48 justify-center h-screen">
+            <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
-                    <div role="status">
-                        <svg aria-hidden="true" className="inline w-16 h-16 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-                            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-                        </svg>
-                        <span className="sr-only">Loading...</span>
-                    </div>
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                    <p className="mt-2 text-gray-600">Loading requirements...</p>
                 </div>
             </div>
         );
     }
 
-    if (error) return <div>Error: {error.message}</div>;
+    if (error) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-gray-600">Error loading requirements. Please try again.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="p-4">
-            <h1 className="text-4xl font-bold text-[#3450A3] mb-8">
-                Requirements
-            </h1>
-            <div className="flex justify-between mb-4">
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
+                {/* Breadcrumb for project-specific view */}
+                {projectId && (
+                    <div className="mb-4">
+                        <button
+                            onClick={() => router.push('/client/projects')}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-2"
+                        >
+                            ← Back to Projects
+                        </button>
+                    </div>
+                )}
+                
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                            <FileText className="h-8 w-8 text-[#3450A3]" />
+                            {projectId 
+                                ? (project?.projectName || 'Project Requirements')
+                                : 'Requirements'
+                            }
+                        </h1>
+                        <p className="text-gray-600 mt-2">
+                            {projectId 
+                                ? 'Project requirements and specifications'
+                                : 'Manage project requirements and specifications'
+                            }
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => {
+                            const addRequirementUrl = projectId 
+                                ? `/client/requirements/add-requirement?projectId=${projectId}`
+                                : '/client/requirements/add-requirement';
+                            router.push(addRequirementUrl);
+                        }}
+                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                    >
+                        <Plus className="h-5 w-5" />
+                        Add Requirement
+                    </button>
+                </div>
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Total</p>
+                                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                            </div>
+                            <FileText className="h-8 w-8 text-gray-400" />
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">High Priority</p>
+                                <p className="text-2xl font-bold text-red-600">{stats.high}</p>
+                            </div>
+                            <AlertTriangle className="h-8 w-8 text-red-400" />
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Medium Priority</p>
+                                <p className="text-2xl font-bold text-yellow-600">{stats.medium}</p>
+                            </div>
+                            <Clock className="h-8 w-8 text-yellow-400" />
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Low Priority</p>
+                                <p className="text-2xl font-bold text-green-600">{stats.low}</p>
+                            </div>
+                            <CheckCircle className="h-8 w-8 text-green-400" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Search */}
                 <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <input
                         type="text"
-                        placeholder="Search text"
+                        placeholder="Search requirements by title, description, or priority..."
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
-                        className="pl-8 pr-2 py-1 border rounded"
                     />
-                    <Search className="absolute left-2 top-2 h-4 w-4 border rounded-lg text-gray-400"/>
                 </div>
-                <Link href="/client/requirements/add-requirement">
-                    <button className="bg-[#3450A3] text-white px-4 py-2 rounded-lg hover:bg-[#2a4084]">
-                        ADD NEW REQUIREMENT
-                    </button>
-                </Link>
             </div>
-            <div className="bg-white rounded-lg overflow-hidden shadow">
-                <table className="w-full border-collapse">
-                    <thead>
-                    <tr className="bg-[#3450A3] text-white">
-                        <th className="p-3 text-left">Title</th>
-                        <th className="p-3 text-left">Priority</th>
-                        <th className="p-3 text-left">Description</th>
-                        <th className="p-3 text-center">Actions</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {requirements.map((req) => (
-                        <tr key={req.requirementId} className="border-b hover:bg-gray-50">
-                            <td className="p-3">{req.requirementTitle}</td>
-                            <td className="p-3">
-                                <PriorityBadge priority={req.priority}/>
-                            </td>
-                            <td className="p-3">{req.requirementDescription}</td>
-                            <td className="p-3 flex justify-center space-x-4 align-middle">
-                                <button
-                                    className="p-1 hover:bg-gray-100 rounded"
-                                    title="More Details"
-                                    onClick={() => handleDetails(req.requirementId)}
-                                >
-                                    <FileSearch className="h-5 w-5 text-[#3450A3]"/>
-                                </button>
-                            </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            </div>
-            <div className="flex justify-end mt-4 gap-1">
-                {[1, 2, 3, 4, 5, 6, 7].map((page) => (
-                    <button
-                        key={page}
-                        className={`px-3 py-1 border rounded hover:bg-gray-100 ${page === 1 ? 'bg-[#3450A3] text-white' : ''}`}
-                    >
-                        {page}
-                    </button>
-                ))}
+
+            {/* Requirements Table */}
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                {filteredRequirements.length === 0 ? (
+                    <div className="text-center py-12">
+                        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No requirements found</h3>
+                        <p className="text-gray-600">
+                            {searchText ? 'Try adjusting your search criteria.' : 'Get started by adding your first requirement.'}
+                        </p>
+                        {!searchText && (
+                            <button
+                                onClick={() => {
+                                    const addRequirementUrl = projectId 
+                                        ? `/client/requirements/add-requirement?projectId=${projectId}`
+                                        : '/client/requirements/add-requirement';
+                                    router.push(addRequirementUrl);
+                                }}
+                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                            >
+                                Add Requirement
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50 border-b">
+                                <tr>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requirement</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredRequirements.map((req) => (
+                                    <tr key={req.requirementId} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">{req.requirementTitle}</p>
+                                                <p className="text-sm text-gray-600 truncate max-w-xs">{req.requirementDescription}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <PriorityBadge priority={req.priority || 'Medium'} />
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                            Client {req.clientId}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                            Project {req.projectId}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                                                req.isActive 
+                                                    ? 'bg-green-100 text-green-800 border-green-200' 
+                                                    : 'bg-gray-100 text-gray-800 border-gray-200'
+                                            }`}>
+                                                {req.isActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex space-x-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const editUrl = projectId 
+                                                            ? `/client/requirements/edit-requirement/${req.requirementId}?projectId=${projectId}`
+                                                            : `/client/requirements/edit-requirement/${req.requirementId}`;
+                                                        router.push(editUrl);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => console.log(`View details for requirement ${req.requirementId}`)}
+                                                    className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                                                >
+                                                    View
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );
-};
-
-export default RequirementsTable;
+}
