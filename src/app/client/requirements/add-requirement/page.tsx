@@ -157,7 +157,7 @@ const RequirementForm = () => {
                                 Requirement Title *
                             </label>
                             <input
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                 id="requirementTitle"
                                 type="text"
                                 placeholder="Enter requirement title"
@@ -172,7 +172,7 @@ const RequirementForm = () => {
                                 Priority *
                             </label>
                             <select
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                 id="priority"
                                 value={priority}
                                 onChange={(e) => setPriority(e.target.value)}
@@ -190,7 +190,7 @@ const RequirementForm = () => {
                                 Requirement Description *
                             </label>
                             <textarea
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                 id="requirementDescription"
                                 placeholder="Describe the requirement"
                                 rows={4}
@@ -205,7 +205,7 @@ const RequirementForm = () => {
                                 Attachment (Optional)
                             </label>
                             <input
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                 id="attachment"
                                 type="text"
                                 placeholder="Link to attachment"
@@ -219,7 +219,7 @@ const RequirementForm = () => {
                                 Client ID *
                             </label>
                             <input
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                 id="clientId"
                                 type="number"
                                 placeholder="Enter Client ID"
@@ -234,7 +234,7 @@ const RequirementForm = () => {
                                 Project ID *
                             </label>
                             <input
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                 id="projectId"
                                 type="number"
                                 placeholder="Enter Project ID"

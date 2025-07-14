@@ -52,7 +52,7 @@ const BugForm = () => {
                                     Bug Title *
                                 </label>
                                 <input
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     id="title"
                                     type="text"
                                     placeholder="Enter a brief title for the bug"
@@ -67,7 +67,7 @@ const BugForm = () => {
                                     Severity *
                                 </label>
                                 <select
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     id="severity"
                                     value={severity}
                                     onChange={(e) => setSeverity(e.target.value)}
@@ -85,7 +85,7 @@ const BugForm = () => {
                                     Description *
                                 </label>
                                 <textarea
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     id="description"
                                     placeholder="Describe the bug in detail"
                                     rows={4}
@@ -100,7 +100,7 @@ const BugForm = () => {
                                     Attachment
                                 </label>
                                 <input
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     id="attachment"
                                     type="file"
                                     onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}

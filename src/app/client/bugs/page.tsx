@@ -251,18 +251,6 @@ export default function CompanyBugsPage() {
                             }
                         </p>
                     </div>
-                    <button
-                        onClick={() => {
-                            const addBugUrl = projectId
-                                ? `/client/bugs/add-bug?projectId=${projectId}`
-                                : '/client/bugs/add-bug';
-                            router.push(addBugUrl);
-                        }}
-                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                    >
-                        <Plus className="h-5 w-5" />
-                        Add Bug Report
-                    </button>
                 </div>
             </div>
             {/* Stats Cards */}

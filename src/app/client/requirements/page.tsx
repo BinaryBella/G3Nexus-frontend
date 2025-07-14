@@ -251,18 +251,6 @@ export default function CompanyRequirementsPage() {
                             }
                         </p>
                     </div>
-                    <button
-                        onClick={() => {
-                            const addRequirementUrl = projectId 
-                                ? `/client/requirements/add-requirement?projectId=${projectId}`
-                                : '/client/requirements/add-requirement';
-                            router.push(addRequirementUrl);
-                        }}
-                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                    >
-                        <Plus className="h-5 w-5" />
-                        Add Requirement
-                    </button>
                 </div>
 
                 {/* Stats Cards */}
@@ -349,6 +337,7 @@ export default function CompanyRequirementsPage() {
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requirement</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -367,6 +356,9 @@ export default function CompanyRequirementsPage() {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
                                             {clientNameMap[req.clientId] || `Client ${req.clientId}`}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                            {projectNameMap[req.projectId] || `Project ${req.projectId}`}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
