@@ -35,7 +35,7 @@ const ProjectCard = ({
     const router = useRouter();
 
     const handleClick = () => {
-        router.push(`/client/bugs?projectId=${id}`);
+        router.push(`/client/projects/${id}`);
     };
 
     // Function to get status color classes and icons
