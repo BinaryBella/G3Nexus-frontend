@@ -244,7 +244,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                             name="companyId"
                                             value={formData.companyId}
                                             onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                             required
                                         >
                                             <option value="">Select Company</option>
@@ -268,7 +268,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="projectName"
                                         value={formData.projectName}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter project name"
                                         required
                                     />
@@ -284,7 +284,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="projectType"
                                         value={formData.projectType}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         required
                                     >
                                         <option value="">Select Project Type</option>
@@ -304,7 +304,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="projectSize"
                                         value={formData.projectSize}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         required
                                     >
                                         <option value="">Select Project Size</option>
@@ -325,7 +325,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="creationDate"
                                         value={formData.creationDate}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     />
                                 </div>
 
@@ -340,7 +340,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="estimatedBudget"
                                         value={formData.estimatedBudget}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter estimated budget"
                                     />
                                 </div>
@@ -356,7 +356,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         value={formData.projectDescription}
                                         onChange={handleChange}
                                         rows={3}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter project description"
                                     />
                                 </div>
@@ -397,7 +397,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="actualStartDate"
                                         value={formData.actualStartDate}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     />
                                 </div>
 
@@ -412,7 +412,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="actualEndDate"
                                         value={formData.actualEndDate}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     />
                                 </div>
 
@@ -427,7 +427,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="totalBudget"
                                         value={formData.totalBudget}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter total budget"
                                     />
                                 </div>
@@ -442,7 +442,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="paymentType"
                                         value={formData.paymentType}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     >
                                         <option value="">Select Payment Type</option>
                                         <option value="fixed">Fixed</option>
@@ -461,7 +461,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="paymentStatus"
                                         value={formData.paymentStatus}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     >
                                         <option value="">Select Payment Status</option>
                                         <option value="pending">Pending</option>
@@ -480,7 +480,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                         name="status"
                                         value={formData.status}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     >
                                         <option value="Active">Active</option>
                                         <option value="Inactive">Inactive</option>

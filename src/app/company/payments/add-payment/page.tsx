@@ -134,7 +134,7 @@ const PaymentForm = () => {
                                     name="projectName"
                                     value={paymentData.projectName}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     required
                                 >
                                     <option value="">Select Project</option>
@@ -161,7 +161,7 @@ const PaymentForm = () => {
                                         name="paymentAmount"
                                         value={paymentData.paymentAmount}
                                         onChange={handleChange}
-                                        className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="0.00"
                                         min="0"
                                         step="0.01"
@@ -180,7 +180,7 @@ const PaymentForm = () => {
                                     name="paymentMethod"
                                     value={paymentData.paymentMethod}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     required
                                 >
                                     <option value="">Select Payment Method</option>
@@ -204,7 +204,7 @@ const PaymentForm = () => {
                                     name="paymentDate"
                                     value={paymentData.paymentDate}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     required
                                 />
                             </div>
@@ -220,7 +220,7 @@ const PaymentForm = () => {
                                     value={paymentData.paymentDescription}
                                     onChange={handleChange}
                                     rows={4}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     placeholder="Describe the payment details, purpose, or additional notes"
                                     required
                                 />

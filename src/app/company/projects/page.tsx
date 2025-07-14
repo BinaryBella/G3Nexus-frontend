@@ -243,7 +243,7 @@ export default function CompanyProjectsPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
                                                 <button
-                                                    onClick={() => router.push(`/company/projects/${project.projectId}/edit`)}
+                                                    onClick={() => router.push(`/company/projects/edit-project/${project.projectId}`)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                 >
                                                     <Edit className="h-4 w-4" />

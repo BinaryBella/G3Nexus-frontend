@@ -179,7 +179,7 @@ const EditBugReportForm = () => {
                                     id="id"
                                     name="id"
                                     value={bugData.id}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                                    className="text-black-900 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
                                     readOnly
                                 />
                             </div>
@@ -195,7 +195,7 @@ const EditBugReportForm = () => {
                                     name="title"
                                     value={bugData.title}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     placeholder="Enter a brief title for the bug"
                                     required
                                 />
@@ -211,7 +211,7 @@ const EditBugReportForm = () => {
                                     name="severity"
                                     value={bugData.severity}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     required
                                 >
                                     <option value="">Select Severity</option>
@@ -233,7 +233,7 @@ const EditBugReportForm = () => {
                                     value={bugData.description}
                                     onChange={handleChange}
                                     rows={4}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     placeholder="Describe the bug in detail, including steps to reproduce"
                                     required
                                 />
@@ -274,7 +274,7 @@ const EditBugReportForm = () => {
                                     id="attachment"
                                     name="attachment"
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx"
                                 />
                                 <p className="mt-1 text-sm text-gray-500">
