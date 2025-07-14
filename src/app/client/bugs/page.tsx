@@ -47,7 +47,7 @@ export default function CompanyBugsPage() {
     const searchParams = useSearchParams();
     const [searchText, setSearchText] = useState("");
     const { user } = useAuth();
-    
+
     const projectId = searchParams.get('projectId');
     const projectIdNum = projectId ? parseInt(projectId, 10) : null;
 
@@ -112,43 +112,38 @@ export default function CompanyBugsPage() {
         <div className="min-h-screen bg-gray-50 p-6">
             {/* Header */}
             <div className="mb-8">
-                {/* Back button for project-specific view */}
-                {projectIdNum && (
+                {/* Breadcrumb for project-specific view */}
+                {projectId && (
                     <div className="mb-4">
                         <button
-                            onClick={() => router.push('/client/projects')}
-                            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+                            onClick={() => router.push(`/client/projects/${projectId}`)}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-2"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                            Back to Projects
+                            ← Back to Project
                         </button>
                     </div>
                 )}
-                
+
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                             <Bug className="h-8 w-8 text-[#3450A3]" />
-                            Bug Reports
-                            {project && (
-                                <span className="text-xl text-gray-600 font-normal">
-                                    - {project.projectName}
-                                </span>
-                            )}
+                            {projectId
+                                ? (project?.projectName || 'Project Bugs')
+                                : 'Bugs'
+                            }
                         </h1>
                         <p className="text-gray-600 mt-2">
-                            {projectIdNum 
-                                ? `Manage and track bug reports for ${project?.projectName || 'this project'}`
-                                : 'Manage and track bug reports'
+                            {projectId
+                                ? 'Project bugs and issues'
+                                : 'Manage project bugs and issues'
                             }
                         </p>
                     </div>
                     <button
                         onClick={() => {
-                            const addBugUrl = projectIdNum 
-                                ? `/client/bugs/add-bug?projectId=${projectIdNum}`
+                            const addBugUrl = projectId
+                                ? `/client/bugs/add-bug?projectId=${projectId}`
                                 : '/client/bugs/add-bug';
                             router.push(addBugUrl);
                         }}
@@ -158,148 +153,147 @@ export default function CompanyBugsPage() {
                         Add Bug Report
                     </button>
                 </div>
-
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-white rounded-lg shadow-sm border p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Total Bugs</p>
-                                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                            </div>
-                            <Bug className="h-8 w-8 text-gray-400" />
+            </div>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">Total Bugs</p>
+                            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                         </div>
-                    </div>
-                    <div className="bg-white rounded-lg shadow-sm border p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Open</p>
-                                <p className="text-2xl font-bold text-red-600">{stats.open}</p>
-                            </div>
-                            <AlertTriangle className="h-8 w-8 text-red-400" />
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-lg shadow-sm border p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">In Progress</p>
-                                <p className="text-2xl font-bold text-blue-600">{stats.inProgress}</p>
-                            </div>
-                            <Clock className="h-8 w-8 text-blue-400" />
-                        </div>
-                    </div>
-                    <div className="bg-white rounded-lg shadow-sm border p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">Resolved</p>
-                                <p className="text-2xl font-bold text-green-600">{stats.resolved}</p>
-                            </div>
-                            <CheckCircle className="h-8 w-8 text-green-400" />
-                        </div>
+                        <Bug className="h-8 w-8 text-gray-400" />
                     </div>
                 </div>
-
-                {/* Search */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                        type="text"
-                        placeholder={projectIdNum 
-                            ? `Search bugs in ${project?.projectName || 'this project'}...`
-                            : "Search bugs by title, description, or status..."
-                        }
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                    />
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">Open</p>
+                            <p className="text-2xl font-bold text-red-600">{stats.open}</p>
+                        </div>
+                        <AlertTriangle className="h-8 w-8 text-red-400" />
+                    </div>
                 </div>
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">In Progress</p>
+                            <p className="text-2xl font-bold text-blue-600">{stats.inProgress}</p>
+                        </div>
+                        <Clock className="h-8 w-8 text-blue-400" />
+                    </div>
+                </div>
+                <div className="bg-white rounded-lg shadow-sm border p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">Resolved</p>
+                            <p className="text-2xl font-bold text-green-600">{stats.resolved}</p>
+                        </div>
+                        <CheckCircle className="h-8 w-8 text-green-400" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative mb-8">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <input
+                    type="text"
+                    placeholder={projectIdNum
+                        ? `Search bugs in ${project?.projectName || 'this project'}...`
+                        : "Search bugs by title, description, or status..."
+                    }
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                />
             </div>
 
             {/* Bugs Table */}
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                {filteredBugs.length === 0 ? (
-                    <div className="text-center py-12">
-                        <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No bugs found</h3>
-                        <p className="text-gray-600">
-                            {searchText 
-                                ? 'Try adjusting your search criteria.' 
-                                : projectIdNum 
-                                    ? `No bugs reported for ${project?.projectName || 'this project'} yet.`
-                                    : 'Get started by adding your first bug report.'
-                            }
-                        </p>
-                        {!searchText && (
-                            <button
-                                onClick={() => {
-                                    const addBugUrl = projectIdNum 
-                                        ? `/client/bugs/add-bug?projectId=${projectIdNum}`
-                                        : '/client/bugs/add-bug';
-                                    router.push(addBugUrl);
-                                }}
-                                className="mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                            >
-                                Add Bug Report
-                            </button>
-                        )}
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bug</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredBugs.map((bug) => (
-                                    <tr key={bug.bugId} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900">{bug.bugTitle}</p>
-                                                <p className="text-sm text-gray-600 truncate max-w-xs">{bug.bugDescription}</p>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <StatusBadge status={bug.isActive ? 'Open' : 'Closed'} />
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <SeverityBadge severity={bug.severity || 'Medium'} />
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            Client {bug.clientId}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">
-                                            {new Date().toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => router.push(`/company/bugs/edit-bug-report?id=${bug.bugId}`)}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => console.log(`View details for bug ${bug.bugId}`)}
-                                                    className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                                                >
-                                                    View
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+        {filteredBugs.length === 0 ? (
+            <div className="text-center py-12">
+                <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No bugs found</h3>
+                <p className="text-gray-600">
+                    {searchText
+                        ? 'Try adjusting your search criteria.'
+                        : projectIdNum
+                            ? `No bugs reported for ${project?.projectName || 'this project'} yet.`
+                            : 'Get started by adding your first bug report.'
+                    }
+                </p>
+                {!searchText && (
+                    <button
+                        onClick={() => {
+                            const addBugUrl = projectIdNum
+                                ? `/client/bugs/add-bug?projectId=${projectIdNum}`
+                                : '/client/bugs/add-bug';
+                            router.push(addBugUrl);
+                        }}
+                        className="mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                    >
+                        Add Bug Report
+                    </button>
                 )}
             </div>
+        ) : (
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead className="bg-gray-50 border-b">
+                        <tr>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bug</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredBugs.map((bug) => (
+                            <tr key={bug.bugId} className="hover:bg-gray-50">
+                                <td className="px-6 py-4">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900">{bug.bugTitle}</p>
+                                        <p className="text-sm text-gray-600 truncate max-w-xs">{bug.bugDescription}</p>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <StatusBadge status={bug.isActive ? 'Open' : 'Closed'} />
+                                </td>
+                                <td className="px-6 py-4">
+                                    <SeverityBadge severity={bug.severity || 'Medium'} />
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-900">
+                                    Client {bug.clientId}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-600">
+                                    {new Date().toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex space-x-2">
+                                        <button
+                                            onClick={() => router.push(`/client/bugs/edit-bug?id=${bug.bugId}`)}
+                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => console.log(`View details for bug ${bug.bugId}`)}
+                                            className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                                        >
+                                            View
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        )}
+    </div>
         </div>
     );
 }
