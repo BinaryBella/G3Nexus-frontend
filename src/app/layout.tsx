@@ -1,5 +1,6 @@
 // src/app/layout.tsx
 import { AuthProvider } from '@/app/contexts/AuthContext';
+import { ProjectProvider } from '@/app/contexts/ProjectContext';
 import { ReactQueryProvider } from './react-query-provider';
 import './globals.css';
 
@@ -13,7 +14,9 @@ export default function RootLayout({
         <body>
         <ReactQueryProvider>
             <AuthProvider>
-                {children}
+                <ProjectProvider>
+                    {children}
+                </ProjectProvider>
             </AuthProvider>
         </ReactQueryProvider>
         </body>

@@ -35,6 +35,37 @@ export const bugService = {
       throw error;
     }
   },
+
+  // Get bugs by client (filter bugs for projects associated with client)
+  getBugsByClient: async (clientEmail: string): Promise<Bug[]> => {
+    try {
+      // First get client's projects
+      const projectsResponse = await api.get<ApiResponse<any[]>>(`/Project/client/${clientEmail}`);
+      
+      if (!projectsResponse.data.status) {
+        throw new Error(projectsResponse.data.error || 'Failed to fetch client projects');
+      }
+
+      const clientProjects = projectsResponse.data.data;
+      const projectIds = clientProjects.map(project => project.projectId);
+
+      // Then get all bugs and filter by client project IDs
+      const bugsResponse = await api.get<ApiResponse<Bug[]>>('/Bug');
+      
+      if (!bugsResponse.data.status) {
+        throw new Error(bugsResponse.data.error || 'Failed to fetch bugs');
+      }
+
+      // Filter bugs that belong to client's projects
+      const filteredBugs = bugsResponse.data.data.filter(bug => 
+        projectIds.includes(bug.projectId)
+      );
+
+      return filteredBugs;
+    } catch (error) {
+      throw error;
+    }
+  },
   
   // Add bug
   addBug: async (bugData: Omit<Bug, 'bugId'>): Promise<Bug> => {

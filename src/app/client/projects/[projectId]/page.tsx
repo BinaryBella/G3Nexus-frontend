@@ -1,10 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { companyService } from '@/app/lib/services/companyService';
 import { projectService, Project } from '@/app/lib/services/projectService';
+import { requirementService } from '@/app/lib/services/requirementService';
+import { bugService } from '@/app/lib/services/bugService';
+import { paymentService } from '@/app/lib/services/paymentService';
+import { useProject } from '@/app/contexts/ProjectContext';
 import { Company } from '@/app/lib/types';
 import { 
     FolderPlus, 
@@ -16,7 +20,12 @@ import {
     CheckCircle,
     AlertCircle,
     Activity,
-    Briefcase
+    Briefcase,
+    FileText,
+    Bug,
+    ClipboardList,
+    CreditCard,
+    ArrowRight
 } from 'lucide-react';
 
 interface ProjectDetailsProps {
@@ -29,19 +38,55 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState(0);
     const { projectId } = params;
+    const { selectedProject, projectCache, setSelectedProject, addToProjectCache } = useProject();
 
-    // Fetch project details
+    // Try to get project from context first, then fetch if needed
+    const cachedProject = projectCache[projectId] || selectedProject;
+    
+    // Fetch project details - only if not in cache
     const { data: project, isLoading: projectLoading, error: projectError } = useQuery<Project, Error>({
         queryKey: ['project', projectId],
         queryFn: () => projectService.getProjectById(parseInt(projectId)),
-        enabled: !!projectId && projectId !== 'undefined',
+        enabled: !!projectId && projectId !== 'undefined' && !cachedProject,
     });
+
+    // Cache the project data when it's fetched
+    useEffect(() => {
+        if (project && !cachedProject) {
+            setSelectedProject(project);
+            addToProjectCache(projectId, project);
+        }
+    }, [project, cachedProject, setSelectedProject, addToProjectCache, projectId]);
+
+    // Use cached project if available, otherwise use fetched project
+    const currentProject = cachedProject || project;
 
     // Fetch company details if project has companyId
     const { data: company, isLoading: companyLoading } = useQuery<Company, Error>({
-        queryKey: ['company', project?.companyId],
-        queryFn: () => companyService.getCompanyById(project!.companyId!),
-        enabled: !!project?.companyId,
+        queryKey: ['company', currentProject?.companyId],
+        queryFn: () => companyService.getCompanyById(currentProject!.companyId!),
+        enabled: !!currentProject?.companyId,
+    });
+
+    // Fetch project-specific requirements
+    const { data: requirements = [] } = useQuery({
+        queryKey: ['requirements', 'project', projectId],
+        queryFn: () => requirementService.getRequirementsByProject(parseInt(projectId)),
+        enabled: !!projectId && projectId !== 'undefined',
+    });
+
+    // Fetch project-specific bugs
+    const { data: bugs = [] } = useQuery({
+        queryKey: ['bugs', 'project', projectId],
+        queryFn: () => bugService.getBugsByProject(parseInt(projectId)),
+        enabled: !!projectId && projectId !== 'undefined',
+    });
+
+    // Fetch project-specific payments
+    const { data: payments = [] } = useQuery({
+        queryKey: ['payments', 'project', projectId],
+        queryFn: () => paymentService.getPaymentsByProject(parseInt(projectId)),
+        enabled: !!projectId && projectId !== 'undefined',
     });
 
     const getStatusColor = (status: string) => {
@@ -88,7 +133,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
         });
     };
 
-    if (projectLoading) {
+    if (projectLoading && !currentProject) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
@@ -99,7 +144,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
         );
     }
 
-    if (projectError || !project) {
+    if (projectError || !currentProject) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
@@ -122,7 +167,10 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
     const tabs = [
         { id: 0, name: 'Overview', icon: FolderPlus },
         { id: 1, name: 'Details', icon: Briefcase },
-        { id: 2, name: 'Financial', icon: DollarSign }
+        { id: 2, name: 'Financial', icon: DollarSign },
+        { id: 3, name: `Requirements (${requirements.length})`, icon: FileText },
+        { id: 4, name: `Bugs (${bugs.length})`, icon: Bug },
+        { id: 5, name: `Payments (${payments.length})`, icon: CreditCard }
     ];
 
     return (
@@ -138,13 +186,13 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                             <ArrowLeft className="h-5 w-5 text-gray-600" />
                         </button>
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900">{project.projectName}</h1>
+                            <h1 className="text-3xl font-bold text-gray-900">{currentProject.projectName}</h1>
                             <p className="text-gray-600 mt-1">Project Details</p>
                         </div>
                     </div>
                     <div className="flex items-center space-x-3">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
-                            {project.status}
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentProject.status)}`}>
+                            {currentProject.status}
                         </span>
                     </div>
                 </div>
@@ -175,6 +223,67 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                 </div>
             </div>
 
+            {/* Action Cards for Navigation */}
+            <div className="max-w-6xl mx-auto mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <button
+                        onClick={() => router.push(`/client/requirements?projectId=${projectId}`)}
+                        className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
+                    >
+                        <div className="flex items-center space-x-3">
+                            <FileText className="h-6 w-6 text-blue-600 group-hover:text-blue-700" />
+                            <div className="text-left">
+                                <p className="font-medium text-gray-900">Requirements</p>
+                                <p className="text-sm text-gray-500">View project requirements</p>
+                            </div>
+                            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600" />
+                        </div>
+                    </button>
+                    
+                    <button
+                        onClick={() => router.push(`/client/bugs?projectId=${projectId}`)}
+                        className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
+                    >
+                        <div className="flex items-center space-x-3">
+                            <Bug className="h-6 w-6 text-red-600 group-hover:text-red-700" />
+                            <div className="text-left">
+                                <p className="font-medium text-gray-900">Bug Reports</p>
+                                <p className="text-sm text-gray-500">Track project issues</p>
+                            </div>
+                            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-red-600" />
+                        </div>
+                    </button>
+                    
+                    <button
+                        onClick={() => router.push(`/client/financial?projectId=${projectId}`)}
+                        className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
+                    >
+                        <div className="flex items-center space-x-3">
+                            <ClipboardList className="h-6 w-6 text-green-600 group-hover:text-green-700" />
+                            <div className="text-left">
+                                <p className="font-medium text-gray-900">Financial</p>
+                                <p className="text-sm text-gray-500">View financial details</p>
+                            </div>
+                            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-green-600" />
+                        </div>
+                    </button>
+                    
+                    <button
+                        onClick={() => router.push(`/client/payments?projectId=${projectId}`)}
+                        className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
+                    >
+                        <div className="flex items-center space-x-3">
+                            <CreditCard className="h-6 w-6 text-purple-600 group-hover:text-purple-700" />
+                            <div className="text-left">
+                                <p className="font-medium text-gray-900">Payments</p>
+                                <p className="text-sm text-gray-500">Payment history</p>
+                            </div>
+                            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-purple-600" />
+                        </div>
+                    </button>
+                </div>
+            </div>
+
             {/* Content */}
             <div className="max-w-6xl mx-auto">
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -196,7 +305,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                             <Briefcase className="h-5 w-5 text-gray-400 mt-0.5" />
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Project Type</p>
-                                                <p className="text-gray-900">{project.projectType}</p>
+                                                <p className="text-gray-900">{currentProject.projectType}</p>
                                             </div>
                                         </div>
                                         
@@ -204,7 +313,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                             <Activity className="h-5 w-5 text-gray-400 mt-0.5" />
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Project Size</p>
-                                                <p className="text-gray-900">{project.projectSize}</p>
+                                                <p className="text-gray-900">{currentProject.projectSize}</p>
                                             </div>
                                         </div>
                                         
@@ -212,7 +321,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                             <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
                                             <div>
                                                 <p className="text-sm font-medium text-gray-500">Creation Date</p>
-                                                <p className="text-gray-900">{formatDate(project.creationDate)}</p>
+                                                <p className="text-gray-900">{formatDate(currentProject.creationDate)}</p>
                                             </div>
                                         </div>
                                         
@@ -236,7 +345,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                     
                                     <div className="prose prose-sm max-w-none">
                                         <p className="text-gray-700 leading-relaxed">
-                                            {project.projectDescription || 'No description provided.'}
+                                            {currentProject.projectDescription || 'No description provided.'}
                                         </p>
                                     </div>
                                 </div>
@@ -264,7 +373,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                                 <Calendar className="h-4 w-4 text-gray-400" />
                                             </div>
                                             <p className="text-gray-900 font-medium">
-                                                {formatDate(project.actualStartDate)}
+                                                {formatDate(currentProject.actualStartDate)}
                                             </p>
                                         </div>
                                         
@@ -274,7 +383,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                                 <Calendar className="h-4 w-4 text-gray-400" />
                                             </div>
                                             <p className="text-gray-900 font-medium">
-                                                {formatDate(project.actualEndDate)}
+                                                {formatDate(currentProject.actualEndDate)}
                                             </p>
                                         </div>
                                     </div>
@@ -294,8 +403,8 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="text-sm font-medium text-gray-500">Current Status</span>
                                             </div>
-                                            <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
-                                                {project.status}
+                                            <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentProject.status)}`}>
+                                                {currentProject.status}
                                             </span>
                                         </div>
                                         
@@ -304,9 +413,9 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                                 <span className="text-sm font-medium text-gray-500">Active</span>
                                             </div>
                                             <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                                                project.isActive ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'
+                                                currentProject.isActive ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'
                                             }`}>
-                                                {project.isActive ? 'Active' : 'Inactive'}
+                                                {currentProject.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </div>
                                     </div>
@@ -335,7 +444,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                                 <DollarSign className="h-4 w-4 text-gray-400" />
                                             </div>
                                             <p className="text-2xl font-bold text-gray-900">
-                                                {formatCurrency(project.estimatedBudget)}
+                                                {formatCurrency(currentProject.estimatedBudget)}
                                             </p>
                                         </div>
                                         
@@ -345,7 +454,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                                 <DollarSign className="h-4 w-4 text-gray-400" />
                                             </div>
                                             <p className="text-2xl font-bold text-gray-900">
-                                                {formatCurrency(project.totalBudget)}
+                                                {formatCurrency(currentProject.totalBudget)}
                                             </p>
                                         </div>
                                     </div>
@@ -366,7 +475,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                                 <span className="text-sm font-medium text-gray-500">Payment Type</span>
                                             </div>
                                             <p className="text-gray-900 font-medium">
-                                                {project.paymentType || 'Not specified'}
+                                                {currentProject.paymentType || 'Not specified'}
                                             </p>
                                         </div>
                                         
@@ -374,12 +483,219 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="text-sm font-medium text-gray-500">Payment Status</span>
                                             </div>
-                                            <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getPaymentStatusColor(project.paymentStatus)}`}>
-                                                {project.paymentStatus || 'Unknown'}
+                                            <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getPaymentStatusColor(currentProject.paymentStatus)}`}>
+                                                {currentProject.paymentStatus || 'Unknown'}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Requirements Tab */}
+                    {activeTab === 3 && (
+                        <div className="p-6">
+                            <div className="space-y-6">
+                                <div className="border-b border-gray-200 pb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                                        <FileText className="h-5 w-5 text-blue-600 mr-2" />
+                                        Project Requirements
+                                    </h3>
+                                </div>
+                                
+                                {requirements.length === 0 ? (
+                                    <div className="text-center py-8">
+                                        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No requirements found</h3>
+                                        <p className="text-gray-600 mb-4">This project doesn't have any requirements yet.</p>
+                                        <button
+                                            onClick={() => router.push(`/client/requirements?projectId=${projectId}`)}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                        >
+                                            View All Requirements
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {requirements.slice(0, 5).map((req: any) => (
+                                            <div key={req.requirementId} className="bg-gray-50 p-4 rounded-lg">
+                                                <div className="flex items-start justify-between">
+                                                    <div>
+                                                        <h4 className="font-medium text-gray-900">{req.requirementTitle}</h4>
+                                                        <p className="text-sm text-gray-600 mt-1">{req.requirementDescription}</p>
+                                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mt-2 ${
+                                                            req.priority === 'High' ? 'bg-red-100 text-red-800' :
+                                                            req.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                            'bg-green-100 text-green-800'
+                                                        }`}>
+                                                            {req.priority} Priority
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {requirements.length > 5 && (
+                                            <div className="text-center pt-4">
+                                                <button
+                                                    onClick={() => router.push(`/client/requirements?projectId=${projectId}`)}
+                                                    className="text-blue-600 hover:text-blue-800 font-medium"
+                                                >
+                                                    View all {requirements.length} requirements
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Bugs Tab */}
+                    {activeTab === 4 && (
+                        <div className="p-6">
+                            <div className="space-y-6">
+                                <div className="border-b border-gray-200 pb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                                        <Bug className="h-5 w-5 text-red-600 mr-2" />
+                                        Bug Reports
+                                    </h3>
+                                </div>
+                                
+                                {bugs.length === 0 ? (
+                                    <div className="text-center py-8">
+                                        <Bug className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No bugs reported</h3>
+                                        <p className="text-gray-600 mb-4">No bugs have been reported for this project yet.</p>
+                                        <button
+                                            onClick={() => router.push(`/client/bugs?projectId=${projectId}`)}
+                                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                        >
+                                            View All Bug Reports
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {bugs.slice(0, 5).map((bug: any) => (
+                                            <div key={bug.bugId} className="bg-gray-50 p-4 rounded-lg">
+                                                <div className="flex items-start justify-between">
+                                                    <div>
+                                                        <h4 className="font-medium text-gray-900">{bug.bugTitle}</h4>
+                                                        <p className="text-sm text-gray-600 mt-1">{bug.bugDescription}</p>
+                                                        <div className="flex items-center space-x-2 mt-2">
+                                                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                                                bug.severity === 'High' ? 'bg-red-100 text-red-800' :
+                                                                bug.severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                                'bg-green-100 text-green-800'
+                                                            }`}>
+                                                                {bug.severity} Severity
+                                                            </span>
+                                                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                                                bug.isActive ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                                                            }`}>
+                                                                {bug.isActive ? 'Open' : 'Closed'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {bugs.length > 5 && (
+                                            <div className="text-center pt-4">
+                                                <button
+                                                    onClick={() => router.push(`/client/bugs?projectId=${projectId}`)}
+                                                    className="text-red-600 hover:text-red-800 font-medium"
+                                                >
+                                                    View all {bugs.length} bug reports
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Payments Tab */}
+                    {activeTab === 5 && (
+                        <div className="p-6">
+                            <div className="space-y-6">
+                                <div className="border-b border-gray-200 pb-4">
+                                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                                        <CreditCard className="h-5 w-5 text-green-600 mr-2" />
+                                        Payment History
+                                    </h3>
+                                </div>
+                                
+                                {payments.length === 0 ? (
+                                    <div className="text-center py-8">
+                                        <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
+                                        <p className="text-gray-600 mb-4">No payments have been made for this project yet.</p>
+                                        <button
+                                            onClick={() => router.push(`/client/payments?projectId=${projectId}`)}
+                                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                        >
+                                            View All Payments
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                            <div className="bg-green-50 p-4 rounded-lg">
+                                                <p className="text-sm font-medium text-gray-600">Total Payments</p>
+                                                <p className="text-2xl font-bold text-green-600">{payments.length}</p>
+                                            </div>
+                                            <div className="bg-blue-50 p-4 rounded-lg">
+                                                <p className="text-sm font-medium text-gray-600">Total Amount</p>
+                                                <p className="text-2xl font-bold text-blue-600">
+                                                    ${payments.reduce((sum: number, payment: any) => sum + parseFloat(payment.paymentAmount || '0'), 0).toLocaleString()}
+                                                </p>
+                                            </div>
+                                            <div className="bg-purple-50 p-4 rounded-lg">
+                                                <p className="text-sm font-medium text-gray-600">Active Payments</p>
+                                                <p className="text-2xl font-bold text-purple-600">
+                                                    {payments.filter((payment: any) => payment.isActive).length}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        {payments.slice(0, 5).map((payment: any) => (
+                                            <div key={payment.paymentId} className="bg-gray-50 p-4 rounded-lg">
+                                                <div className="flex items-start justify-between">
+                                                    <div>
+                                                        <h4 className="font-medium text-gray-900">Payment #{payment.paymentId}</h4>
+                                                        <p className="text-sm text-gray-600 mt-1">{payment.paymentDescription}</p>
+                                                        <div className="flex items-center space-x-2 mt-2">
+                                                            <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                {payment.paymentType}
+                                                            </span>
+                                                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                                                payment.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                                            }`}>
+                                                                {payment.isActive ? 'Active' : 'Inactive'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-bold text-green-600">${parseFloat(payment.paymentAmount || '0').toLocaleString()}</p>
+                                                        <p className="text-sm text-gray-500">{new Date(payment.paymentDate).toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {payments.length > 5 && (
+                                            <div className="text-center pt-4">
+                                                <button
+                                                    onClick={() => router.push(`/client/payments?projectId=${projectId}`)}
+                                                    className="text-green-600 hover:text-green-800 font-medium"
+                                                >
+                                                    View all {payments.length} payments
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

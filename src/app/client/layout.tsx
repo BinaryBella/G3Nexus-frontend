@@ -15,11 +15,12 @@ interface ClientLayoutProps {
 const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
     const pathname = usePathname();
     const isProjectsPage = pathname === '/client/projects';
+    const isDashboardPage = pathname === '/client/dashboard';
 
     return (
         <ProtectedRoute allowedRoles={[CLIENT_ADMIN, CLIENT_USER]}>
-            {isProjectsPage ? (
-                // Projects page layout without side menu
+            {isProjectsPage || isDashboardPage ? (
+                // Projects and Dashboard pages layout without side menu
                 <div className="min-h-screen bg-gray-50">
                     {/* Navbar - full width without side menu */}
                     <div className="fixed top-0 left-0 right-0 h-16 bg-white shadow-md z-10">

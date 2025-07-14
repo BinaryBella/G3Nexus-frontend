@@ -8,14 +8,17 @@ import { paymentService } from '@/app/lib/services/paymentService';
 import { Payment } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { CLIENT_ADMIN } from '@/app/lib/constants';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 const FinancialDetailsTable = () => {
     const [searchText, setSearchText] = useState("");
+    const { user } = useAuth();
     // const queryClient = useQueryClient();
 
     const { data: payments = [], error, isLoading } = useQuery<Payment[], Error>({
-        queryKey: ['payments'],
-        queryFn: paymentService.getAllPayments,
+        queryKey: ['payments', 'client', user?.email],
+        queryFn: () => paymentService.getPaymentsByClient(user?.email || ''),
+        enabled: !!user?.email,
     });
 
     // const deleteMutation = useMutation({

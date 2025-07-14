@@ -43,6 +43,37 @@ export const requirementService = {
     }
   },
 
+  // Get requirements by client (filter requirements for projects associated with client)
+  getRequirementsByClient: async (clientEmail: string): Promise<Requirement[]> => {
+    try {
+      // First get client's projects
+      const projectsResponse = await api.get<ApiResponse<any[]>>(`/Project/client/${clientEmail}`);
+      
+      if (!projectsResponse.data.status) {
+        throw new Error(projectsResponse.data.error || 'Failed to fetch client projects');
+      }
+
+      const clientProjects = projectsResponse.data.data;
+      const projectIds = clientProjects.map(project => project.projectId);
+
+      // Then get all requirements and filter by client project IDs
+      const requirementsResponse = await api.get<ApiResponse<Requirement[]>>('/Requirement');
+      
+      if (!requirementsResponse.data.status) {
+        throw new Error(requirementsResponse.data.error || 'Failed to fetch requirements');
+      }
+
+      // Filter requirements that belong to client's projects
+      const filteredRequirements = requirementsResponse.data.data.filter(requirement => 
+        projectIds.includes(requirement.projectId)
+      );
+
+      return filteredRequirements;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Get requirement by ID
   getRequirementById: async (id: number): Promise<Requirement> => {
     try {

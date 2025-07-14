@@ -28,6 +28,7 @@ const companyMenuItems: MenuItem[] = [
 
 // Client menu items (visible to client users)
 const clientMenuItems: MenuItem[] = [
+    { title: 'Dashboard', path: '/client/dashboard', icon: FolderOpen, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },
     { title: 'Projects', path: '/client/projects', icon: FolderOpen, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },
     { title: 'Requirements', path: '/client/requirements', icon: FileText, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },
     { title: 'Bug Reports', path: '/client/bugs', icon: Bug, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },

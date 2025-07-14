@@ -67,7 +67,7 @@ export const useRoleAccess = () => {
     // Get redirect URL based on role
     const getRedirectUrl = () => {
         if (hasRole(CLIENT_ADMIN) || hasRole(CLIENT_USER)) {
-            return '/client/projects';
+            return '/client/dashboard';
         }
         if (hasRole(COMPANY_ADMIN) || hasRole(COMPANY_DEVELOPER)) {
             return '/company/dashboard';

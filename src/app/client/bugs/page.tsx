@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { bugService } from '@/app/lib/services/bugService';
 import { projectService } from '@/app/lib/services/projectService';
 import { Bug as BugType } from '../../lib/types';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
     const colorMap: Record<string, string> = {
@@ -45,6 +46,7 @@ export default function CompanyBugsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [searchText, setSearchText] = useState("");
+    const { user } = useAuth();
     
     const projectId = searchParams.get('projectId');
     const projectIdNum = projectId ? parseInt(projectId, 10) : null;
@@ -58,13 +60,15 @@ export default function CompanyBugsPage() {
 
     // Fetch bugs - either all bugs or bugs for specific project
     const { data: bugs = [], error, isLoading } = useQuery<BugType[], Error>({
-        queryKey: projectIdNum ? ['bugs', 'project', projectIdNum] : ['bugs'],
+        queryKey: projectIdNum ? ['bugs', 'project', projectIdNum] : ['bugs', 'client', user?.email],
         queryFn: () => {
             if (projectIdNum) {
                 return bugService.getBugsByProject(projectIdNum);
             }
-            return bugService.getAllBugs();
+            // Get client-specific bugs when not filtered by project
+            return bugService.getBugsByClient(user?.email || '');
         },
+        enabled: !!user?.email,
     });
 
     const filteredBugs = bugs.filter(bug =>

@@ -33,6 +33,37 @@ export const paymentService = {
     }
   },
 
+  // Get payments by client (filter payments for projects associated with client)
+  getPaymentsByClient: async (clientEmail: string): Promise<Payment[]> => {
+    try {
+      // First get client's projects
+      const projectsResponse = await api.get<ApiResponse<any[]>>(`/Project/client/${clientEmail}`);
+      
+      if (!projectsResponse.data.status) {
+        throw new Error(projectsResponse.data.error || 'Failed to fetch client projects');
+      }
+
+      const clientProjects = projectsResponse.data.data;
+      const projectIds = clientProjects.map(project => project.projectId);
+
+      // Then get all payments and filter by client project IDs
+      const paymentsResponse = await api.get<ApiResponse<Payment[]>>('/payment');
+      
+      if (!paymentsResponse.data.status) {
+        throw new Error(paymentsResponse.data.error || 'Failed to fetch payments');
+      }
+
+      // Filter payments that belong to client's projects
+      const filteredPayments = paymentsResponse.data.data.filter(payment => 
+        projectIds.includes(payment.projectId)
+      );
+
+      return filteredPayments;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Add payment
   addPayment: async (paymentData: Omit<Payment, 'paymentId'>): Promise<Payment> => {
     try {

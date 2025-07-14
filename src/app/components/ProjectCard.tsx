@@ -2,6 +2,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useProject } from '@/app/contexts/ProjectContext';
+import { Project } from '@/app/lib/services/projectService';
 import { 
     CalendarDaysIcon, 
     ClockIcon, 
@@ -21,6 +23,7 @@ interface ProjectCardProps {
     createdAt?: string;
     projectType?: string;
     budget?: number;
+    project?: Project; // Full project object for context
 }
 
 const ProjectCard = ({ 
@@ -30,11 +33,20 @@ const ProjectCard = ({
     status = 'Active', 
     createdAt,
     projectType,
-    budget 
+    budget,
+    project
 }: ProjectCardProps) => {
     const router = useRouter();
+    const { setSelectedProject, addToProjectCache } = useProject();
 
     const handleClick = () => {
+        // If we have the full project object, store it in context
+        if (project) {
+            setSelectedProject(project);
+            addToProjectCache(id, project);
+        }
+        
+        // Navigate to project details page
         router.push(`/client/projects/${id}`);
     };
 

@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService';
 import { projectService } from '@/app/lib/services/projectService';
 import { Requirement } from '../../lib/types';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
     const colorMap: Record<string, string> = {
@@ -28,6 +29,7 @@ export default function CompanyRequirementsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [searchText, setSearchText] = useState("");
+    const { user } = useAuth();
     
     const projectId = searchParams.get('projectId');
 
@@ -39,14 +41,16 @@ export default function CompanyRequirementsPage() {
     });
 
     const { data: requirements = [], error, isLoading } = useQuery<Requirement[], Error>({
-        queryKey: ['requirements', projectId],
+        queryKey: ['requirements', projectId, user?.email],
         queryFn: () => {
             console.log('Fetching requirements for projectId:', projectId);
             if (projectId) {
                 return requirementService.getRequirementsByProject(parseInt(projectId));
             }
-            return requirementService.getAllRequirements();
+            // Get client-specific requirements when not filtered by project
+            return requirementService.getRequirementsByClient(user?.email || '');
         },
+        enabled: !!user?.email,
     });
 
     console.log('Requirements data:', requirements);
@@ -95,10 +99,10 @@ export default function CompanyRequirementsPage() {
                 {projectId && (
                     <div className="mb-4">
                         <button
-                            onClick={() => router.push('/client/projects')}
+                            onClick={() => router.push(`/client/projects/${projectId}`)}
                             className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-2"
                         >
-                            ← Back to Projects
+                            ← Back to Project
                         </button>
                     </div>
                 )}

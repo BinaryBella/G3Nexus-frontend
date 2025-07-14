@@ -102,8 +102,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         switch (role) {
             case CLIENT_ADMIN:
             case CLIENT_USER:
-                console.log('Redirecting to client projects');
-                router.push('/client/projects');
+                console.log('Redirecting to client dashboard');
+                router.push('/client/dashboard');
                 break;
             case COMPANY_ADMIN:
             case COMPANY_DEVELOPER:

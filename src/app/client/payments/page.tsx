@@ -1,33 +1,221 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { CreditCard, DollarSign, Calendar, FileText, TrendingUp, Search, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { paymentService } from '@/app/lib/services/paymentService';
+import { Payment } from '@/app/lib/types';
+import ProtectedRoute from '@/app/components/ProtectedRoute';
+import { CLIENT_ADMIN, CLIENT_USER } from '@/app/lib/constants';
+import { useAuth } from '@/app/contexts/AuthContext';
+
+const PaymentStatusBadge = ({ status }: { status: boolean }) => {
+    return (
+        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+            status 
+                ? 'bg-green-100 text-green-800 border border-green-200' 
+                : 'bg-red-100 text-red-800 border border-red-200'
+        }`}>
+            {status ? 'Active' : 'Inactive'}
+        </span>
+    );
+};
+
+const PaymentTypeBadge = ({ type }: { type: string }) => {
+    const colorMap: Record<string, string> = {
+        'Milestone': "bg-blue-100 text-blue-800 border-blue-200",
+        'Final': "bg-green-100 text-green-800 border-green-200",
+        'Deposit': "bg-yellow-100 text-yellow-800 border-yellow-200",
+        'Refund': "bg-red-100 text-red-800 border-red-200",
+    };
+
+    const colorClass = colorMap[type] || "bg-gray-100 text-gray-800 border-gray-200";
+
+    return (
+        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium border ${colorClass}`}>
+            {type}
+        </span>
+    );
+};
 
 const ClientPaymentsPage: React.FC = () => {
-    return (
-        <div className="p-6">
-            <div className="max-w-7xl mx-auto">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900">Payment Details</h1>
-                    <p className="mt-2 text-gray-600">
-                        View and manage payment information for your projects.
-                    </p>
-                </div>
+    const [searchText, setSearchText] = useState("");
+    const { user } = useAuth();
 
-                <div className="bg-white rounded-lg shadow-sm border p-6">
-                    <div className="text-center py-12">
-                        <div className="mx-auto h-12 w-12 text-gray-400">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 48 48" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.712-3.714M14 40v-4a9.971 9.971 0 01.712-3.714M28 16a4 4 0 11-8 0 4 4 0 018 0zm-8 8a6 6 0 016 6v4H14v-4a6 6 0 016-6z" />
-                            </svg>
-                        </div>
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">No payment data available</h3>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Payment information will be displayed here when available.
-                        </p>
+    const { data: payments = [], error, isLoading } = useQuery<Payment[], Error>({
+        queryKey: ['payments', 'client', user?.email],
+        queryFn: () => paymentService.getPaymentsByClient(user?.email || ''),
+        enabled: !!user?.email,
+    });
+
+    const filteredPayments = payments.filter(payment =>
+        payment.paymentDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
+        payment.paymentType?.toLowerCase().includes(searchText.toLowerCase()) ||
+        payment.paymentAmount?.toString().includes(searchText.toLowerCase())
+    );
+
+    const stats = {
+        total: payments.length,
+        totalAmount: payments.reduce((sum, payment) => sum + parseFloat(payment.paymentAmount || '0'), 0),
+        active: payments.filter(payment => payment.isActive).length,
+        thisMonth: payments.filter(payment => {
+            const paymentDate = new Date(payment.paymentDate);
+            const currentDate = new Date();
+            return paymentDate.getMonth() === currentDate.getMonth() && 
+                   paymentDate.getFullYear() === currentDate.getFullYear();
+        }).length
+    };
+
+    if (isLoading) {
+        return (
+            <ProtectedRoute allowedRoles={[CLIENT_ADMIN, CLIENT_USER]}>
+                <div className="flex justify-center items-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                        <p className="mt-2 text-gray-600">Loading payments...</p>
                     </div>
                 </div>
+            </ProtectedRoute>
+        );
+    }
+
+    if (error) {
+        return (
+            <ProtectedRoute allowedRoles={[CLIENT_ADMIN, CLIENT_USER]}>
+                <div className="flex justify-center items-center min-h-[400px]">
+                    <div className="text-center">
+                        <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                        <p className="text-gray-600">Error loading payments. Please try again.</p>
+                    </div>
+                </div>
+            </ProtectedRoute>
+        );
+    }
+
+    return (
+        <ProtectedRoute allowedRoles={[CLIENT_ADMIN, CLIENT_USER]}>
+            <div className="min-h-screen bg-gray-50 p-6">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                                <CreditCard className="h-8 w-8 text-[#3450A3]" />
+                                Payment History
+                            </h1>
+                            <p className="text-gray-600 mt-2">View your project payment history and details</p>
+                        </div>
+                    </div>
+
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div className="bg-white rounded-lg shadow-sm border p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Total Payments</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                                </div>
+                                <CreditCard className="h-8 w-8 text-gray-400" />
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-lg shadow-sm border p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Total Amount</p>
+                                    <p className="text-2xl font-bold text-green-600">${stats.totalAmount.toLocaleString()}</p>
+                                </div>
+                                <DollarSign className="h-8 w-8 text-green-400" />
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-lg shadow-sm border p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Active</p>
+                                    <p className="text-2xl font-bold text-blue-600">{stats.active}</p>
+                                </div>
+                                <CheckCircle className="h-8 w-8 text-blue-400" />
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-lg shadow-sm border p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">This Month</p>
+                                    <p className="text-2xl font-bold text-purple-600">{stats.thisMonth}</p>
+                                </div>
+                                <Calendar className="h-8 w-8 text-purple-400" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Search */}
+                    <div className="relative mb-6">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <input
+                            type="text"
+                            placeholder="Search payments by description, type, or amount..."
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                {/* Payments Table */}
+                <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                    {filteredPayments.length === 0 ? (
+                        <div className="text-center py-12">
+                            <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
+                            <p className="text-gray-600">
+                                {searchText ? 'Try adjusting your search criteria.' : 'Payment information will appear here when available.'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Details</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {filteredPayments.map((payment) => (
+                                        <tr key={payment.paymentId} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900">Payment #{payment.paymentId}</p>
+                                                    <p className="text-sm text-gray-600 truncate max-w-xs">{payment.paymentDescription}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="text-sm font-semibold text-green-600">${parseFloat(payment.paymentAmount || '0').toLocaleString()}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <PaymentTypeBadge type={payment.paymentType || 'Other'} />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <PaymentStatusBadge status={payment.isActive} />
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">
+                                                {new Date(payment.paymentDate).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">
+                                                Project #{payment.projectId}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+        </ProtectedRoute>
     );
 };
 
