@@ -240,19 +240,21 @@ const DashboardPage = () => {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <div className="flex flex-wrap justify-center gap-8">
                                     {projects.map((project) => (
-                                        <ProjectCard
-                                            key={project.projectId}
-                                            id={project.projectId.toString()}
-                                            title={project.projectName}
-                                            description={project.projectDescription}
-                                            status={project.status}
-                                            createdAt={new Date(project.creationDate).toLocaleDateString()}
-                                            projectType={project.projectType}
-                                            budget={project.estimatedBudget}
-                                            project={project}
-                                        />
+                                        <div className="w-full sm:w-80 lg:w-96">
+                                            <ProjectCard
+                                                key={project.projectId}
+                                                id={project.projectId.toString()}
+                                                title={project.projectName}
+                                                description={project.projectDescription}
+                                                status={project.status}
+                                                createdAt={new Date(project.creationDate).toLocaleDateString()}
+                                                projectType={project.projectType}
+                                                budget={project.estimatedBudget}
+                                                project={project}
+                                            />
+                                        </div>
                                     ))}
                                 </div>
                             )}
