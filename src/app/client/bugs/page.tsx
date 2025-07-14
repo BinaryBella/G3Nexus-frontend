@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FileSearch, Search, Plus, Bug, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { FileSearch, Search, Plus, Bug, AlertTriangle, CheckCircle, Clock, Eye, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { bugService } from '@/app/lib/services/bugService';
 import { projectService } from '@/app/lib/services/projectService';
+import { clientService } from '@/app/lib/services/clientService';
 import { Bug as BugType } from '../../lib/types';
 import { useAuth } from '@/app/contexts/AuthContext';
 
@@ -42,10 +44,85 @@ const StatusBadge = ({ status }: { status: string }) => {
     );
 };
 
+// Modal component for viewing bug attachments
+const AttachmentModal = ({ isOpen, onClose, bug }: {
+    isOpen: boolean;
+    onClose: () => void;
+    bug: BugType | null;
+}) => {
+    if (!isOpen || !bug) return null;
+
+    const hasAttachment = bug.attachment && bug.attachment.trim() !== '';
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-6 border-b">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900">{bug.bugTitle}</h2>
+                        <p className="text-sm text-gray-600">Bug Details</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X className="h-6 w-6" />
+                    </button>
+                </div>
+
+                {/* Modal Body */}
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+
+                    {/* Attachments Section */}
+                    <div>
+                        <label className="text-sm font-medium text-gray-600 mb-3 block">Attachments</label>
+                        {hasAttachment ? (
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                                <div className="text-center">
+                                    <div className="relative inline-block">
+                                        <Image
+                                            src={bug.attachment.startsWith('http') ? bug.attachment : `/uploads/${bug.attachment}`}
+                                            alt="Bug attachment"
+                                            width={400}
+                                            height={300}
+                                            className="rounded-lg object-cover max-w-full h-auto"
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none';
+                                                const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                                                if (nextElement) {
+                                                    nextElement.style.display = 'block';
+                                                }
+                                            }}
+                                        />
+                                        <div className="hidden text-gray-500">
+                                            <AlertTriangle className="h-12 w-12 mx-auto mb-2" />
+                                            <p>Unable to load image</p>
+                                            <p className="text-sm mt-1">File: {bug.attachment}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                                <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-600">No attachments available for this bug</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function CompanyBugsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [searchText, setSearchText] = useState("");
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedBug, setSelectedBug] = useState<BugType | null>(null);
+    const [clientNames, setClientNames] = useState<Record<number, string>>({});
     const { user } = useAuth();
 
     const projectId = searchParams.get('projectId');
@@ -71,6 +148,30 @@ export default function CompanyBugsPage() {
         enabled: !!user?.email,
     });
 
+    // Fetch client names for the bugs
+    const uniqueClientIds = Array.from(new Set(bugs.map(bug => bug.clientId)));
+    
+    useQuery({
+        queryKey: ['clientNames', uniqueClientIds],
+        queryFn: async () => {
+            const clientNamesMap: Record<number, string> = {};
+            await Promise.all(
+                uniqueClientIds.map(async (clientId) => {
+                    try {
+                        const client = await clientService.getClientById(clientId);
+                        clientNamesMap[clientId] = client.name;
+                    } catch (error) {
+                        console.error(`Failed to fetch client ${clientId}:`, error);
+                        clientNamesMap[clientId] = `Client ${clientId}`;
+                    }
+                })
+            );
+            setClientNames(clientNamesMap);
+            return clientNamesMap;
+        },
+        enabled: bugs.length > 0,
+    });
+
     const filteredBugs = bugs.filter(bug =>
         bug.bugTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
         bug.bugDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -82,6 +183,16 @@ export default function CompanyBugsPage() {
         open: bugs.filter(bug => bug.isActive).length,
         inProgress: Math.floor(bugs.length * 0.3), // Mock data - replace with actual status when available
         resolved: Math.floor(bugs.length * 0.4) // Mock data - replace with actual status when available
+    };
+
+    const openModal = (bug: BugType) => {
+        setSelectedBug(bug);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedBug(null);
     };
 
     if (isLoading || (projectIdNum && projectLoading)) {
@@ -246,8 +357,7 @@ export default function CompanyBugsPage() {
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -266,26 +376,16 @@ export default function CompanyBugsPage() {
                                     <SeverityBadge severity={bug.severity || 'Medium'} />
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-900">
-                                    Client {bug.clientId}
-                                </td>
-                                <td className="px-6 py-4 text-sm text-gray-600">
-                                    {new Date().toLocaleDateString()}
+                                    {clientNames[bug.clientId] || `Client ${bug.clientId}`}
                                 </td>
                                 <td className="px-6 py-4">
-                                    <div className="flex space-x-2">
-                                        <button
-                                            onClick={() => router.push(`/client/bugs/edit-bug?id=${bug.bugId}`)}
-                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => console.log(`View details for bug ${bug.bugId}`)}
-                                            className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                                        >
-                                            View
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => openModal(bug)}
+                                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                        <span className="text-sm font-medium">View More</span>
+                                    </button>
                                 </td>
                             </tr>
                         ))}
@@ -294,6 +394,13 @@ export default function CompanyBugsPage() {
             </div>
         )}
     </div>
+
+            {/* Attachment Modal */}
+            <AttachmentModal
+                isOpen={isModalOpen}
+                onClose={closeModal}
+                bug={selectedBug}
+            />
         </div>
     );
 }

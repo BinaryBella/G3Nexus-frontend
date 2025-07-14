@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CreditCard, DollarSign, Calendar, FileText, TrendingUp, Search, AlertTriangle, CheckCircle } from 'lucide-react';
+import Image from 'next/image';
+import { CreditCard, DollarSign, Calendar, FileText, TrendingUp, Search, AlertTriangle, CheckCircle, Eye, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
 import { Payment } from '@/app/lib/types';
@@ -38,8 +39,81 @@ const PaymentTypeBadge = ({ type }: { type: string }) => {
     );
 };
 
+// Modal component for viewing payment attachments
+const AttachmentModal = ({ isOpen, onClose, payment }: {
+    isOpen: boolean;
+    onClose: () => void;
+    payment: Payment | null;
+}) => {
+    if (!isOpen || !payment) return null;
+
+    const hasAttachment = payment.attachment && payment.attachment.trim() !== '';
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-6 border-b">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900">Payment #{payment.paymentId}</h2>
+                        <p className="text-sm text-gray-600">Payment Details</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X className="h-6 w-6" />
+                    </button>
+                </div>
+
+                {/* Modal Body */}
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                    {/* Attachments Section */}
+                    <div>
+                        <label className="text-sm font-medium text-gray-600 mb-3 block">Payment Slip / Receipt</label>
+                        {hasAttachment ? (
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                                <div className="text-center">
+                                    <div className="relative inline-block">
+                                        <Image
+                                            src={payment.attachment.startsWith('http') ? payment.attachment : `/uploads/${payment.attachment}`}
+                                            alt="Payment slip"
+                                            width={400}
+                                            height={300}
+                                            className="rounded-lg object-cover max-w-full h-auto"
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none';
+                                                const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                                                if (nextElement) {
+                                                    nextElement.style.display = 'block';
+                                                }
+                                            }}
+                                        />
+                                        <div className="hidden text-gray-500">
+                                            <AlertTriangle className="h-12 w-12 mx-auto mb-2" />
+                                            <p>Unable to load image</p>
+                                            <p className="text-sm mt-1">File: {payment.attachment}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-600">No payment slip available for this payment</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ClientPaymentsPage: React.FC = () => {
     const [searchText, setSearchText] = useState("");
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
     const { user } = useAuth();
 
     const { data: payments = [], error, isLoading } = useQuery<Payment[], Error>({
@@ -64,6 +138,16 @@ const ClientPaymentsPage: React.FC = () => {
             return paymentDate.getMonth() === currentDate.getMonth() && 
                    paymentDate.getFullYear() === currentDate.getFullYear();
         }).length
+    };
+
+    const openModal = (payment: Payment) => {
+        setSelectedPayment(payment);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedPayment(null);
     };
 
     if (isLoading) {
@@ -178,9 +262,9 @@ const ClientPaymentsPage: React.FC = () => {
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Details</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -198,14 +282,20 @@ const ClientPaymentsPage: React.FC = () => {
                                             <td className="px-6 py-4">
                                                 <PaymentTypeBadge type={payment.paymentType || 'Other'} />
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <PaymentStatusBadge status={payment.isActive} />
-                                            </td>
                                             <td className="px-6 py-4 text-sm text-gray-600">
                                                 {new Date(payment.paymentDate).toLocaleDateString()}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">
-                                                Project #{payment.projectId}
+                                            <td className="px-6 py-4">
+                                                <PaymentStatusBadge status={payment.isActive} />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={() => openModal(payment)}
+                                                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                    <span className="text-sm font-medium">View More</span>
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -214,6 +304,13 @@ const ClientPaymentsPage: React.FC = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Attachment Modal */}
+                <AttachmentModal
+                    isOpen={isModalOpen}
+                    onClose={closeModal}
+                    payment={selectedPayment}
+                />
             </div>
         </ProtectedRoute>
     );

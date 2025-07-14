@@ -167,10 +167,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
     const tabs = [
         { id: 0, name: 'Overview', icon: FolderPlus },
         { id: 1, name: 'Details', icon: Briefcase },
-        { id: 2, name: 'Financial', icon: DollarSign },
-        { id: 3, name: `Requirements (${requirements.length})`, icon: FileText },
-        { id: 4, name: `Bugs (${bugs.length})`, icon: Bug },
-        { id: 5, name: `Payments (${payments.length})`, icon: CreditCard }
+        { id: 2, name: 'Financial', icon: DollarSign }
     ];
 
     return (
@@ -180,7 +177,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                         <button
-                            onClick={() => router.push('/client/projects')}
+                            onClick={() => router.push('/client/dashboard')}
                             className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                         >
                             <ArrowLeft className="h-5 w-5 text-gray-600" />
@@ -190,7 +187,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                             <p className="text-gray-600 mt-1">Project Details</p>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 mr-48">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentProject.status)}`}>
                             {currentProject.status}
                         </span>
@@ -253,21 +250,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                             <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-red-600" />
                         </div>
                     </button>
-                    
-                    <button
-                        onClick={() => router.push(`/client/financial?projectId=${projectId}`)}
-                        className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
-                    >
-                        <div className="flex items-center space-x-3">
-                            <ClipboardList className="h-6 w-6 text-green-600 group-hover:text-green-700" />
-                            <div className="text-left">
-                                <p className="font-medium text-gray-900">Financial</p>
-                                <p className="text-sm text-gray-500">View financial details</p>
-                            </div>
-                            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-green-600" />
-                        </div>
-                    </button>
-                    
+                                       
                     <button
                         onClick={() => router.push(`/client/payments?projectId=${projectId}`)}
                         className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"

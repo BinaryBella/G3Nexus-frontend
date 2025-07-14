@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FileText, Search, Plus, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Search, Plus, Clock, CheckCircle, AlertTriangle, Eye, X, Download } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService';
-import { projectService } from '@/app/lib/services/projectService';
-import { Requirement } from '../../lib/types';
+import { projectService, Project } from '@/app/lib/services/projectService';
+import { clientService } from '@/app/lib/services/clientService';
+import { Requirement, Client } from '../../lib/types';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
@@ -25,10 +26,104 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
     );
 };
 
+// Modal component for viewing attachments
+const AttachmentModal = ({ isOpen, onClose, requirement }: { 
+    isOpen: boolean; 
+    onClose: () => void; 
+    requirement: Requirement | null; 
+}) => {
+    if (!isOpen || !requirement) return null;
+
+    const hasAttachment = requirement.attachment && requirement.attachment.trim() !== '';
+    
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-6 border-b">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900">{requirement.requirementTitle}</h2>
+                        <p className="text-sm text-gray-600">Requirement Details</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                        <X className="h-5 w-5 text-gray-500" />
+                    </button>
+                </div>
+
+                {/* Modal Content */}
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                    {/* Attachments Section */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-3">Attachments</h3>
+                        {hasAttachment ? (
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                                <div className="text-center">
+                                    {/* Check if it's an image */}
+                                    {requirement.attachment.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
+                                        <div className="mb-4">
+                                            <img
+                                                src={requirement.attachment}
+                                                alt="Requirement attachment"
+                                                className="max-w-full max-h-96 mx-auto rounded-lg shadow-md"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.style.display = 'none';
+                                                    const parent = target.parentElement;
+                                                    if (parent) {
+                                                        parent.innerHTML = `
+                                                            <div class="text-center py-8">
+                                                                <FileText class="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                                                                <p class="text-gray-600">Unable to load image</p>
+                                                                <p class="text-sm text-gray-500 mt-1">File: ${requirement.attachment}</p>
+                                                            </div>
+                                                        `;
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="py-8">
+                                            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                            <p className="text-gray-600 mb-2">Attachment File</p>
+                                            <p className="text-sm text-gray-500 break-all">{requirement.attachment}</p>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Download/View Button */}
+                                    <a
+                                        href={requirement.attachment}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        Download/View File
+                                    </a>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                <p className="text-gray-600">No attachments available</p>
+                                <p className="text-sm text-gray-500">This requirement doesn't have any attached files.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function CompanyRequirementsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [searchText, setSearchText] = useState("");
+    const [selectedRequirement, setSelectedRequirement] = useState<Requirement | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const { user } = useAuth();
     
     const projectId = searchParams.get('projectId');
@@ -38,6 +133,17 @@ export default function CompanyRequirementsPage() {
         queryKey: ['project', projectId],
         queryFn: () => projectService.getProjectById(parseInt(projectId!)),
         enabled: !!projectId,
+    });
+
+    // Fetch all clients and projects for name lookups
+    const { data: allClients = [] } = useQuery<Client[], Error>({
+        queryKey: ['allClients'],
+        queryFn: () => clientService.getAllClients(),
+    });
+
+    const { data: allProjects = [] } = useQuery<Project[], Error>({
+        queryKey: ['allProjects'],
+        queryFn: () => projectService.getAllProjects(),
     });
 
     const { data: requirements = [], error, isLoading } = useQuery<Requirement[], Error>({
@@ -55,6 +161,28 @@ export default function CompanyRequirementsPage() {
 
     console.log('Requirements data:', requirements);
     console.log('Project ID from URL:', projectId);
+
+    // Create lookup maps for client and project names
+    const clientNameMap = allClients.reduce((acc, client) => {
+        acc[client.id] = client.name;
+        return acc;
+    }, {} as Record<number, string>);
+
+    const projectNameMap = allProjects.reduce((acc, project) => {
+        acc[project.projectId] = project.projectName;
+        return acc;
+    }, {} as Record<number, string>);
+
+    // Modal handlers
+    const openModal = (requirement: Requirement) => {
+        setSelectedRequirement(requirement);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedRequirement(null);
+    };
 
     const filteredRequirements = requirements.filter(req =>
         req.requirementTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -221,7 +349,6 @@ export default function CompanyRequirementsPage() {
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requirement</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -239,10 +366,7 @@ export default function CompanyRequirementsPage() {
                                             <PriorityBadge priority={req.priority || 'Medium'} />
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
-                                            Client {req.clientId}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            Project {req.projectId}
+                                            {clientNameMap[req.clientId] || `Client ${req.clientId}`}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
@@ -254,25 +378,14 @@ export default function CompanyRequirementsPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => {
-                                                        const editUrl = projectId 
-                                                            ? `/client/requirements/edit-requirement/${req.requirementId}?projectId=${projectId}`
-                                                            : `/client/requirements/edit-requirement/${req.requirementId}`;
-                                                        router.push(editUrl);
-                                                    }}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => console.log(`View details for requirement ${req.requirementId}`)}
-                                                    className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                                                >
-                                                    View
-                                                </button>
-                                            </div>
+                                            <button
+                                                onClick={() => openModal(req)}
+                                                className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1 rounded-lg transition-colors"
+                                                title="View attachment"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                                <span className="text-sm font-medium">View More</span>
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -281,6 +394,13 @@ export default function CompanyRequirementsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Attachment Modal */}
+            <AttachmentModal 
+                isOpen={isModalOpen}
+                onClose={closeModal}
+                requirement={selectedRequirement}
+            />
         </div>
     );
 }
