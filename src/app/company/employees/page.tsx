@@ -260,13 +260,13 @@ const EmployeesPage = () => {
                                                     onClick={() => handleEdit(employee.employeeId)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                 >
-                                                    Edit
+                                                    <Edit className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(employee.employeeId)}
                                                     className="text-red-600 hover:text-red-800 text-sm font-medium"
                                                 >
-                                                    Delete
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>

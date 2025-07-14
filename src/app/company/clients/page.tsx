@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Edit, Trash, FileSearch, Users, Plus, UserCheck, UserX, AlertTriangle } from 'lucide-react';
+import { Search, Edit, Trash2, FileSearch, Users, Plus, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { clientService, Client } from '@/app/lib/services/clientService';
 
@@ -237,19 +237,13 @@ export default function CompanyClientsPage() {
                                                     onClick={() => handleEdit(client.id)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                 >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDetails(client.id)}
-                                                    className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                                                >
-                                                    View
+                                                    <Edit className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(client.id)}
                                                     className="text-red-600 hover:text-red-800 text-sm font-medium"
                                                 >
-                                                    Delete
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>

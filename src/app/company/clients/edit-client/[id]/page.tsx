@@ -268,7 +268,7 @@ const EditClientPage: React.FC = () => {
                                         name="companyId"
                                         value={clientData.companyId}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         required
                                     >
                                         <option value={0}>Select a company</option>
@@ -291,7 +291,7 @@ const EditClientPage: React.FC = () => {
                                         name="name"
                                         value={clientData.name}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter client name"
                                         required
                                     />
@@ -308,7 +308,7 @@ const EditClientPage: React.FC = () => {
                                         name="contactNo"
                                         value={clientData.contactNo}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter contact number"
                                         required
                                     />
@@ -325,7 +325,7 @@ const EditClientPage: React.FC = () => {
                                         value={clientData.address}
                                         onChange={handleChange}
                                         rows={3}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter client address"
                                         required
                                     />
@@ -366,7 +366,7 @@ const EditClientPage: React.FC = () => {
                                         name="email"
                                         value={clientData.email}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter email address"
                                         required
                                     />
@@ -383,7 +383,7 @@ const EditClientPage: React.FC = () => {
                                         name="password"
                                         value={clientData.password}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Leave blank to keep current password"
                                     />
                                     <p className="mt-1 text-xs text-gray-500">Leave blank to keep the current password</p>
@@ -400,7 +400,7 @@ const EditClientPage: React.FC = () => {
                                         name="confirmPassword"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Confirm new password"
                                     />
                                 </div>
@@ -415,15 +415,12 @@ const EditClientPage: React.FC = () => {
                                         name="role"
                                         value={clientData.role}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         required
                                     >
                                         <option value="">Select a role</option>
-                                        <option value="Admin">Admin</option>
-                                        <option value="Manager">Manager</option>
-                                        <option value="Client">Client</option>
-                                        <option value="Stakeholder">Stakeholder</option>
-                                        <option value="Contact">Contact</option>
+                                        <option value="CLIENT_ADMIN">Admin</option>
+                                        <option value="CLIENT_USER">User</option>
                                     </select>
                                 </div>
 

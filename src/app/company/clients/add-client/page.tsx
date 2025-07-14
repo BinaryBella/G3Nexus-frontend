@@ -7,7 +7,7 @@ import { companyService } from '@/app/lib/services/companyService'; // Import co
 import { Client } from '../../../lib/types'; // Client type definition
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { User, ArrowLeft, Save, X, ArrowRight } from 'lucide-react';
+import { User, ArrowLeft, Save, X, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 
 const ClientsPage: React.FC = () => {
@@ -24,6 +24,8 @@ const ClientsPage: React.FC = () => {
         companyId: 0,
     });
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -213,7 +215,7 @@ const ClientsPage: React.FC = () => {
                                             name="companyId"
                                             value={clientData.companyId}
                                             onChange={handleChange}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                             required
                                         >
                                             <option value={0}>Select Company</option>
@@ -237,7 +239,7 @@ const ClientsPage: React.FC = () => {
                                         name="name"
                                         value={clientData.name}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter client name"
                                         required
                                     />
@@ -254,7 +256,7 @@ const ClientsPage: React.FC = () => {
                                         name="contactNo"
                                         value={clientData.contactNo}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter contact number"
                                         required
                                     />
@@ -271,7 +273,7 @@ const ClientsPage: React.FC = () => {
                                         value={clientData.address}
                                         onChange={handleChange}
                                         rows={3}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter client address"
                                         required
                                     />
@@ -313,7 +315,7 @@ const ClientsPage: React.FC = () => {
                                         name="email"
                                         value={clientData.email}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter email address"
                                         required
                                     />
@@ -324,16 +326,29 @@ const ClientsPage: React.FC = () => {
                                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                                         Password *
                                     </label>
-                                    <input
-                                        type="password"
-                                        id="password"
-                                        name="password"
-                                        value={clientData.password}
-                                        onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Enter password"
-                                        required
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showPassword ? "text" : "password"}
+                                            id="password"
+                                            name="password"
+                                            value={clientData.password}
+                                            onChange={handleChange}
+                                            className="text-black w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            placeholder="Enter password"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff className="h-5 w-5" />
+                                            ) : (
+                                                <Eye className="h-5 w-5" />
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Confirm Password */}
@@ -341,16 +356,29 @@ const ClientsPage: React.FC = () => {
                                     <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                                         Confirm Password *
                                     </label>
-                                    <input
-                                        type="password"
-                                        id="confirmPassword"
-                                        name="confirmPassword"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Confirm password"
-                                        required
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            id="confirmPassword"
+                                            name="confirmPassword"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            className="text-black w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            placeholder="Confirm password"
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                                        >
+                                            {showConfirmPassword ? (
+                                                <EyeOff className="h-5 w-5" />
+                                            ) : (
+                                                <Eye className="h-5 w-5" />
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Role */}
@@ -363,13 +391,12 @@ const ClientsPage: React.FC = () => {
                                         name="role"
                                         value={clientData.role}
                                         onChange={handleChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         required
                                     >
                                         <option value="">Select Role</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="user">User</option>
-                                        <option value="guest">Guest</option>
+                                        <option value="CLIENT_ADMIN">Admin</option>
+                                        <option value="CLIENT_USER">User</option>
                                     </select>
                                 </div>
 

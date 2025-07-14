@@ -243,22 +243,16 @@ export default function CompanyProjectsPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
                                                 <button
-                                                    onClick={() => router.push(`/company/projects/${project.projectId}`)}
+                                                    onClick={() => router.push(`/company/projects/${project.projectId}/edit`)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                 >
-                                                    View
-                                                </button>
-                                                <button
-                                                    onClick={() => router.push(`/company/projects/${project.projectId}/edit`)}
-                                                    className="text-green-600 hover:text-green-800 text-sm font-medium"
-                                                >
-                                                    Edit
+                                                    <Edit className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => console.log(`Delete project ${project.projectId}`)}
                                                     className="text-red-600 hover:text-red-800 text-sm font-medium"
                                                 >
-                                                    Delete
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>

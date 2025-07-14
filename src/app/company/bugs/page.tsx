@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileSearch, Search, Plus, Bug, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { FileSearch, Search, Plus, Bug, AlertTriangle, CheckCircle, Clock, Trash2, Edit } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { bugService } from '@/app/lib/services/bugService';
 import { Bug as BugType } from '../../lib/types';
@@ -216,13 +216,13 @@ export default function CompanyBugsPage() {
                                                     onClick={() => router.push(`/company/bugs/edit-bug-report?id=${bug.bugId}`)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                 >
-                                                    Edit
+                                                    <Edit className="h-4 w-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => console.log(`View details for bug ${bug.bugId}`)}
-                                                    className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                                                    onClick={() => console.log(`Delete project ${bug.bugId}`)}
+                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
                                                 >
-                                                    View
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>

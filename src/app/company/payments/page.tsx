@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileSearch, Search, Plus, CreditCard, AlertTriangle, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { FileSearch, Search, Plus, CreditCard, AlertTriangle, DollarSign, TrendingUp, Calendar, Edit, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
 import { Payment } from '@/app/lib/types';
@@ -225,14 +225,14 @@ export default function CompanyPaymentsPage() {
                                                         onClick={() => router.push(`/company/payments/edit-payment?id=${payment.paymentId}`)}
                                                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                     >
-                                                        Edit
+                                                    <Edit className="h-4 w-4" />
                                                     </button>
-                                                    <button
-                                                        onClick={() => console.log(`View details for payment ${payment.paymentId}`)}
-                                                        className="text-gray-600 hover:text-gray-800 text-sm font-medium"
-                                                    >
-                                                        View
-                                                    </button>
+                                                <button
+                                                    onClick={() => console.log(`Delete project ${payment.paymentId}`)}
+                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
                                                 </div>
                                             </td>
                                         </tr>

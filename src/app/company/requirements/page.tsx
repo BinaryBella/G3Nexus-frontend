@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Search, Plus, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Edit, Trash2, Search, Plus, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService';
 import { Requirement } from '../../lib/types';
@@ -205,13 +205,13 @@ export default function CompanyRequirementsPage() {
                                                     onClick={() => router.push(`/company/requirements/edit-requirement/${req.requirementId}`)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                 >
-                                                    Edit
+                                                    <Edit className="h-4 w-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => console.log(`View details for requirement ${req.requirementId}`)}
-                                                    className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                                                    onClick={() => console.log(`Delete project ${req.requirementId}`)}
+                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
                                                 >
-                                                    View
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>

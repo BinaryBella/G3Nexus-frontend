@@ -253,7 +253,6 @@ const CompaniesPage = () => {
                                                     title="Edit Company"
                                                 >
                                                     <Edit className="h-4 w-4" />
-                                                    Edit
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(company.companyId)}
@@ -261,7 +260,6 @@ const CompaniesPage = () => {
                                                     title="Delete Company"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
-                                                    Delete
                                                 </button>
                                             </div>
                                         </td>
