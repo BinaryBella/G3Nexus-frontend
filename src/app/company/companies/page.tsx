@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import Pagination from '@/app/components/Pagination';
 import { Building2, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, Users, CheckCircle } from 'lucide-react';
 import { companyService } from '@/app/lib/services/companyService';
 import { Company } from '@/app/lib/types';
@@ -16,6 +17,8 @@ const CompaniesPage = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     useEffect(() => {
         fetchCompanies();
@@ -32,6 +35,8 @@ const CompaniesPage = () => {
             );
             setFilteredCompanies(filtered);
         }
+        // Reset to first page when search changes
+        setCurrentPage(1);
     }, [searchText, companies]);
 
     const fetchCompanies = async () => {
@@ -96,6 +101,15 @@ const CompaniesPage = () => {
         total: companies.length,
         active: companies.filter(company => company.isActive).length,
         inactive: companies.filter(company => !company.isActive).length,
+    };
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredCompanies.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedCompanies = filteredCompanies.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
     };
 
     if (loading) {
@@ -218,7 +232,7 @@ const CompaniesPage = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredCompanies.map((company) => (
+                                {paginatedCompanies.map((company) => (
                                     <tr key={company.companyId} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
@@ -270,6 +284,19 @@ const CompaniesPage = () => {
                     </div>
                 )}
             </div>
+
+            {/* Pagination */}
+            {filteredCompanies.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border mt-4">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        totalItems={filteredCompanies.length}
+                        itemsPerPage={itemsPerPage}
+                    />
+                </div>
+            )}
 
             {/* Delete Confirmation Modal */}
             <DeleteConfirmationModal
