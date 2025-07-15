@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, UserCheck } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Users, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, UserCheck, X } from 'lucide-react';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
 import { Client, Company } from '@/app/lib/types';
 import Pagination from '@/app/components/Pagination';
+import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const StatusBadge = ({ isActive }: { isActive: boolean }) => {
@@ -42,11 +43,16 @@ const RoleBadge = ({ role }: { role: string }) => {
 
 export default function CompanyClientsPage() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const { canManageClients } = useRoleAccess();
     const [searchText, setSearchText] = useState("");
     const [companySearchText, setCompanySearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const { data: clients = [], error, isLoading } = useQuery<Client[], Error>({
         queryKey: ['clients'],
@@ -56,6 +62,25 @@ export default function CompanyClientsPage() {
     const { data: companies = [] } = useQuery<Company[], Error>({
         queryKey: ['companies'],
         queryFn: companyService.getAllCompanies,
+    });
+
+    // Delete client mutation
+    const deleteClientMutation = useMutation({
+        mutationFn: (clientId: number) => clientService.deleteClient(clientId),
+        onSuccess: () => {
+            // Invalidate and refetch clients data
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
+            setShowDeleteModal(false);
+            setSelectedClient(null);
+            setDeleteError(null);
+            setSuccessMessage(`Client "${selectedClient?.name}" has been deleted successfully.`);
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccessMessage(null), 3000);
+        },
+        onError: (error: Error) => {
+            console.error('Failed to delete client:', error);
+            setDeleteError(error.message || 'Failed to delete client');
+        },
     });
 
     // Reset to first page when search text changes
@@ -110,14 +135,29 @@ export default function CompanyClientsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (window.confirm('Are you sure you want to delete this client?')) {
-            try {
-                await clientService.deleteClient(id);
-                // The query will automatically refetch due to React Query
-            } catch (err) {
-                console.error('Failed to delete client:', err);
-            }
+        const client = clients.find(cli => cli.id === id);
+        if (client) {
+            setSelectedClient(client);
+            setDeleteError(null); // Clear any previous errors
+            setShowDeleteModal(true);
         }
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedClient) return;
+        
+        try {
+            await deleteClientMutation.mutateAsync(selectedClient.id);
+        } catch (error) {
+            // Error handling is done in the mutation's onError callback
+            console.error('Delete failed:', error);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setSelectedClient(null);
+        setDeleteError(null);
     };
 
     const handleDetails = (id: number) => {
@@ -201,6 +241,34 @@ export default function CompanyClientsPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Success Message */}
+                {successMessage && (
+                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center">
+                            <svg className="h-5 w-5 text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <p className="text-sm text-green-700">{successMessage}</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Error Message */}
+                {deleteError && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center">
+                            <AlertTriangle className="h-5 w-5 text-red-400 mr-3" />
+                            <p className="text-sm text-red-700">{deleteError}</p>
+                            <button
+                                onClick={() => setDeleteError(null)}
+                                className="ml-auto text-red-400 hover:text-red-600"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {/* Search */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -349,6 +417,18 @@ export default function CompanyClientsPage() {
                     />
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={cancelDelete}
+                onConfirm={confirmDelete}
+                isDeleting={deleteClientMutation.isPending}
+                title="Delete Client"
+                message={`Are you sure you want to delete the client "${selectedClient?.name}"?`}
+                itemName={selectedClient?.name}
+                warningMessage={deleteError || "This action cannot be undone. All client data will be permanently removed."}
+            />
         </div>
     );
 };
