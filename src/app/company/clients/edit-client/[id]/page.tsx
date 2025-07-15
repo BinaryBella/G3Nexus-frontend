@@ -83,9 +83,9 @@ const EditClientPage: React.FC = () => {
         },
     });
 
-    // Load client data when fetched
+    // Load client data when fetched and companies are loaded
     useEffect(() => {
-        if (client) {
+        if (client && companies.length > 0) {
             setClientData({
                 name: client.name || '',
                 contactNo: client.contactNo || '',
@@ -97,10 +97,16 @@ const EditClientPage: React.FC = () => {
                 companyId: client.companyId || 0,
             });
         }
-    }, [client]);
+    }, [client, companies]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
+        
+        // Prevent email changes
+        if (name === 'email') {
+            return;
+        }
+        
         setClientData((prev) => ({
             ...prev,
             [name]: type === 'checkbox' 
@@ -121,8 +127,8 @@ const EditClientPage: React.FC = () => {
             return;
         }
         
-        if (!clientData.email || !clientData.role) {
-            setError('Please fill in all account information fields');
+        if (!clientData.role) {
+            setError('Please select a role');
             return;
         }
         
@@ -142,7 +148,6 @@ const EditClientPage: React.FC = () => {
             } else {
                 await updateClientMutation.mutateAsync(updateData);
             }
-            await updateClientMutation.mutateAsync(updateData);
         } catch (error) {
             // Error handling is done in the mutation's onError callback
         } finally {
@@ -174,17 +179,22 @@ const EditClientPage: React.FC = () => {
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
                     <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                    <p className="mt-2 text-gray-600">Loading client data...</p>
+                    <p className="mt-2 text-gray-600">
+                        {clientLoading && companiesLoading ? 'Loading client and company data...' :
+                         clientLoading ? 'Loading client data...' : 'Loading company data...'}
+                    </p>
                 </div>
             </div>
         );
     }
 
-    if (clientError) {
+    if (clientError || companiesError) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
-                    <p className="text-red-600">Error loading client data. Please try again.</p>
+                    <p className="text-red-600">
+                        {clientError ? 'Error loading client data.' : 'Error loading company data.'} Please try again.
+                    </p>
                     <button
                         onClick={handleCancel}
                         className="mt-4 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
@@ -286,21 +296,37 @@ const EditClientPage: React.FC = () => {
                                     <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">
                                         Company *
                                     </label>
-                                    <select
-                                        id="companyId"
-                                        name="companyId"
-                                        value={clientData.companyId}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        required
-                                    >
-                                        <option value={0}>Select a company</option>
-                                        {companies.map((company) => (
-                                            <option key={company.companyId} value={company.companyId}>
-                                                {company.companyName}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    {companiesLoading ? (
+                                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-500">
+                                            Loading companies...
+                                        </div>
+                                    ) : companiesError ? (
+                                        <div className="w-full px-3 py-2 border border-red-300 rounded-md shadow-sm text-red-700">
+                                            Error loading companies
+                                        </div>
+                                    ) : (
+                                        <select
+                                            id="companyId"
+                                            name="companyId"
+                                            value={clientData.companyId}
+                                            onChange={handleChange}
+                                            className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            required
+                                        >
+                                            <option value={0}>Select a company</option>
+                                            {companies.map((company) => (
+                                                <option key={company.companyId} value={company.companyId}>
+                                                    {company.companyName}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                    {/* Show current company name for reference */}
+                                    {client && companies.length > 0 && client.companyId > 0 && (
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Previous: {companies.find(c => c.companyId === client.companyId)?.companyName || 'Company not found'}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Client Name */}
@@ -381,18 +407,19 @@ const EditClientPage: React.FC = () => {
                                 {/* Email */}
                                 <div>
                                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Email Address *
+                                        Email Address
                                     </label>
                                     <input
                                         type="email"
                                         id="email"
                                         name="email"
                                         value={clientData.email}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Enter email address"
-                                        required
+                                        readOnly
+                                        disabled
+                                        className="text-gray-600 w-full px-3 py-2 border border-gray-200 rounded-md shadow-sm bg-gray-50 cursor-not-allowed"
+                                        placeholder="Email address"
                                     />
+                                    <p className="mt-1 text-xs text-gray-500">Email address cannot be changed</p>
                                 </div>
 
                                 {/* Password */}
@@ -445,6 +472,12 @@ const EditClientPage: React.FC = () => {
                                         <option value="CLIENT_ADMIN">Admin</option>
                                         <option value="CLIENT_USER">User</option>
                                     </select>
+                                    {/* Show current role for reference */}
+                                    {client && client.role && (
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Previous: {client.role === 'CLIENT_ADMIN' ? 'Admin' : client.role === 'CLIENT_USER' ? 'User' : client.role}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Status */}
