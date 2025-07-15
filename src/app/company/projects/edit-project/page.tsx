@@ -7,6 +7,7 @@ import { companyService } from '@/app/lib/services/companyService';
 import { projectService } from '@/app/lib/services/projectService';
 import { Company } from '@/app/lib/types';
 import { Edit3, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 interface ProjectFormData {
     // Project Initialization fields

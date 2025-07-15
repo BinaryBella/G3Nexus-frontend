@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Edit, Trash2, FileSearch, Users, Plus, UserCheck, UserX, AlertTriangle } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, UserCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { clientService, Client } from '@/app/lib/services/clientService';
+import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
-import { Company } from '@/app/lib/types';
+import { Client, Company } from '@/app/lib/types';
 import Pagination from '@/app/components/Pagination';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const StatusBadge = ({ isActive }: { isActive: boolean }) => {
     return (
@@ -41,6 +42,7 @@ const RoleBadge = ({ role }: { role: string }) => {
 
 export default function CompanyClientsPage() {
     const router = useRouter();
+    const { canManageClients } = useRoleAccess();
     const [searchText, setSearchText] = useState("");
     const [companySearchText, setCompanySearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -154,15 +156,19 @@ export default function CompanyClientsPage() {
                             <Users className="h-8 w-8 text-[#3450A3]" />
                             Client Management
                         </h1>
-                        <p className="text-gray-600 mt-2">Manage and track your clients</p>
+                        <p className="text-gray-600 mt-2">
+                            {canManageClients() ? 'Manage and track your clients' : 'View client information (read-only access)'}
+                        </p>
                     </div>
-                    <button
-                        onClick={() => router.push('/company/clients/add-client')}
-                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                    >
-                        <Plus className="h-5 w-5" />
-                        Add New Client
-                    </button>
+                    {canManageClients() && (
+                        <button
+                            onClick={() => router.push('/company/clients/add-client')}
+                            className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Plus className="h-5 w-5" />
+                            Add New Client
+                        </button>
+                    )}
                 </div>
 
                 {/* Stats Cards */}
@@ -228,9 +234,14 @@ export default function CompanyClientsPage() {
                         <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No clients found</h3>
                         <p className="text-gray-600">
-                            {searchText ? 'Try adjusting your search criteria.' : 'Get started by adding your first client.'}
+                            {searchText 
+                                ? 'Try adjusting your search criteria.' 
+                                : canManageClients() 
+                                    ? 'Get started by adding your first client.'
+                                    : 'No clients found in the system.'
+                            }
                         </p>
-                        {!searchText && (
+                        {!searchText && canManageClients() && (
                             <button
                                 onClick={() => router.push('/company/clients/add-client')}
                                 className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
@@ -296,18 +307,26 @@ export default function CompanyClientsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => handleEdit(client.id)}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(client.id)}
-                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
+                                                {canManageClients() ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleEdit(client.id)}
+                                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                            title="Edit Client"
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(client.id)}
+                                                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                            title="Delete Client"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-400 text-sm">View Only</span>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

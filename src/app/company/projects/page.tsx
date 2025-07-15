@@ -6,6 +6,7 @@ import { FileSearch, Search, Plus, FileText, AlertTriangle, CheckCircle, Clock, 
 import { useQuery } from '@tanstack/react-query';
 import { projectService, Project } from '@/app/lib/services/projectService';
 import Pagination from '@/app/components/Pagination';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const StatusBadge = ({ status }: { status: string }) => {
     const colorMap: Record<string, string> = {
@@ -43,6 +44,7 @@ const PaymentStatusBadge = ({ status }: { status: string }) => {
 
 export default function CompanyProjectsPage() {
     const router = useRouter();
+    const { canManageProjects } = useRoleAccess();
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
@@ -137,15 +139,19 @@ export default function CompanyProjectsPage() {
                             <FileText className="h-8 w-8 text-[#3450A3]" />
                             Project Management
                         </h1>
-                        <p className="text-gray-600 mt-2">Manage and track your projects</p>
+                        <p className="text-gray-600 mt-2">
+                            {canManageProjects() ? 'Manage and track your projects' : 'View project information (read-only access)'}
+                        </p>
                     </div>
-                    <button
-                        onClick={() => router.push('/company/projects/add-project')}
-                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                    >
-                        <Plus className="h-5 w-5" />
-                        Add New Project
-                    </button>
+                    {canManageProjects() && (
+                        <button
+                            onClick={() => router.push('/company/projects/add-project')}
+                            className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Plus className="h-5 w-5" />
+                            Add New Project
+                        </button>
+                    )}
                 </div>
 
                 {/* Stats Cards */}
@@ -208,9 +214,14 @@ export default function CompanyProjectsPage() {
                         <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
                         <p className="text-gray-600">
-                            {searchText ? 'Try adjusting your search criteria.' : 'Get started by adding your first project.'}
+                            {searchText 
+                                ? 'Try adjusting your search criteria.' 
+                                : canManageProjects() 
+                                    ? 'Get started by adding your first project.'
+                                    : 'No projects found in the system.'
+                            }
                         </p>
-                        {!searchText && (
+                        {!searchText && canManageProjects() && (
                             <button
                                 onClick={() => router.push('/company/projects/add-project')}
                                 className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
@@ -269,18 +280,26 @@ export default function CompanyProjectsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => router.push(`/company/projects/edit-project/${project.projectId}`)}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => console.log(`Delete project ${project.projectId}`)}
-                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
+                                                {canManageProjects() ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => router.push(`/company/projects/edit-project/${project.projectId}`)}
+                                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                            title="Edit Project"
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => console.log(`Delete project ${project.projectId}`)}
+                                                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                            title="Delete Project"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-400 text-sm">View Only</span>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

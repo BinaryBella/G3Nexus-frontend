@@ -40,8 +40,12 @@ export const useRoleAccess = () => {
         return hasRole(COMPANY_ADMIN);
     };
 
+    const canManageCompanies = () => {
+        return hasRole(COMPANY_ADMIN); // Only COMPANY_ADMIN can manage companies
+    };
+
     const canManageProjects = () => {
-        return hasRole(CLIENT_ADMIN) || hasRole(COMPANY_ADMIN) || hasRole(COMPANY_DEVELOPER);
+        return hasRole(CLIENT_ADMIN) || hasRole(COMPANY_ADMIN);
     };
 
     const canViewFinancials = () => {
@@ -115,6 +119,7 @@ export const useRoleAccess = () => {
         canAccessCompanyTerms,
         canManageClients,
         canManageEmployees,
+        canManageCompanies,
         canManageProjects,
         canViewFinancials,
         canManageRequirements,

@@ -2,18 +2,41 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowLeft, User, X } from 'lucide-react';
+import { User, ArrowLeft, Save, X, Eye, EyeOff } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientService, Client } from '@/app/lib/services/clientService';
+import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
-import { Company } from '@/app/lib/types';
+import { Client, Company } from '@/app/lib/types';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const EditClientPage: React.FC = () => {
     const router = useRouter();
     const params = useParams();
     const queryClient = useQueryClient();
+    const { canManageClients } = useRoleAccess();
     const clientId = parseInt(params.id as string, 10);
     
+    // Redirect if user doesn't have permission to manage clients
+    useEffect(() => {
+        if (!canManageClients()) {
+            router.push('/company/clients');
+            return;
+        }
+    }, [canManageClients, router]);
+
+    // Don't render if user doesn't have permission
+    if (!canManageClients()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don't have permission to edit clients.</p>
+                </div>
+            </div>
+        );
+    }
+
     const [activeTab, setActiveTab] = useState(0);
     const [clientData, setClientData] = useState<Omit<Client, 'id'>>({
         name: '',

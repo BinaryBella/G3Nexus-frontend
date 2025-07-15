@@ -7,8 +7,11 @@ import Pagination from '@/app/components/Pagination';
 import { Building2, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, Users, CheckCircle } from 'lucide-react';
 import { companyService } from '@/app/lib/services/companyService';
 import { Company } from '@/app/lib/types';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+
 const CompaniesPage = () => {
     const router = useRouter();
+    const { canManageCompanies } = useRoleAccess();
     const [companies, setCompanies] = useState<Company[]>([]);
     const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
     const [loading, setLoading] = useState(true);
@@ -153,13 +156,15 @@ const CompaniesPage = () => {
                         </h1>
                         <p className="text-gray-600 mt-2">Manage and oversee all company records</p>
                     </div>
-                    <button
-                        onClick={() => router.push('/company/companies/add-company')}
-                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                    >
-                        <Plus className="h-5 w-5" />
-                        Add New Company
-                    </button>
+                    {canManageCompanies() && (
+                        <button
+                            onClick={() => router.push('/company/companies/add-company')}
+                            className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Plus className="h-5 w-5" />
+                            Add New Company
+                        </button>
+                    )}
                 </div>
 
                 {/* Stats Cards */}
@@ -268,20 +273,26 @@ const CompaniesPage = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-3">
-                                                <button
-                                                    onClick={() => handleEdit(company.companyId)}
-                                                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
-                                                    title="Edit Company"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(company.companyId)}
-                                                    className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-                                                    title="Delete Company"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
+                                                {canManageCompanies() ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => handleEdit(company.companyId)}
+                                                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+                                                            title="Edit Company"
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(company.companyId)}
+                                                            className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
+                                                            title="Delete Company"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-gray-400 text-sm">View Only</span>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

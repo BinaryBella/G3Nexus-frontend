@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, X } from 'lucide-react';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 // Modal Component
 interface ModalProps {
@@ -54,6 +55,29 @@ interface FormErrors {
 
 const EmployeeForm = () => {
     const router = useRouter();
+    const { canManageEmployees } = useRoleAccess();
+    
+    // Redirect if user doesn't have permission to manage employees
+    useEffect(() => {
+        if (!canManageEmployees()) {
+            router.push('/company/employees');
+            return;
+        }
+    }, [canManageEmployees, router]);
+
+    // Don't render if user doesn't have permission
+    if (!canManageEmployees()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don't have permission to add employees.</p>
+                </div>
+            </div>
+        );
+    }
+
     const [employeeName, setEmployeeName] = useState('');
     const [contactNo, setContactNo] = useState('');
     const [email, setEmail] = useState('');
