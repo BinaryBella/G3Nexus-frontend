@@ -51,12 +51,48 @@ const ClientsPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [emailValidationError, setEmailValidationError] = useState('');
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
     // Fetch companies data
     const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery({
         queryKey: ['companies'],
         queryFn: companyService.getAllCompanies,
     });
+
+    // Debounced validation for email
+    useEffect(() => {
+        const checkClientEmail = async () => {
+            if (!clientData.email.trim()) {
+                setEmailValidationError('');
+                return;
+            }
+
+            // Basic email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(clientData.email.trim())) {
+                setEmailValidationError('Please enter a valid email address');
+                return;
+            }
+
+            setIsCheckingEmail(true);
+            try {
+                const exists = await clientService.checkClientExists(clientData.email.trim());
+                if (exists) {
+                    setEmailValidationError('A client with this email already exists');
+                } else {
+                    setEmailValidationError('');
+                }
+            } catch (error) {
+                setEmailValidationError('');
+            } finally {
+                setIsCheckingEmail(false);
+            }
+        };
+
+        const timeoutId = setTimeout(checkClientEmail, 500);
+        return () => clearTimeout(timeoutId);
+    }, [clientData.email]);
 
     const addClientMutation = useMutation({
         mutationFn: clientService.addClient,
@@ -103,9 +139,22 @@ const ClientsPage: React.FC = () => {
             setError("Passwords don't match");
             return;
         }
+
+        if (emailValidationError) {
+            setError('Please resolve the email issue before submitting');
+            return;
+        }
         
         try {
             setIsSubmitting(true);
+
+            // Double-check email doesn't exist before submitting
+            const emailExists = await clientService.checkClientExists(clientData.email.trim());
+            if (emailExists) {
+                setError('A client with this email already exists. Please choose a different email.');
+                return;
+            }
+
             await addClientMutation.mutateAsync(clientData);
         } catch (error) {
             // Error handling is done in the mutation's onError callback
@@ -331,16 +380,41 @@ const ClientsPage: React.FC = () => {
                                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                                         Email *
                                     </label>
-                                    <input
-                                        type="email"
-                                        id="email"
-                                        name="email"
-                                        value={clientData.email}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Enter email address"
-                                        required
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="email"
+                                            id="email"
+                                            name="email"
+                                            value={clientData.email}
+                                            onChange={handleChange}
+                                            className={`text-black w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                                emailValidationError 
+                                                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
+                                                    : 'border-gray-300'
+                                            }`}
+                                            placeholder="Enter email address"
+                                            required
+                                        />
+                                        {isCheckingEmail && (
+                                            <div className="absolute right-3 top-2.5">
+                                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {emailValidationError && (
+                                        <p className="mt-1 text-sm text-red-600 flex items-center">
+                                            <X className="h-4 w-4 mr-1" />
+                                            {emailValidationError}
+                                        </p>
+                                    )}
+                                    {clientData.email.trim() && !emailValidationError && !isCheckingEmail && (
+                                        <p className="mt-1 text-sm text-green-600 flex items-center">
+                                            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Email is available
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Password */}
@@ -453,7 +527,7 @@ const ClientsPage: React.FC = () => {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={isSubmitting || addClientMutation.isPending}
+                                        disabled={isSubmitting || addClientMutation.isPending || !!emailValidationError || isCheckingEmail}
                                         className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                     >
                                         {isSubmitting || addClientMutation.isPending ? (

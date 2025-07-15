@@ -94,5 +94,17 @@ export const clientService = {
     } catch (error) {
       throw error;
     }
-  }
+  },
+
+  // Check if client exists by email
+  checkClientExists: async (email: string): Promise<boolean> => {
+    try {
+      const clients = await clientService.getAllClients();
+      return clients.some(client => 
+        client.email.toLowerCase().trim() === email.toLowerCase().trim()
+      );
+    } catch (error) {
+      throw error;
+    }
+  },
 };
