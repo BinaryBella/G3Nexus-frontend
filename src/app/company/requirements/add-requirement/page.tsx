@@ -1,8 +1,11 @@
 'use client';
+import { useAuth } from '@/app/contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
 
-import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService'; 
+import { projectService } from '@/app/lib/services/projectService';
 import { Requirement } from '../../../lib/types';
 import { useRouter } from 'next/navigation';
 import { FileText, ArrowLeft, X } from 'lucide-react';
@@ -43,7 +46,35 @@ const RequirementForm = () => {
     const [requirementDescription, setRequirementDescription] = useState('');
     const [attachment, setAttachment] = useState('');
     const [clientId, setClientId] = useState<number | null>(null);
+    const [employeeName, setEmployeeName] = useState<string>('');
     const [projectId, setProjectId] = useState<number | null>(null);
+
+    // Fetch all projects
+    const { data: projects, isLoading: projectsLoading, error: projectsError } = useQuery({
+        queryKey: ['projects'],
+        queryFn: projectService.getAllProjects,
+    });
+
+    // Fetch all employees
+    const { data: employees, isLoading: employeesLoading, error: employeesError } = useQuery({
+        queryKey: ['employees'],
+        queryFn: employeeService.getAllEmployees,
+    });
+
+    // Get logged-in user from AuthContext
+    const { user } = useAuth();
+
+    useEffect(() => {
+        if (user && user.role && (user.role === 'COMPANY_ADMIN' || user.role === 'COMPANY_DEVELOPER')) {
+            // Find employee by email
+            if (employees && Array.isArray(employees)) {
+                const foundEmployee = employees.find((emp: any) => emp.email === user.email);
+                if (foundEmployee) {
+                    setEmployeeName(foundEmployee.name);
+                }
+            }
+        }
+    }, [user, employees]);
     const [isActive, setIsActive] = useState(true); // Default value for isActive
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -216,32 +247,53 @@ const RequirementForm = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="clientId">
-                                Client ID *
+                                {user && (user.role === 'COMPANY_ADMIN' || user.role === 'COMPANY_DEVELOPER') ? 'Employee Name' : 'Client ID *'}
                             </label>
-                            <input
-                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                id="clientId"
-                                type="number"
-                                placeholder="Enter Client ID"
-                                value={clientId ?? ''}
-                                onChange={(e) => setClientId(Number(e.target.value))}
-                                required
-                            />
+                            {user && (user.role === 'COMPANY_ADMIN' || user.role === 'COMPANY_DEVELOPER') ? (
+                                <input
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] bg-gray-100"
+                                    id="employeeName"
+                                    type="text"
+                                    value={employeeName}
+                                    readOnly
+                                />
+                            ) : (
+                                <input
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    id="clientId"
+                                    type="number"
+                                    placeholder="Enter Client ID"
+                                    value={clientId ?? ''}
+                                    onChange={(e) => setClientId(Number(e.target.value))}
+                                    required
+                                />
+                            )}
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="projectId">
-                                Project ID *
+                                Project *
                             </label>
-                            <input
-                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                id="projectId"
-                                type="number"
-                                placeholder="Enter Project ID"
-                                value={projectId ?? ''}
-                                onChange={(e) => setProjectId(Number(e.target.value))}
-                                required
-                            />
+                            {projectsLoading ? (
+                                <div className="text-gray-500">Loading projects...</div>
+                            ) : projectsError ? (
+                                <div className="text-red-500">Error loading projects</div>
+                            ) : (
+                                <select
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    id="projectId"
+                                    value={projectId ?? ''}
+                                    onChange={(e) => setProjectId(Number(e.target.value))}
+                                    required
+                                >
+                                    <option value="">Select Project</option>
+                                    {projects && projects.map((project: any) => (
+                                        <option key={project.projectId} value={project.projectId}>
+                                            {project.projectName}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
                         </div>
 
                         <div>
@@ -289,3 +341,4 @@ const RequirementForm = () => {
 };
 
 export default RequirementForm;
+import { employeeService } from '@/app/lib/services';
