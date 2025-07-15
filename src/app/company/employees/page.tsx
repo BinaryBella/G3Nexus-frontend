@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import Pagination from '@/app/components/Pagination';
 import { Users, Plus, Edit, Trash2, Search, UserCheck, UserX, AlertTriangle, FileSearch } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { employeeService } from '@/app/lib/services/employeeService';
@@ -42,6 +43,8 @@ const RoleBadge = ({ role }: { role: string }) => {
 const EmployeesPage = () => {
     const router = useRouter();
     const [searchText, setSearchText] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -51,12 +54,26 @@ const EmployeesPage = () => {
         queryFn: employeeService.getAllEmployees,
     });
 
+    // Reset to first page when search text changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchText]);
+
     const filteredEmployees = employees.filter(employee =>
         employee.name?.toLowerCase().includes(searchText.toLowerCase()) ||
         employee.email?.toLowerCase().includes(searchText.toLowerCase()) ||
         employee.role?.toLowerCase().includes(searchText.toLowerCase()) ||
         employee.contactNo?.includes(searchText)
     );
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedEmployees = filteredEmployees.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
 
     const stats = {
         total: employees.length,
@@ -181,7 +198,7 @@ const EmployeesPage = () => {
                     <input
                         type="text"
                         placeholder="Search employees by name, email, role, or contact..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />
@@ -200,7 +217,7 @@ const EmployeesPage = () => {
                         {!searchText && (
                             <button
                                 onClick={() => router.push('/company/employees/add-employee')}
-                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                                className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                             >
                                 Add Employee
                             </button>
@@ -220,7 +237,7 @@ const EmployeesPage = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredEmployees.map((employee) => (
+                                {paginatedEmployees.map((employee) => (
                                     <tr key={employee.employeeId} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
@@ -276,21 +293,20 @@ const EmployeesPage = () => {
                         </table>
                     </div>
                 )}
-
-                {/* Results Summary */}
-                {!isLoading && filteredEmployees.length > 0 && (
-                    <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
-                        <div className="text-sm text-gray-700">
-                            Showing {filteredEmployees.length} of {employees.length} employees
-                            {searchText && (
-                                <span className="ml-2">
-                                    (filtered by &quot;{searchText}&quot;)
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                )}
             </div>
+
+            {/* Pagination */}
+            {filteredEmployees.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border mt-4">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        totalItems={filteredEmployees.length}
+                        itemsPerPage={itemsPerPage}
+                    />
+                </div>
+            )}
 
             {/* Delete Confirmation Modal */}
             <DeleteConfirmationModal

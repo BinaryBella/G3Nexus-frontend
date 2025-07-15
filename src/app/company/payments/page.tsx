@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileSearch, Search, Plus, CreditCard, AlertTriangle, DollarSign, TrendingUp, Calendar, Edit, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import { paymentService } from '@/app/lib/services/paymentService';
 import { Payment } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
+import Pagination from '@/app/components/Pagination';
 
 const PaymentTypeBadge = ({ type }: { type: string }) => {
     const colorMap: Record<string, string> = {
@@ -42,6 +43,8 @@ const StatusBadge = ({ status }: { status: boolean }) => {
 export default function CompanyPaymentsPage() {
     const router = useRouter();
     const [searchText, setSearchText] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const { data: payments = [], error, isLoading } = useQuery<Payment[], Error>({
         queryKey: ['payments'],
@@ -53,6 +56,19 @@ export default function CompanyPaymentsPage() {
         payment.paymentType?.toLowerCase().includes(searchText.toLowerCase()) ||
         payment.paymentAmount?.toString().includes(searchText.toLowerCase())
     );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchText]);
+
+    const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedPayments = filteredPayments.slice(startIndex, endIndex);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
 
     const stats = {
         total: payments.length,
@@ -160,7 +176,7 @@ export default function CompanyPaymentsPage() {
                         <input
                             type="text"
                             placeholder="Search payments by description, type, or amount..."
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                             value={searchText}
                             onChange={(e) => setSearchText(e.target.value)}
                         />
@@ -179,7 +195,7 @@ export default function CompanyPaymentsPage() {
                             {!searchText && (
                                 <button
                                     onClick={() => router.push('/company/payments/add-payment')}
-                                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                                    className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                                 >
                                     Add Payment
                                 </button>
@@ -199,7 +215,7 @@ export default function CompanyPaymentsPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredPayments.map((payment) => (
+                                    {paginatedPayments.map((payment) => (
                                         <tr key={payment.paymentId} className="hover:bg-gray-50">
                                             <td className="px-6 py-4">
                                                 <div>
@@ -242,6 +258,19 @@ export default function CompanyPaymentsPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Pagination */}
+                {filteredPayments.length > 0 && (
+                    <div className="mt-6">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                            totalItems={filteredPayments.length}
+                            itemsPerPage={itemsPerPage}
+                        />
+                    </div>
+                )}
             </div>
         </ProtectedRoute>
     );

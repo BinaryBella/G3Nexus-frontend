@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileSearch, Search, Plus, FileText, AlertTriangle, CheckCircle, Clock, DollarSign, Edit, Trash2, Eye } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { projectService, Project } from '@/app/lib/services/projectService';
+import Pagination from '@/app/components/Pagination';
 
 const StatusBadge = ({ status }: { status: string }) => {
     const colorMap: Record<string, string> = {
@@ -43,11 +44,18 @@ const PaymentStatusBadge = ({ status }: { status: string }) => {
 export default function CompanyProjectsPage() {
     const router = useRouter();
     const [searchText, setSearchText] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const { data: projects = [], error, isLoading } = useQuery<Project[], Error>({
         queryKey: ['projects'],
         queryFn: projectService.getAllProjects,
     });
+
+    // Reset to first page when search text changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchText]);
 
     const filteredProjects = projects.filter(project =>
         project.projectName?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -55,6 +63,15 @@ export default function CompanyProjectsPage() {
         project.projectType?.toLowerCase().includes(searchText.toLowerCase()) ||
         project.status?.toLowerCase().includes(searchText.toLowerCase())
     );
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedProjects = filteredProjects.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
 
     const stats = {
         total: projects.length,
@@ -167,7 +184,7 @@ export default function CompanyProjectsPage() {
                     <input
                         type="text"
                         placeholder="Search projects by name, description, type, or status..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />
@@ -186,7 +203,7 @@ export default function CompanyProjectsPage() {
                         {!searchText && (
                             <button
                                 onClick={() => router.push('/company/projects/add-project')}
-                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                                className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                             >
                                 Add New Project
                             </button>
@@ -207,7 +224,7 @@ export default function CompanyProjectsPage() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredProjects.map((project) => (
+                                {paginatedProjects.map((project) => (
                                     <tr key={project.projectId} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div>
@@ -263,6 +280,19 @@ export default function CompanyProjectsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Pagination */}
+            {filteredProjects.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border mt-4">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        totalItems={filteredProjects.length}
+                        itemsPerPage={itemsPerPage}
+                    />
+                </div>
+            )}
         </div>
     );
 }

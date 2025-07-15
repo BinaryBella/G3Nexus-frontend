@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, Edit, Trash2, Search, Plus, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService';
 import { Requirement } from '../../lib/types';
+import Pagination from '@/app/components/Pagination';
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
     const colorMap: Record<string, string> = {
@@ -26,17 +27,33 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
 export default function CompanyRequirementsPage() {
     const router = useRouter();
     const [searchText, setSearchText] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const { data: requirements = [], error, isLoading } = useQuery<Requirement[], Error>({
         queryKey: ['requirements'],
         queryFn: requirementService.getAllRequirements,
     });
 
+    // Reset to first page when search text changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchText]);
+
     const filteredRequirements = requirements.filter(req =>
         req.requirementTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
         req.requirementDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
         req.priority?.toLowerCase().includes(searchText.toLowerCase())
     );
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredRequirements.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedRequirements = filteredRequirements.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
 
     const stats = {
         total: requirements.length,
@@ -134,7 +151,7 @@ export default function CompanyRequirementsPage() {
                     <input
                         type="text"
                         placeholder="Search requirements by title, description, or priority..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />
@@ -153,7 +170,7 @@ export default function CompanyRequirementsPage() {
                         {!searchText && (
                             <button
                                 onClick={() => router.push('/company/requirements/add-requirement')}
-                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                                className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                             >
                                 Add Requirement
                             </button>
@@ -173,7 +190,7 @@ export default function CompanyRequirementsPage() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredRequirements.map((req) => (
+                                {paginatedRequirements.map((req) => (
                                     <tr key={req.requirementId} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div>
@@ -222,6 +239,19 @@ export default function CompanyRequirementsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Pagination */}
+            {filteredRequirements.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border mt-4">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        totalItems={filteredRequirements.length}
+                        itemsPerPage={itemsPerPage}
+                    />
+                </div>
+            )}
         </div>
     );
 }

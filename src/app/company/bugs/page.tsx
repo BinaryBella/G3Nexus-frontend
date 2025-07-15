@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileSearch, Search, Plus, Bug, AlertTriangle, CheckCircle, Clock, Trash2, Edit } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { bugService } from '@/app/lib/services/bugService';
 import { Bug as BugType } from '../../lib/types';
+import Pagination from '@/app/components/Pagination';
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
     const colorMap: Record<string, string> = {
@@ -43,17 +44,33 @@ const StatusBadge = ({ status }: { status: string }) => {
 export default function CompanyBugsPage() {
     const router = useRouter();
     const [searchText, setSearchText] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const { data: bugs = [], error, isLoading } = useQuery<BugType[], Error>({
         queryKey: ['bugs'],
         queryFn: bugService.getAllBugs,
     });
 
+    // Reset to first page when search text changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchText]);
+
     const filteredBugs = bugs.filter(bug =>
         bug.bugTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
         bug.bugDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
         bug.severity?.toLowerCase().includes(searchText.toLowerCase())
     );
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredBugs.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedBugs = filteredBugs.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
 
     const stats = {
         total: bugs.length,
@@ -151,7 +168,7 @@ export default function CompanyBugsPage() {
                     <input
                         type="text"
                         placeholder="Search bugs by title, description, or status..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />
@@ -170,7 +187,7 @@ export default function CompanyBugsPage() {
                         {!searchText && (
                             <button
                                 onClick={() => router.push('/company/bugs/add-bug-report')}
-                                className="mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                                className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                             >
                                 Add Bug Report
                             </button>
@@ -190,7 +207,7 @@ export default function CompanyBugsPage() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredBugs.map((bug) => (
+                                {paginatedBugs.map((bug) => (
                                     <tr key={bug.bugId} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div>
@@ -233,6 +250,19 @@ export default function CompanyBugsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Pagination */}
+            {filteredBugs.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border mt-4">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        totalItems={filteredBugs.length}
+                        itemsPerPage={itemsPerPage}
+                    />
+                </div>
+            )}
         </div>
     );
 }
