@@ -116,7 +116,25 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
             setError('Please fill in all project initialization fields');
             return;
         }
-        
+        // Validate Estimated Budget format
+        if (formData.estimatedBudget && !/^\d+(\.\d{1,2})?$/.test(formData.estimatedBudget)) {
+            setError('Estimated Budget must be a valid number (up to 2 decimal places)');
+            return;
+        }
+        // Validate Total Budget format
+        if (formData.totalBudget && !/^\d+(\.\d{1,2})?$/.test(formData.totalBudget)) {
+            setError('Total Budget must be a valid number (up to 2 decimal places)');
+            return;
+        }
+        // Validate Actual Start Date is earlier than Actual End Date
+        if (formData.actualStartDate && formData.actualEndDate) {
+            const start = new Date(formData.actualStartDate);
+            const end = new Date(formData.actualEndDate);
+            if (start > end) {
+                setError('Actual Start Date must be earlier than Actual End Date');
+                return;
+            }
+        }
         try {
             setIsSubmitting(true);
             // Prepare data for API call
