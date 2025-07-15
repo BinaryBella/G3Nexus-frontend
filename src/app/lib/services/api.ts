@@ -315,4 +315,99 @@ export const authService = {
     },
 };
 
+// Profile Service
+export const profileService = {
+    // Get all clients
+    getAllClients: async () => {
+        try {
+            const response = await api.get('/Client');
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Get client by ID
+    getClientById: async (clientId: number) => {
+        try {
+            const response = await api.get(`/Client/${clientId}`);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Update client profile
+    updateClientProfile: async (clientId: number, profileData: any) => {
+        try {
+            const response = await api.put(`/Client/${clientId}`, profileData);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Get all employees
+    getAllEmployees: async () => {
+        try {
+            const response = await api.get('/Employee');
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Get employee by ID
+    getEmployeeById: async (employeeId: number) => {
+        try {
+            const response = await api.get(`/Employee/${employeeId}`);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Update employee profile
+    updateEmployeeProfile: async (profileData: any) => {
+        try {
+            const response = await api.put(`/Employee/`, profileData);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Find client by email
+    findClientByEmail: async (email: string) => {
+        try {
+            const response = await api.get('/Client');
+            if (response.data.status && response.data.data) {
+                const clients = Array.isArray(response.data.data) 
+                    ? response.data.data 
+                    : [response.data.data];
+                return clients.find((client: any) => client.email === email);
+            }
+            return null;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Find employee by email
+    findEmployeeByEmail: async (email: string) => {
+        try {
+            const response = await api.get('/Employee');
+            if (response.data.status && response.data.data) {
+                const employees = Array.isArray(response.data.data) 
+                    ? response.data.data 
+                    : [response.data.data];
+                return employees.find((employee: any) => employee.email === email);
+            }
+            return null;
+        } catch (error) {
+            throw error;
+        }
+    },
+};
+
 export default api;

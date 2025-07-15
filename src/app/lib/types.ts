@@ -22,6 +22,7 @@ export interface AuthUser {
     email: string;
     role: string;
     isActive: boolean;
+    profileImage?: string;
     // Additional fields that might be present in the user data
     organizationName?: string;
     contactNo?: string;
@@ -112,6 +113,7 @@ export interface TermsConditions {
     content: string;
     updatedDate: string;
     isActive: boolean;
+    projectId?: number; // Optional for backwards compatibility
 }
 
 export interface Company {

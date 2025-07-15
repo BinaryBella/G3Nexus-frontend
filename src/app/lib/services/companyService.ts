@@ -51,9 +51,14 @@ export const companyService = {
   },
 
   // Update company
-  updateCompany: async (id: number, companyData: Partial<Omit<Company, 'companyId'>>): Promise<Company> => {
+  updateCompany: async (id: number, companyData: Omit<Company, 'companyId'>): Promise<Company> => {
     try {
-      const response = await api.put<ApiResponse<Company>>(`/company/${id}`, companyData);
+      const updateData = {
+        companyId: id,
+        ...companyData
+      };
+      
+      const response = await api.put<ApiResponse<Company>>(`/company`, updateData);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update company');

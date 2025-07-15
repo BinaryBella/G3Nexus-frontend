@@ -5,13 +5,29 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { User } from 'lucide-react';
 import { useRouter } from 'next/navigation'; // Import useRouter
+import { useAuth } from '@/app/contexts/AuthContext';
 
 const Navbar = () => {
     const router = useRouter(); // Initialize useRouter
+    const { user, logout } = useAuth();
 
     const handleLogout = () => {
-        // You can add additional logout logic here, such as clearing session data
-        router.push('/auth/login'); // Redirect to login page after logout
+        logout(); // Use the logout method from AuthContext which handles token clearing and redirection
+    };
+
+    // Determine the profile link based on user role
+    const getProfileLink = () => {
+        if (!user) return '/profile';
+        
+        // Route to the appropriate profile page based on user type
+        if (user.role === 'CLIENT_ADMIN' || user.role === 'CLIENT_USER') {
+            return '/client/profile';
+        } else if (user.role === 'COMPANY_ADMIN' || user.role === 'COMPANY_DEVELOPER') {
+            return '/company/profile';
+        }
+        
+        // Default fallback
+        return '/profile';
     };
 
     return (
@@ -24,10 +40,22 @@ const Navbar = () => {
             {/* User and Logout Section */}
             <div className="flex items-center space-x-4">
                 <Link
-                    href="/profile"
+                    href={getProfileLink()}
                     className="flex items-center p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
                 >
-                    <User className="w-6 h-6 text-[#3450A3] hover:text-blue-500 transition-colors duration-200" />
+                    {user?.profileImage ? (
+                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#3450A3]">
+                            <Image
+                                src={user.profileImage}
+                                alt="Profile"
+                                width={32}
+                                height={32}
+                                className="object-cover w-full h-full"
+                            />
+                        </div>
+                    ) : (
+                        <User className="w-6 h-6 text-[#3450A3] hover:text-blue-500 transition-colors duration-200" />
+                    )}
                 </Link>
 
                 {/* Logout Button */}

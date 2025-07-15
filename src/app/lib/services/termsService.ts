@@ -18,6 +18,21 @@ export const termsService = {
     }
   },
 
+  // Get terms and conditions by project ID
+  getTermsByProject: async (projectId: number): Promise<TermsConditions> => {
+    try {
+      const response = await api.get<ApiResponse<TermsConditions>>(`/TermsConditions/project/${projectId}`);
+
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to fetch terms and conditions for project');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Add new terms
   addTerms: async (content: string): Promise<TermsConditions> => {
     try {
@@ -25,6 +40,24 @@ export const termsService = {
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add terms and conditions');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Add new terms for a specific project
+  addTermsForProject: async (projectId: number, content: string): Promise<TermsConditions> => {
+    try {
+      const response = await api.post<ApiResponse<TermsConditions>>('/TermsConditions', { 
+        content, 
+        projectId 
+      });
+
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to add terms and conditions for project');
       }
 
       return response.data.data;

@@ -2,7 +2,7 @@
 // This file exports all services for easier imports elsewhere in the app
 
 import api from './api';
-import { authService } from './api';
+import { authService, profileService } from './api';
 import { clientService } from './clientService';
 import { employeeService } from './employeeService';
 import { projectService } from './projectService';
@@ -14,6 +14,7 @@ import { termsService } from './termsService';
 export {
   api,
   authService,
+  profileService,
   clientService,
   employeeService,
   projectService,

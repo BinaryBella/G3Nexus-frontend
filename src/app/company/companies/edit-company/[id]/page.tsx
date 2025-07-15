@@ -87,7 +87,13 @@ const EditCompanyPage = () => {
             setSubmitting(true);
             setError(null);
             
-            await companyService.updateCompany(companyId, formData);
+            const updateData = {
+                companyName: formData.companyName.trim(),
+                address: formData.address.trim(),
+                isActive: formData.isActive
+            };
+            
+            await companyService.updateCompany(companyId, updateData);
             
             setSuccess(true);
             setTimeout(() => {

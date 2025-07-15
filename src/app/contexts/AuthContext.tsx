@@ -17,6 +17,8 @@ interface AuthContextType {
     isCompanyUser: () => boolean;
     isAdmin: () => boolean;
     hasRole: (role: string) => boolean;
+    updateUser: (userData: Partial<AuthUser>) => void;
+    refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -124,6 +126,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         router.push('/auth/login');
     };
 
+    // Function to update user data in context
+    const updateUser = (userData: Partial<AuthUser>) => {
+        if (user) {
+            const updatedUser = { ...user, ...userData };
+            setUser(updatedUser);
+        }
+    };
+
+    // Function to refresh user data from API
+    const refreshUserData = async () => {
+        if (!user || !isAuthenticated) return;
+
+        try {
+            const userData = authService.getCurrentUser();
+            setUser(userData);
+        } catch (error) {
+            console.error('Failed to refresh user data:', error);
+        }
+    };
+
     // Helper functions to check user type and roles
     const hasRole = (role: string): boolean => {
         return user?.role === role;
@@ -151,7 +173,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isClient,
             isCompanyUser,
             isAdmin,
-            hasRole
+            hasRole,
+            updateUser,
+            refreshUserData
         }}>
             {children}
         </AuthContext.Provider>
