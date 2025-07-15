@@ -6,6 +6,7 @@ import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import Pagination from '@/app/components/Pagination';
 import { Users, Plus, Edit, Trash2, Search, UserCheck, UserX, AlertTriangle, FileSearch } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
@@ -42,6 +43,7 @@ const RoleBadge = ({ role }: { role: string }) => {
 };
 
 const EmployeesPage = () => {
+    const queryClient = useQueryClient();
     const router = useRouter();
     const { canManageEmployees } = useRoleAccess();
     const [searchText, setSearchText] = useState('');
@@ -50,11 +52,22 @@ const EmployeesPage = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-
+    const [deleteError, setDeleteError] = useState<string | null>(null);
     const { data: employees = [], error, isLoading } = useQuery<Employee[], Error>({
         queryKey: ['employees'],
         queryFn: employeeService.getAllEmployees,
     });
+
+    // Clear deleteError when employees data changes (after successful delete)
+    useEffect(() => {
+        setDeleteError(null);
+    }, [employees]);
+    // const queryClient = useQueryClient();
+
+    // const { data: employees = [], error, isLoading } = useQuery<Employee[], Error>({
+    //     queryKey: ['employees'],
+    //     queryFn: employeeService.getAllEmployees,
+    // });
 
     // Reset to first page when search text changes
     useEffect(() => {
@@ -105,10 +118,12 @@ const EmployeesPage = () => {
         try {
             setIsDeleting(true);
             await employeeService.deleteEmployee(selectedEmployee.employeeId);
-            // The query will automatically refetch due to React Query
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
             setShowDeleteModal(false);
             setSelectedEmployee(null);
+            setDeleteError(null);
         } catch (err) {
+            setDeleteError('Failed to delete employee. Please try again.');
             console.error('Failed to delete employee:', err);
         } finally {
             setIsDeleting(false);
@@ -144,6 +159,20 @@ const EmployeesPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
+            {deleteError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center">
+                        <AlertTriangle className="h-5 w-5 text-red-400 mr-3" />
+                        <p className="text-sm text-red-700">{deleteError}</p>
+                        <button
+                            onClick={() => setDeleteError(null)}
+                            className="ml-auto text-red-400 hover:text-red-600"
+                        >
+                            <UserX className="h-4 w-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="mb-8">
                 <div className="flex justify-between items-center mb-6">

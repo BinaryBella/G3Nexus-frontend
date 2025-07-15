@@ -196,6 +196,7 @@ const EditEmployeeForm = () => {
             employeeId: Number(employeeId),
             password: employee!.password,
             role: designation,
+            profileImageUrl: "",
         };
 
         try {

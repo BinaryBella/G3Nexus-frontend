@@ -71,6 +71,7 @@ export interface Employee {
     name: string;
     password: string;
     role: string;
+    profileImageUrl?: string | null;
 }
 
 

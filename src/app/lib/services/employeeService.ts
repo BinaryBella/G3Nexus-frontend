@@ -79,6 +79,18 @@ export const employeeService = {
     }
   },
 
+  // Check if employee exists by email
+  checkEmployeeExists: async (email: string): Promise<boolean> => {
+    try {
+      const employees = await employeeService.getAllEmployees();
+      return employees.some(employee => 
+        employee.email.toLowerCase().trim() === email.toLowerCase().trim()
+      );
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Get assigned projects
   getAssignedProjects: async () => {
     try {

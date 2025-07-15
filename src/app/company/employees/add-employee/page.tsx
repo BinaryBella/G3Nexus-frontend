@@ -6,7 +6,7 @@ import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, User, X } from 'lucide-react';
+import { ArrowLeft, User, X, Eye, EyeOff } from 'lucide-react';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 // Modal Component
@@ -89,6 +89,44 @@ const EmployeeForm = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
     const [success, setSuccess] = useState(false);
+    const [emailValidationError, setEmailValidationError] = useState('');
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Debounced validation for email
+    useEffect(() => {
+        const checkEmployeeEmail = async () => {
+            if (!email.trim()) {
+                setEmailValidationError('');
+                return;
+            }
+
+            // Basic email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email.trim())) {
+                setEmailValidationError('Please enter a valid email address');
+                return;
+            }
+
+            setIsCheckingEmail(true);
+            try {
+                const exists = await employeeService.checkEmployeeExists(email.trim());
+                if (exists) {
+                    setEmailValidationError('An employee with this email already exists');
+                } else {
+                    setEmailValidationError('');
+                }
+            } catch (error) {
+                setEmailValidationError('');
+            } finally {
+                setIsCheckingEmail(false);
+            }
+        };
+
+        const timeoutId = setTimeout(checkEmployeeEmail, 500);
+        return () => clearTimeout(timeoutId);
+    }, [email]);
 
     // Validation functions
     const validateEmail = (email: string): boolean => {
@@ -97,8 +135,11 @@ const EmployeeForm = () => {
     };
 
     const validateContactNo = (contactNo: string): boolean => {
-        const phoneRegex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
-        return phoneRegex.test(contactNo.replace(/\s/g, ''));
+        // More strict phone number validation
+        // Supports formats: +1234567890, (123) 456-7890, 123-456-7890, 123.456.7890, 1234567890
+        const phoneRegex = /^[\+]?[1-9]?[0-9]{1,3}?[-.\s]?[(]?[0-9]{3}[)]?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4,6}$/;
+        const cleanedNumber = contactNo.replace(/\s/g, '');
+        return phoneRegex.test(cleanedNumber) && cleanedNumber.length >= 10 && cleanedNumber.length <= 15;
     };
 
     const validatePassword = (password: string): boolean => {
@@ -199,6 +240,10 @@ const EmployeeForm = () => {
                 setErrors(newErrors);
             }
         }
+        // Clear emailValidationError when user starts typing
+        if (emailValidationError && value.trim() && validateEmail(value)) {
+            setEmailValidationError('');
+        }
     };
 
     const handleDesignationChange = (value: string) => {
@@ -258,6 +303,11 @@ const EmployeeForm = () => {
             return;
         }
 
+        if (emailValidationError) {
+            setErrors({ email: 'Please resolve the email issue before submitting' });
+            return;
+        }
+
         const newEmployee: Employee = {
             name: employeeName.trim(),
             contactNo: contactNo.trim(),
@@ -266,9 +316,17 @@ const EmployeeForm = () => {
             isActive: true,
             password: password,
             role: designation.trim(),
+            profileImageUrl: "", // Always send a string, never null
         };
 
         try {
+            // Double-check email doesn't exist before submitting
+            const emailExists = await employeeService.checkEmployeeExists(email.trim());
+            if (emailExists) {
+                setErrors({ email: 'An employee with this email already exists. Please choose a different email.' });
+                return;
+            }
+
             await addEmployeeMutation.mutateAsync(newEmployee);
         } catch (error) {
             // Error handling is done in the mutation's onError callback
@@ -354,7 +412,7 @@ const EmployeeForm = () => {
                                     placeholder="Enter employee name"
                                     value={employeeName}
                                     onChange={(e) => handleEmployeeNameChange(e.target.value)}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                    className={`text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
                                         errors.employeeName ? 'border-red-500' : ''
                                     }`}
                                     required
@@ -372,10 +430,10 @@ const EmployeeForm = () => {
                                 <input
                                     type="tel"
                                     id="contactNo"
-                                    placeholder="Enter contact number"
+                                    placeholder="Enter contact number (e.g., +1234567890, (123) 456-7890)"
                                     value={contactNo}
                                     onChange={(e) => handleContactNoChange(e.target.value)}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                    className={`text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
                                         errors.contactNo ? 'border-red-500' : ''
                                     }`}
                                     required
@@ -383,6 +441,9 @@ const EmployeeForm = () => {
                                 {errors.contactNo && (
                                     <p className="text-red-500 text-sm mt-1">{errors.contactNo}</p>
                                 )}
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Supported formats: +1234567890, (123) 456-7890, 123-456-7890, 123.456.7890
+                                </p>
                             </div>
 
                             {/* Email */}
@@ -390,17 +451,38 @@ const EmployeeForm = () => {
                                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                                     Email Address *
                                 </label>
-                                <input
-                                    type="email"
-                                    id="email"
-                                    placeholder="Enter email address"
-                                    value={email}
-                                    onChange={(e) => handleEmailChange(e.target.value)}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
-                                        errors.email ? 'border-red-500' : ''
-                                    }`}
-                                    required
-                                />
+                                <div className="relative">
+                                    <input
+                                        type="email"
+                                        id="email"
+                                        placeholder="Enter email address"
+                                        value={email}
+                                        onChange={(e) => handleEmailChange(e.target.value)}
+                                        className={`text-black w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                            errors.email || emailValidationError ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                        required
+                                    />
+                                    {isCheckingEmail && (
+                                        <div className="absolute right-3 top-2.5">
+                                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+                                        </div>
+                                    )}
+                                </div>
+                                {emailValidationError && (
+                                    <p className="mt-1 text-sm text-red-600 flex items-center">
+                                        <X className="h-4 w-4 mr-1" />
+                                        {emailValidationError}
+                                    </p>
+                                )}
+                                {email.trim() && !emailValidationError && !isCheckingEmail && !errors.email && (
+                                    <p className="mt-1 text-sm text-green-600 flex items-center">
+                                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Email address is available
+                                    </p>
+                                )}
                                 {errors.email && (
                                     <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                                 )}
@@ -417,7 +499,7 @@ const EmployeeForm = () => {
                                     placeholder="Enter employee address"
                                     value={address}
                                     onChange={(e) => handleAddressChange(e.target.value)}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                    className={`text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
                                         errors.address ? 'border-red-500' : ''
                                     }`}
                                     required
@@ -432,17 +514,19 @@ const EmployeeForm = () => {
                                 <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-2">
                                     Designation *
                                 </label>
-                                <input
-                                    type="text"
+                                <select
                                     id="designation"
-                                    placeholder="Enter designation"
                                     value={designation}
                                     onChange={(e) => handleDesignationChange(e.target.value)}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                    className={`text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
                                         errors.designation ? 'border-red-500' : ''
                                     }`}
                                     required
-                                />
+                                >
+                                    <option value="">Select a designation</option>
+                                    <option value="COMPANY_ADMIN">Admin</option>
+                                    <option value="COMPANY_DEVELOPER">Developer</option>
+                                </select>
                                 {errors.designation && (
                                     <p className="text-red-500 text-sm mt-1">{errors.designation}</p>
                                 )}
@@ -453,17 +537,30 @@ const EmployeeForm = () => {
                                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                                     Password *
                                 </label>
-                                <input
-                                    type="password"
-                                    id="password"
-                                    placeholder="Enter password (minimum 8 characters)"
-                                    value={password}
-                                    onChange={(e) => handlePasswordChange(e.target.value)}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
-                                        errors.password ? 'border-red-500' : ''
-                                    }`}
-                                    required
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        id="password"
+                                        placeholder="Enter password (minimum 8 characters)"
+                                        value={password}
+                                        onChange={(e) => handlePasswordChange(e.target.value)}
+                                        className={`text-black w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                            errors.password ? 'border-red-500' : ''
+                                        }`}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4 text-gray-400" />
+                                        ) : (
+                                            <Eye className="h-4 w-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
                                 {errors.password && (
                                     <p className="text-red-500 text-sm mt-1">{errors.password}</p>
                                 )}
@@ -474,17 +571,30 @@ const EmployeeForm = () => {
                                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
                                     Confirm Password *
                                 </label>
-                                <input
-                                    type="password"
-                                    id="confirmPassword"
-                                    placeholder="Confirm password"
-                                    value={confirmPassword}
-                                    onChange={(e) => handleConfirmPasswordChange(e.target.value)}
-                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
-                                        errors.confirmPassword ? 'border-red-500' : ''
-                                    }`}
-                                    required
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        id="confirmPassword"
+                                        placeholder="Confirm password"
+                                        value={confirmPassword}
+                                        onChange={(e) => handleConfirmPasswordChange(e.target.value)}
+                                        className={`text-black w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
+                                            errors.confirmPassword ? 'border-red-500' : ''
+                                        }`}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    >
+                                        {showConfirmPassword ? (
+                                            <EyeOff className="h-4 w-4 text-gray-400" />
+                                        ) : (
+                                            <Eye className="h-4 w-4 text-gray-400" />
+                                        )}
+                                    </button>
+                                </div>
                                 {errors.confirmPassword && (
                                     <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
                                 )}
@@ -502,10 +612,17 @@ const EmployeeForm = () => {
                             </button>
                             <button
                                 type="submit"
-                                disabled={addEmployeeMutation.isPending}
+                                disabled={addEmployeeMutation.isPending || !!emailValidationError || isCheckingEmail}
                                 className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                                {addEmployeeMutation.isPending ? 'Adding...' : 'Add Employee'}
+                                {addEmployeeMutation.isPending ? (
+                                    <>
+                                        <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2"></div>
+                                        Adding...
+                                    </>
+                                ) : (
+                                    'Add Employee'
+                                )}
                             </button>
                         </div>
                     </form>
