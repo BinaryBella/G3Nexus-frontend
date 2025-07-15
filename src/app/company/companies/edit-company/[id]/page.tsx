@@ -43,6 +43,9 @@ const EditCompanyPage = () => {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [nameValidationError, setNameValidationError] = useState('');
+    const [isCheckingName, setIsCheckingName] = useState(false);
+    const [originalCompanyName, setOriginalCompanyName] = useState('');
 
     useEffect(() => {
         if (companyId) {
@@ -59,6 +62,7 @@ const EditCompanyPage = () => {
                 address: company.address,
                 isActive: company.isActive
             });
+            setOriginalCompanyName(company.companyName);
             setError(null);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch company');
@@ -80,6 +84,12 @@ const EditCompanyPage = () => {
         
         if (!formData.companyName.trim() || !formData.address.trim()) {
             setError('Please fill in all required fields');
+            return;
+        }
+
+        // Check if there's a validation error for the company name
+        if (nameValidationError) {
+            setError('Please resolve the company name issue before submitting');
             return;
         }
 
@@ -109,6 +119,36 @@ const EditCompanyPage = () => {
     const handleCancel = () => {
         router.push('/company/companies');
     };
+
+    // Debounced validation for company name (only if name changed)
+    useEffect(() => {
+        const checkCompanyName = async () => {
+            const trimmedName = formData.companyName.trim();
+            
+            // Don't validate if empty, unchanged, or currently checking
+            if (!trimmedName || trimmedName === originalCompanyName) {
+                setNameValidationError('');
+                return;
+            }
+
+            setIsCheckingName(true);
+            try {
+                const exists = await companyService.checkCompanyExists(trimmedName);
+                if (exists) {
+                    setNameValidationError('A company with this name already exists');
+                } else {
+                    setNameValidationError('');
+                }
+            } catch (error) {
+                setNameValidationError('');
+            } finally {
+                setIsCheckingName(false);
+            }
+        };
+
+        const timeoutId = setTimeout(checkCompanyName, 500);
+        return () => clearTimeout(timeoutId);
+    }, [formData.companyName, originalCompanyName]);
 
     if (loading) {
         return (
@@ -189,6 +229,9 @@ const EditCompanyPage = () => {
                                 placeholder="Enter company name"
                                 required
                             />
+                            {nameValidationError && (
+                                <p className="mt-2 text-sm text-red-600">{nameValidationError}</p>
+                            )}
                         </div>
 
                         {/* Address */}

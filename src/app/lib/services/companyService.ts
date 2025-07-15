@@ -83,5 +83,17 @@ export const companyService = {
     } catch (error) {
       throw error;
     }
-  }
+  },
+
+  // Check if company exists by name
+  checkCompanyExists: async (companyName: string): Promise<boolean> => {
+    try {
+      const companies = await companyService.getAllCompanies();
+      return companies.some(company => 
+        company.companyName.toLowerCase().trim() === companyName.toLowerCase().trim()
+      );
+    } catch (error) {
+      throw error;
+    }
+  },
 };
