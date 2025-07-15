@@ -29,10 +29,17 @@ const CompaniesPage = () => {
         if (searchText.trim() === '') {
             setFilteredCompanies(companies);
         } else {
-            const filtered = companies.filter(company =>
-                company.companyName.toLowerCase().includes(searchText.toLowerCase()) ||
-                company.address.toLowerCase().includes(searchText.toLowerCase())
-            );
+            const searchLower = searchText.toLowerCase();
+            const filtered = companies.filter(company => {
+                // Helper function to check if search text matches beginning of any word
+                const matchesWordBeginning = (text: string) => {
+                    const words = text.toLowerCase().split(/\s+/);
+                    return words.some(word => word.startsWith(searchLower));
+                };
+                
+                return matchesWordBeginning(company.companyName) ||
+                       matchesWordBeginning(company.address);
+            });
             setFilteredCompanies(filtered);
         }
         // Reset to first page when search changes
@@ -183,7 +190,7 @@ const CompaniesPage = () => {
                     <input
                         type="text"
                         placeholder="Search companies by name or address..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                        className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />

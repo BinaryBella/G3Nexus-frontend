@@ -57,11 +57,22 @@ export default function CompanyBugsPage() {
         setCurrentPage(1);
     }, [searchText]);
 
-    const filteredBugs = bugs.filter(bug =>
-        bug.bugTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
-        bug.bugDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
-        bug.severity?.toLowerCase().includes(searchText.toLowerCase())
-    );
+    const filteredBugs = bugs.filter(bug => {
+        if (searchText.trim() === '') return true;
+        
+        const searchLower = searchText.toLowerCase();
+        
+        // Helper function to check if search text matches beginning of any word
+        const matchesWordBeginning = (text: string) => {
+            if (!text) return false;
+            const words = text.toLowerCase().split(/\s+/);
+            return words.some(word => word.startsWith(searchLower));
+        };
+        
+        return matchesWordBeginning(bug.bugTitle || '') ||
+               matchesWordBeginning(bug.bugDescription || '') ||
+               matchesWordBeginning(bug.severity || '');
+    });
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredBugs.length / itemsPerPage);
@@ -168,7 +179,7 @@ export default function CompanyBugsPage() {
                     <input
                         type="text"
                         placeholder="Search bugs by title, description, or status..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                        className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />
