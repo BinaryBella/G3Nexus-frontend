@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Search, Edit, Trash2, FileSearch, Users, Plus, UserCheck, UserX, AlertTriangle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { clientService, Client } from '@/app/lib/services/clientService';
+import { companyService } from '@/app/lib/services/companyService';
+import { Company } from '@/app/lib/types';
 import Pagination from '@/app/components/Pagination';
 
 const StatusBadge = ({ isActive }: { isActive: boolean }) => {
@@ -40,6 +42,7 @@ const RoleBadge = ({ role }: { role: string }) => {
 export default function CompanyClientsPage() {
     const router = useRouter();
     const [searchText, setSearchText] = useState("");
+    const [companySearchText, setCompanySearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
 
@@ -48,17 +51,41 @@ export default function CompanyClientsPage() {
         queryFn: clientService.getAllClients,
     });
 
+    const { data: companies = [] } = useQuery<Company[], Error>({
+        queryKey: ['companies'],
+        queryFn: companyService.getAllCompanies,
+    });
+
     // Reset to first page when search text changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchText]);
+    }, [searchText, companySearchText]);
 
-    const filteredClients = clients.filter(client =>
-        client.name?.toLowerCase().includes(searchText.toLowerCase()) ||
-        client.email?.toLowerCase().includes(searchText.toLowerCase()) ||
-        client.role?.toLowerCase().includes(searchText.toLowerCase()) ||
-        client.contactNo?.includes(searchText)
-    );
+    const filteredClients = clients.filter(client => {
+        // Helper function to check if search text matches beginning of any word
+        const matchesWordBeginning = (text: string, searchTerm: string) => {
+            if (!text || !searchTerm.trim()) return searchTerm.trim() === '';
+            const words = text.toLowerCase().split(/\s+/);
+            const searchLower = searchTerm.toLowerCase();
+            return words.some(word => word.startsWith(searchLower));
+        };
+
+        // Main search filter
+        const matchesMainSearch = searchText.trim() === '' || 
+            matchesWordBeginning(client.name || '', searchText) ||
+            matchesWordBeginning(client.email || '', searchText) ||
+            matchesWordBeginning(client.role || '', searchText) ||
+            matchesWordBeginning(client.contactNo || '', searchText) ||
+            matchesWordBeginning(client.address || '', searchText);
+
+        // Company search filter (using company name)
+        const matchesCompanySearch = companySearchText.trim() === '' || (() => {
+            const company = companies.find(comp => comp.companyId === client.companyId);
+            return company ? matchesWordBeginning(company.companyName, companySearchText) : false;
+        })();
+
+        return matchesMainSearch && matchesCompanySearch;
+    });
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
@@ -170,15 +197,27 @@ export default function CompanyClientsPage() {
                 </div>
 
                 {/* Search */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                        type="text"
-                        placeholder="Search clients by name, email, role, or contact..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <input
+                            type="text"
+                            placeholder="Filter by company name..."
+                            className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                            value={companySearchText}
+                            onChange={(e) => setCompanySearchText(e.target.value)}
+                        />
+                    </div>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <input
+                            type="text"
+                            placeholder="Search clients by name, email, role, or contact..."
+                            className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -209,6 +248,7 @@ export default function CompanyClientsPage() {
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Information</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -243,6 +283,12 @@ export default function CompanyClientsPage() {
                                         <td className="px-6 py-4">
                                             <StatusBadge isActive={client.isActive} />
                                         </td>
+                                        <td className="px-6 py-4 text-sm text-gray-900">
+                                            {(() => {
+                                                const company = companies.find(comp => comp.companyId === client.companyId);
+                                                return company ? company.companyName : `Company ID: ${client.companyId}`;
+                                            })()}
+                                        </td>
                                         <td className="px-6 py-4 text-sm text-gray-500">
                                             <div className="max-w-xs truncate">
                                                 {client.address}
@@ -268,20 +314,6 @@ export default function CompanyClientsPage() {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
-                )}
-
-                {/* Results Summary */}
-                {!isLoading && filteredClients.length > 0 && (
-                    <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
-                        <div className="text-sm text-gray-700">
-                            Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredClients.length)} of {filteredClients.length} clients
-                            {searchText && (
-                                <span className="ml-2">
-                                    (filtered by &quot;{searchText}&quot;)
-                                </span>
-                            )}
-                        </div>
                     </div>
                 )}
             </div>

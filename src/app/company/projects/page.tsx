@@ -57,12 +57,22 @@ export default function CompanyProjectsPage() {
         setCurrentPage(1);
     }, [searchText]);
 
-    const filteredProjects = projects.filter(project =>
-        project.projectName?.toLowerCase().includes(searchText.toLowerCase()) ||
-        project.projectDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
-        project.projectType?.toLowerCase().includes(searchText.toLowerCase()) ||
-        project.status?.toLowerCase().includes(searchText.toLowerCase())
-    );
+    const filteredProjects = projects.filter(project => {
+        if (searchText.trim() === '') return true;
+        
+        // Helper function to check if search text matches beginning of any word
+        const matchesWordBeginning = (text: string) => {
+            if (!text) return false;
+            const words = text.toLowerCase().split(/\s+/);
+            const searchLower = searchText.toLowerCase();
+            return words.some(word => word.startsWith(searchLower));
+        };
+        
+        return matchesWordBeginning(project.projectName || '') ||
+               matchesWordBeginning(project.projectDescription || '') ||
+               matchesWordBeginning(project.projectType || '') ||
+               matchesWordBeginning(project.status || '');
+    });
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
@@ -184,7 +194,7 @@ export default function CompanyProjectsPage() {
                     <input
                         type="text"
                         placeholder="Search projects by name, description, type, or status..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                        className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />

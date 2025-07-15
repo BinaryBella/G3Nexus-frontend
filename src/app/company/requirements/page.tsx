@@ -40,11 +40,21 @@ export default function CompanyRequirementsPage() {
         setCurrentPage(1);
     }, [searchText]);
 
-    const filteredRequirements = requirements.filter(req =>
-        req.requirementTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
-        req.requirementDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
-        req.priority?.toLowerCase().includes(searchText.toLowerCase())
-    );
+    const filteredRequirements = requirements.filter(req => {
+        if (searchText.trim() === '') return true;
+        
+        // Helper function to check if search text matches beginning of any word
+        const matchesWordBeginning = (text: string) => {
+            if (!text) return false;
+            const words = text.toLowerCase().split(/\s+/);
+            const searchLower = searchText.toLowerCase();
+            return words.some(word => word.startsWith(searchLower));
+        };
+        
+        return matchesWordBeginning(req.requirementTitle || '') ||
+               matchesWordBeginning(req.requirementDescription || '') ||
+               matchesWordBeginning(req.priority || '');
+    });
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredRequirements.length / itemsPerPage);
@@ -151,7 +161,7 @@ export default function CompanyRequirementsPage() {
                     <input
                         type="text"
                         placeholder="Search requirements by title, description, or priority..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                        className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
                     />

@@ -51,11 +51,21 @@ export default function CompanyPaymentsPage() {
         queryFn: paymentService.getAllPayments,
     });
 
-    const filteredPayments = payments.filter(payment =>
-        payment.paymentDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
-        payment.paymentType?.toLowerCase().includes(searchText.toLowerCase()) ||
-        payment.paymentAmount?.toString().includes(searchText.toLowerCase())
-    );
+    const filteredPayments = payments.filter(payment => {
+        if (searchText.trim() === '') return true;
+        
+        // Helper function to check if search text matches beginning of any word
+        const matchesWordBeginning = (text: string) => {
+            if (!text) return false;
+            const words = text.toLowerCase().split(/\s+/);
+            const searchLower = searchText.toLowerCase();
+            return words.some(word => word.startsWith(searchLower));
+        };
+        
+        return matchesWordBeginning(payment.paymentDescription || '') ||
+               matchesWordBeginning(payment.paymentType || '') ||
+               matchesWordBeginning(payment.paymentAmount?.toString() || '');
+    });
 
     useEffect(() => {
         setCurrentPage(1);
@@ -176,7 +186,7 @@ export default function CompanyPaymentsPage() {
                         <input
                             type="text"
                             placeholder="Search payments by description, type, or amount..."
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                            className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                             value={searchText}
                             onChange={(e) => setSearchText(e.target.value)}
                         />
