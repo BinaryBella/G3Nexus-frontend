@@ -186,13 +186,24 @@ const ClientsPage: React.FC = () => {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
+                    {/* Success Icon and Message */}
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
                         <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Client Added Successfully!</h3>
-                    <p className="text-gray-600">Redirecting to clients list...</p>
+
+                    {/* Email Sent Icon and Message */}
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mt-4 mb-2">
+                        <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12H8m8 0l-4-4m4 4l-4 4" />
+                        </svg>
+                    </div>
+                    <p className="text-gray-600">The password has been sent to the client via email.</p>
+
+                    {/* Redirect Message */}
+                    <p className="text-gray-600 mt-2">Redirecting to client list...</p>
                 </div>
             </div>
         );
