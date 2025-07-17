@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react';
 
 import { useQuery } from '@tanstack/react-query';
 import { useMutation } from '@tanstack/react-query';
+
 import { requirementService } from '@/app/lib/services/requirementService'; 
 import { projectService } from '@/app/lib/services/projectService';
+import { employeeService } from '@/app/lib/services/employeeService';
 import { Requirement } from '../../../lib/types';
 import { useRouter } from 'next/navigation';
 import { FileText, ArrowLeft, X } from 'lucide-react';
@@ -341,4 +343,3 @@ const RequirementForm = () => {
 };
 
 export default RequirementForm;
-import { employeeService } from '@/app/lib/services';

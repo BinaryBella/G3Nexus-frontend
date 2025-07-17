@@ -1,22 +1,49 @@
+
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bug, X } from 'lucide-react';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { projectService } from '@/app/lib/services';
 
 const BugReportForm = () => {
     const router = useRouter();
+    const { user } = useAuth();
     const [bugData, setBugData] = useState({
         title: '',
         severity: '',
         description: '',
         attachment: null as File | null,
-        isActive: true
+        isActive: true,
+        employeeName: '',
+        projectId: ''
     });
+    const [projects, setProjects] = useState<{ projectId: number; projectName: string }[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+
+    // Set employee name from user context
+    useEffect(() => {
+        if (user && user.name) {
+            setBugData(prev => ({ ...prev, employeeName: user.name || '' }));
+        }
+    }, [user]);
+
+    // Fetch all projects for select
+    useEffect(() => {
+        const fetchProjects = async () => {
+            try {
+                const allProjects = await projectService.getAllProjects();
+                setProjects(allProjects.map(p => ({ projectId: p.projectId, projectName: p.projectName })));
+            } catch (err) {
+                // Optionally handle error
+            }
+        };
+        fetchProjects();
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -35,7 +62,7 @@ const BugReportForm = () => {
         setError(null);
         
         // Validate required fields
-        if (!bugData.title || !bugData.severity || !bugData.description) {
+        if (!bugData.title || !bugData.severity || !bugData.description || !bugData.employeeName || !bugData.projectId) {
             setError('Please fill in all required fields');
             return;
         }
@@ -118,6 +145,44 @@ const BugReportForm = () => {
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <h2 className="text-xl font-semibold text-gray-900 mb-6">Bug Information</h2>
+
+                            {/* Employee Name (auto-filled) */}
+                            <div>
+                                <label htmlFor="employeeName" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Employee Name *
+                                </label>
+                                <input
+                                    type="text"
+                                    id="employeeName"
+                                    name="employeeName"
+                                    value={bugData.employeeName}
+                                    readOnly
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    required
+                                />
+                            </div>
+
+                            {/* Project Select */}
+                            <div>
+                                <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Project *
+                                </label>
+                                <select
+                                    id="projectId"
+                                    name="projectId"
+                                    value={bugData.projectId}
+                                    onChange={handleChange}
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    required
+                                >
+                                    <option value="">Select Project</option>
+                                    {projects.map((project) => (
+                                        <option key={project.projectId} value={project.projectId}>
+                                            {project.projectName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
                             {/* Bug Title */}
                             <div>
