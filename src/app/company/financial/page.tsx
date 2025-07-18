@@ -120,13 +120,13 @@ export default function CompanyFinancialDashboard() {
                                 <CreditCard className="h-5 w-5" />
                                 View All Payments
                             </button>
-                            <button
+                            {/* <button
                                 onClick={() => router.push('/company/payments/add-payment')}
                                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
                             >
                                 <Plus className="h-5 w-5" />
                                 Add Payment
-                            </button>
+                            </button> */}
                         </div>
                     </div>
 

@@ -251,6 +251,22 @@ export default function CompanyRequirementsPage() {
                             }
                         </p>
                     </div>
+                            {/* Add Requirement Button (visible when requirements exist) */}
+                            {filteredRequirements.length > 0 && (
+                                <div className="flex justify-end mt-6">
+                                    <button
+                                        onClick={() => {
+                                            const addRequirementUrl = projectId
+                                                ? `/client/requirements/add-requirement?projectId=${projectId}`
+                                                : '/client/requirements/add-requirement';
+                                            router.push(addRequirementUrl);
+                                        }}
+                                        className="bg-[#2b4b93] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                                    >
+                                        Add Requirement
+                                    </button>
+                                </div>
+                            )}
                 </div>
 
                 {/* Stats Cards */}
