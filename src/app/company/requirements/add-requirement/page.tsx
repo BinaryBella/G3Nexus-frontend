@@ -47,6 +47,7 @@ const RequirementForm = () => {
     const [priority, setPriority] = useState('');
     const [requirementDescription, setRequirementDescription] = useState('');
     const [attachment, setAttachment] = useState('');
+    const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
     const [clientId, setClientId] = useState<number | null>(null);
     const [employeeName, setEmployeeName] = useState<string>('');
     const [projectId, setProjectId] = useState<number | null>(null);
@@ -105,11 +106,28 @@ const RequirementForm = () => {
             return;
         }
 
+        let attachmentUrl = attachment;
+        if (attachmentFile) {
+            // For demonstration, convert file to base64 string. In production, upload to server or storage and get URL.
+            const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = error => reject(error);
+            });
+            try {
+                attachmentUrl = await toBase64(attachmentFile);
+            } catch (err) {
+                setError('Failed to read attachment file.');
+                return;
+            }
+        }
+
         const newRequirement: Omit<Requirement, 'requirementId'> = {
             requirementTitle,
             priority,
             requirementDescription,
-            attachment,
+            attachment: attachmentUrl,
             isActive,
             clientId,
             projectId,
@@ -238,13 +256,32 @@ const RequirementForm = () => {
                                 Attachment (Optional)
                             </label>
                             <input
-                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-md cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                 id="attachment"
-                                type="text"
-                                placeholder="Link to attachment"
-                                value={attachment}
-                                onChange={(e) => setAttachment(e.target.value)}
+                                type="file"
+                                accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                onChange={(e) => {
+                                    const file = e.target.files && e.target.files[0];
+                                    if (file) {
+                                        setAttachmentFile(file);
+                                        setAttachment(file.name);
+                                    } else {
+                                        setAttachmentFile(null);
+                                        setAttachment('');
+                                    }
+                                }}
                             />
+                            <input
+                                className="mt-2 text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                type="text"
+                                placeholder="Or paste a link to attachment"
+                                value={attachmentFile ? attachmentFile.name : attachment}
+                                onChange={(e) => {
+                                    setAttachment(e.target.value);
+                                    setAttachmentFile(null);
+                                }}
+                            />
+                            <p className="mt-1 text-xs text-gray-500">Accepted: images, PDF, Word documents. Max size: 10MB.</p>
                         </div>
 
                         <div>

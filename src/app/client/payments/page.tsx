@@ -2,13 +2,14 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { CreditCard, DollarSign, Calendar, FileText, TrendingUp, Search, AlertTriangle, CheckCircle, Eye, X } from 'lucide-react';
+import { CreditCard, DollarSign, Calendar, FileText, TrendingUp, Search, AlertTriangle, CheckCircle, Eye, X, ArrowLeft } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
 import { Payment } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { CLIENT_ADMIN, CLIENT_USER } from '@/app/lib/constants';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const PaymentStatusBadge = ({ status }: { status: boolean }) => {
     return (
@@ -112,6 +113,7 @@ const AttachmentModal = ({ isOpen, onClose, payment }: {
 
 const ClientPaymentsPage: React.FC = () => {
     const [searchText, setSearchText] = useState("");
+const router = useRouter();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
     const { user } = useAuth();
@@ -181,6 +183,13 @@ const ClientPaymentsPage: React.FC = () => {
             <div className="min-h-screen bg-gray-50 p-6">
                 {/* Header */}
                 <div className="mb-8">
+                    <button
+                        onClick={() => router.push('/company/payments')}
+                        className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+                    >
+                        <ArrowLeft className="h-5 w-5 mr-2" />
+                        Back to Payments
+                    </button>
                     <div className="flex justify-between items-center mb-6">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
