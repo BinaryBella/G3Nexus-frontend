@@ -27,15 +27,15 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
 };
 
 // Modal component for viewing attachments
-const AttachmentModal = ({ isOpen, onClose, requirement }: { 
-    isOpen: boolean; 
-    onClose: () => void; 
-    requirement: Requirement | null; 
+const AttachmentModal = ({ isOpen, onClose, requirement }: {
+    isOpen: boolean;
+    onClose: () => void;
+    requirement: Requirement | null;
 }) => {
     if (!isOpen || !requirement) return null;
 
     const hasAttachment = requirement.attachment && requirement.attachment.trim() !== '';
-    
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
@@ -91,7 +91,7 @@ const AttachmentModal = ({ isOpen, onClose, requirement }: {
                                             <p className="text-sm text-gray-500 break-all">{requirement.attachment}</p>
                                         </div>
                                     )}
-                                    
+
                                     {/* Download/View Button */}
                                     <a
                                         href={requirement.attachment}
@@ -125,7 +125,7 @@ export default function CompanyRequirementsPage() {
     const [selectedRequirement, setSelectedRequirement] = useState<Requirement | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { user } = useAuth();
-    
+
     const projectId = searchParams.get('projectId');
 
     // Fetch project details when projectId is available
@@ -234,39 +234,39 @@ export default function CompanyRequirementsPage() {
                         </button>
                     </div>
                 )}
-                
+
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                             <FileText className="h-8 w-8 text-[#3450A3]" />
-                            {projectId 
+                            {projectId
                                 ? (project?.projectName || 'Project Requirements')
                                 : 'Requirements'
                             }
                         </h1>
                         <p className="text-gray-600 mt-2">
-                            {projectId 
+                            {projectId
                                 ? 'Project requirements and specifications'
                                 : 'Manage project requirements and specifications'
                             }
                         </p>
                     </div>
-                            {/* Add Requirement Button (visible when requirements exist) */}
-                            {filteredRequirements.length > 0 && (
-                                <div className="flex justify-end mt-6">
-                                    <button
-                                        onClick={() => {
-                                            const addRequirementUrl = projectId
-                                                ? `/client/requirements/add-requirement?projectId=${projectId}`
-                                                : '/client/requirements/add-requirement';
-                                            router.push(addRequirementUrl);
-                                        }}
-                                        className="bg-[#2b4b93] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                                    >
-                                        Add Requirement
-                                    </button>
-                                </div>
-                            )}
+                    {/* Add Requirement Button (visible when requirements exist) */}
+                    {filteredRequirements.length > 0 && (
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => {
+                                    const addRequirementUrl = projectId
+                                        ? `/client/requirements/add-requirement?projectId=${projectId}`
+                                        : '/client/requirements/add-requirement';
+                                    router.push(addRequirementUrl);
+                                }}
+                                className="bg-[#2b4b93] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                            >
+                                Add Requirement
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Stats Cards */}
@@ -334,7 +334,7 @@ export default function CompanyRequirementsPage() {
                         {!searchText && (
                             <button
                                 onClick={() => {
-                                    const addRequirementUrl = projectId 
+                                    const addRequirementUrl = projectId
                                         ? `/client/requirements/add-requirement?projectId=${projectId}`
                                         : '/client/requirements/add-requirement';
                                     router.push(addRequirementUrl);
@@ -377,11 +377,10 @@ export default function CompanyRequirementsPage() {
                                             {projectNameMap[req.projectId] || `Project ${req.projectId}`}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                                                req.isActive 
-                                                    ? 'bg-green-100 text-green-800 border-green-200' 
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${req.isActive
+                                                    ? 'bg-green-100 text-green-800 border-green-200'
                                                     : 'bg-gray-100 text-gray-800 border-gray-200'
-                                            }`}>
+                                                }`}>
                                                 {req.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
@@ -404,7 +403,7 @@ export default function CompanyRequirementsPage() {
             </div>
 
             {/* Attachment Modal */}
-            <AttachmentModal 
+            <AttachmentModal
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 requirement={selectedRequirement}
