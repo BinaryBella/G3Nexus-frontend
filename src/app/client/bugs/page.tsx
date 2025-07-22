@@ -251,6 +251,22 @@ export default function CompanyBugsPage() {
                             }
                         </p>
                     </div>
+                    {/* Add Bug Button (visible when bugs exist) */}
+                    {filteredBugs.length > 0 && (
+                        <div className="flex justify-end mt-6">
+                            <button
+                                onClick={() => {
+                                    const addBugUrl = projectId
+                                        ? `/client/bugs/add-bug?projectId=${projectId}`
+                                        : '/client/bugs/add-bug';
+                                    router.push(addBugUrl);
+                                }}
+                                className="bg-[#2b4b93] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                            >
+                                Add Bug
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
             {/* Stats Cards */}

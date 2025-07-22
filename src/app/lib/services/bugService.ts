@@ -136,5 +136,20 @@ export const bugService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Get client by email - add this method if it doesn't exist in clientService
+  getClientByEmail: async (email: string): Promise<{ clientId: number; name: string; email: string }> => {
+    try {
+      const response = await api.get<ApiResponse<{ clientId: number; name: string; email: string }>>(`/Client/email/${email}`);
+      
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to fetch client data');
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      throw error;
+    }
   }
 };
