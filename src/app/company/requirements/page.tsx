@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Edit, Trash2, Search, Plus, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Edit, Trash2, Search, Plus, Clock, CheckCircle, AlertTriangle, Eye, X, Download } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService';
 import { Requirement } from '../../lib/types';
@@ -24,10 +24,151 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
     );
 };
 
+// Modal Component
+const RequirementModal = ({ 
+    requirement, 
+    isOpen, 
+    onClose 
+}: { 
+    requirement: Requirement | null; 
+    isOpen: boolean; 
+    onClose: () => void; 
+}) => {
+    if (!isOpen || !requirement) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-6 border-b">
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <FileText className="h-6 w-6 text-[#3450A3]" />
+                        Requirement Details
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X className="h-6 w-6" />
+                    </button>
+                </div>
+
+                {/* Modal Body */}
+                <div className="p-6 space-y-6">
+                    {/* Requirement Title */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Requirement Title
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <p className="text-gray-900 font-medium">
+                                {requirement.requirementTitle || 'No title provided'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Requirement Description */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Description
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4 min-h-[120px]">
+                            <p className="text-gray-900 whitespace-pre-wrap">
+                                {requirement.requirementDescription || 'No description provided'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Additional Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Priority
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <PriorityBadge priority={requirement.priority || 'Medium'} />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Status
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                                    requirement.isActive 
+                                        ? 'bg-green-100 text-green-800 border-green-200' 
+                                        : 'bg-gray-100 text-gray-800 border-gray-200'
+                                }`}>
+                                    {requirement.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Attachment Section */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Attachment
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            {requirement.attachment ? (
+                                <div className="flex items-center justify-between bg-white rounded-lg p-3 border">
+                                    <div className="flex items-center space-x-3">
+                                        <FileText className="h-8 w-8 text-blue-600" />
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {typeof requirement.attachment === 'string' 
+                                                    ? requirement.attachment.split('/').pop() || 'Attachment'
+                                                    : 'Attachment'
+                                                }
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                Click to download
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            // Handle attachment download
+                                            if (typeof requirement.attachment === 'string') {
+                                                window.open(requirement.attachment, '_blank');
+                                            }
+                                        }}
+                                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                                    >
+                                        <Download className="h-5 w-5" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                                    <p className="text-gray-500 text-sm">No attachment available</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function CompanyRequirementsPage() {
     const router = useRouter();
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedRequirement, setSelectedRequirement] = useState<Requirement | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const itemsPerPage = 6;
 
     const { data: requirements = [], error, isLoading } = useQuery<Requirement[], Error>({
@@ -63,6 +204,16 @@ export default function CompanyRequirementsPage() {
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
+    };
+
+    const handleViewMore = (requirement: Requirement) => {
+        setSelectedRequirement(requirement);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedRequirement(null);
     };
 
     const stats = {
@@ -106,13 +257,6 @@ export default function CompanyRequirementsPage() {
                         </h1>
                         <p className="text-gray-600 mt-2">Manage project requirements and specifications</p>
                     </div>
-                    {/* <button
-                        onClick={() => router.push('/company/requirements/add-requirement')}
-                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                    >
-                        <Plus className="h-5 w-5" />
-                        Add Requirement
-                    </button> */}
                 </div>
 
                 {/* Stats Cards */}
@@ -229,14 +373,23 @@ export default function CompanyRequirementsPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
                                                 <button
+                                                    onClick={() => handleViewMore(req)}
+                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                                                    title="View More Details"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                <button
                                                     onClick={() => router.push(`/company/requirements/edit-requirement/${req.requirementId}`)}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                    className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                                    title="Edit Requirement"
                                                 >
                                                     <Edit className="h-4 w-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => console.log(`Delete project ${req.requirementId}`)}
+                                                    onClick={() => console.log(`Delete requirement ${req.requirementId}`)}
                                                     className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                    title="Delete Requirement"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
@@ -262,6 +415,13 @@ export default function CompanyRequirementsPage() {
                     />
                 </div>
             )}
+
+            {/* Modal */}
+            <RequirementModal
+                requirement={selectedRequirement}
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+            />
         </div>
     );
 }
