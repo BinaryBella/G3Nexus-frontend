@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileSearch, Search, Plus, Bug, AlertTriangle, CheckCircle, Clock, Trash2, Edit } from 'lucide-react';
+import { FileSearch, Search, Plus, Bug, AlertTriangle, CheckCircle, Clock, Trash2, Edit, Eye, X, Download } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { bugService } from '@/app/lib/services/bugService';
 import { Bug as BugType } from '../../lib/types';
@@ -41,10 +41,152 @@ const StatusBadge = ({ status }: { status: string }) => {
     );
 };
 
+// Bug Details Modal Component
+const BugDetailsModal = ({ bug, isOpen, onClose }: { 
+    bug: BugType | null; 
+    isOpen: boolean; 
+    onClose: () => void; 
+}) => {
+    if (!isOpen || !bug) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Modal Header */}
+                <div className="flex justify-between items-center p-6 border-b">
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                        <Bug className="h-5 w-5 text-[#3450A3]" />
+                        Bug Details
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X className="h-6 w-6" />
+                    </button>
+                </div>
+
+                {/* Modal Content */}
+                <div className="p-6 space-y-6">
+                    {/* Bug Title */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Bug Title
+                        </label>
+                        <div className="bg-gray-50 p-3 rounded-lg border">
+                            <p className="text-gray-900 font-medium">{bug.bugTitle}</p>
+                        </div>
+                    </div>
+
+                    {/* Bug Description */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Bug Description
+                        </label>
+                        <div className="bg-gray-50 p-3 rounded-lg border min-h-[100px]">
+                            <p className="text-gray-900 whitespace-pre-wrap">
+                                {bug.bugDescription || 'No description provided'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Status and Severity */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Status
+                            </label>
+                            <StatusBadge status={bug.isActive ? 'Open' : 'Closed'} />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Severity
+                            </label>
+                            <SeverityBadge severity={bug.severity || 'Medium'} />
+                        </div>
+                    </div>
+
+                    {/* Additional Info */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Reporter
+                            </label>
+                            <div className="bg-gray-50 p-3 rounded-lg border">
+                                <p className="text-gray-900">Client {bug.clientId}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Project ID
+                            </label>
+                            <div className="bg-gray-50 p-3 rounded-lg border">
+                                <p className="text-gray-900">{bug.projectId}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Attachments */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Attachments
+                        </label>
+                        <div className="bg-gray-50 p-4 rounded-lg border">
+                            {bug.attachment ? (
+                                <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="flex-shrink-0">
+                                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                <Download className="h-4 w-4 text-blue-600" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                Bug Attachment
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                Click to download
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <a
+                                        href={bug.attachment}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                    >
+                                        Download
+                                    </a>
+                                </div>
+                            ) : (
+                                <p className="text-gray-500 text-center py-4">
+                                    No attachments available
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="flex justify-end p-6 border-t bg-gray-50">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function CompanyBugsPage() {
     const router = useRouter();
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedBug, setSelectedBug] = useState<BugType | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const itemsPerPage = 6;
 
     const { data: bugs = [], error, isLoading } = useQuery<BugType[], Error>({
@@ -81,6 +223,16 @@ export default function CompanyBugsPage() {
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
+    };
+
+    const handleViewMore = (bug: BugType) => {
+        setSelectedBug(bug);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedBug(null);
     };
 
     const stats = {
@@ -124,13 +276,6 @@ export default function CompanyBugsPage() {
                         </h1>
                         <p className="text-gray-600 mt-2">Manage and track bug reports</p>
                     </div>
-                    {/* <button
-                        onClick={() => router.push('/company/bugs/add-bug-report')}
-                        className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
-                    >
-                        <Plus className="h-5 w-5" />
-                        Add Bug Report
-                    </button> */}
                 </div>
 
                 {/* Stats Cards */}
@@ -241,14 +386,23 @@ export default function CompanyBugsPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
                                                 <button
+                                                    onClick={() => handleViewMore(bug)}
+                                                    className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                                    title="View More Details"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                <button
                                                     onClick={() => router.push(`/company/bugs/edit-bug-report?id=${bug.bugId}`)}
                                                     className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                    title="Edit Bug"
                                                 >
                                                     <Edit className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => console.log(`Delete project ${bug.bugId}`)}
                                                     className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                    title="Delete Bug"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
@@ -274,6 +428,13 @@ export default function CompanyBugsPage() {
                     />
                 </div>
             )}
+
+            {/* Bug Details Modal */}
+            <BugDetailsModal
+                bug={selectedBug}
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+            />
         </div>
     );
 }
