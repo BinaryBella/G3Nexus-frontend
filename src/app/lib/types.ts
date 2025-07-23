@@ -96,6 +96,7 @@ export interface Bug {
     isActive: boolean;
     clientId: number;
     projectId: number;
+    isNew?: boolean;
 }
 
 export interface Payment {

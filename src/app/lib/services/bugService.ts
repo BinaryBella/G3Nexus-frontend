@@ -1,23 +1,34 @@
 // src/app/services/bugService.ts
 import api from './api';
 import { ApiResponse, Bug } from '@/app/lib/types';
+import { authService } from './api';
 
 export const bugService = {
   // Get all bugs
   getAllBugs: async (): Promise<Bug[]> => {
     try {
-      const response = await api.get<ApiResponse<Bug[]>>('/Bug');
-      
+      const { accessToken } = authService.getTokens();
+      if (!accessToken) throw new Error('Access token is missing');
+
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      const userId = payload?.employeeId || payload?.clientId;
+      const lastLogin = payload?.lastLoginTime || new Date().toISOString();
+
+      const response = await api.get<ApiResponse<Bug[]>>('/Bug', {
+        params: { userId, lastLogin },
+      });
+
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch bugs');
       }
-      
+
       return response.data.data;
     } catch (error) {
+      console.error('Error fetching all bugs:', error);
       throw error;
     }
   },
-  
+
   // Get bugs by project
   getBugsByProject: async (projectId: number): Promise<Bug[]> => {
     try {
@@ -151,5 +162,20 @@ export const bugService = {
     } catch (error) {
       throw error;
     }
-  }
+  },
+
+    // Mark requirement as viewed
+  markAsViewed: async (bugId: number): Promise<void> => {
+    try {
+      const { accessToken } = authService.getTokens();
+      if (!accessToken) throw new Error('Access token is missing');
+
+      await api.put(`/Bug/MarkAsViewed/${bugId}`, {}, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    } catch (error) {
+      console.error('Error marking bug as viewed:', error);
+      throw error;
+    }
+  },
 };

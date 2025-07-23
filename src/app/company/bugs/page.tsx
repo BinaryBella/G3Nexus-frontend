@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileSearch, Search, Plus, Bug, AlertTriangle, CheckCircle, Clock, Trash2, Edit, Eye, X, Download } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bugService } from '@/app/lib/services/bugService';
 import { Bug as BugType } from '../../lib/types';
 import Pagination from '@/app/components/Pagination';
@@ -183,6 +183,7 @@ const BugDetailsModal = ({ bug, isOpen, onClose }: {
 
 export default function CompanyBugsPage() {
     const router = useRouter();
+    const queryClient = useQueryClient();
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedBug, setSelectedBug] = useState<BugType | null>(null);
@@ -194,27 +195,32 @@ export default function CompanyBugsPage() {
         queryFn: bugService.getAllBugs,
     });
 
+    const markAsViewedMutation = useMutation({
+        mutationFn: (bugId: number) => bugService.markAsViewed(bugId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['bugs'] });
+        },
+    });
+
     // Reset to first page when search text changes
     useEffect(() => {
         setCurrentPage(1);
     }, [searchText]);
 
-    const filteredBugs = bugs.filter(bug => {
-        if (searchText.trim() === '') return true;
-        
-        const searchLower = searchText.toLowerCase();
-        
-        // Helper function to check if search text matches beginning of any word
-        const matchesWordBeginning = (text: string) => {
-            if (!text) return false;
-            const words = text.toLowerCase().split(/\s+/);
-            return words.some(word => word.startsWith(searchLower));
-        };
-        
-        return matchesWordBeginning(bug.bugTitle || '') ||
-               matchesWordBeginning(bug.bugDescription || '') ||
-               matchesWordBeginning(bug.severity || '');
-    });
+    const filteredBugs = bugs
+        .filter(bug => {
+            if (searchText.trim() === '') return true;
+            const searchLower = searchText.toLowerCase();
+            const matchesWordBeginning = (text: string) => {
+                if (!text) return false;
+                const words = text.toLowerCase().split(/\s+/);
+                return words.some(word => word.startsWith(searchLower));
+            };
+            return matchesWordBeginning(bug.bugTitle || '') ||
+                   matchesWordBeginning(bug.bugDescription || '') ||
+                   matchesWordBeginning(bug.severity || '');
+        })
+        .sort((a, b) => ((b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))); // Sort new bugs first
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredBugs.length / itemsPerPage);
@@ -228,6 +234,9 @@ export default function CompanyBugsPage() {
     const handleViewMore = (bug: BugType) => {
         setSelectedBug(bug);
         setIsModalOpen(true);
+        if (bug.isNew) {
+            markAsViewedMutation.mutate(bug.bugId);
+        }
     };
 
     const handleCloseModal = () => {
@@ -355,7 +364,6 @@ export default function CompanyBugsPage() {
                             <thead className="bg-gray-50 border-b">
                                 <tr>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bug</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
@@ -364,10 +372,17 @@ export default function CompanyBugsPage() {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {paginatedBugs.map((bug) => (
-                                    <tr key={bug.bugId} className="hover:bg-gray-50">
+                                    <tr key={bug.bugId} className={bug.isNew ? "bg-yellow-50 hover:bg-yellow-100" : "hover:bg-gray-50"}>
                                         <td className="px-6 py-4">
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">{bug.bugTitle}</p>
+                                                <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                                    {bug.bugTitle}
+                                                    {bug.isNew && (
+                                                        <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-300">
+                                                            NEW
+                                                        </span>
+                                                    )}
+                                                </p>    
                                                 <p className="text-sm text-gray-600 truncate max-w-xs">{bug.bugDescription}</p>
                                             </div>
                                         </td>
