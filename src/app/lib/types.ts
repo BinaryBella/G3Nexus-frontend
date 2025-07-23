@@ -84,6 +84,7 @@ export interface Requirement {
     isActive: boolean;
     clientId: number;
     projectId: number;
+    isNew?: boolean;
 }
 
 export interface Bug {

@@ -1,12 +1,22 @@
 // src/app/services/requirementService.ts
 import api from './api';
 import { ApiResponse, Requirement } from '@/app/lib/types';
+import { authService } from './api';
 
 export const requirementService = {
   // Get all requirements
   getAllRequirements: async (): Promise<Requirement[]> => {
     try {
-      const response = await api.get<ApiResponse<Requirement[]>>('/Requirement');
+      const { accessToken } = authService.getTokens();
+      if (!accessToken) throw new Error('No access token available');
+
+      const payload = JSON.parse(atob(accessToken.split('.')[1]));
+      const userId = payload?.employeeId || payload?.clientId;
+      const lastLogin = payload?.lastLoginTime || new Date().toISOString();
+
+      const response = await api.get<ApiResponse<Requirement[]>>('/Requirement', {
+        params: { userId, lastLogin },
+      });
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch requirements');

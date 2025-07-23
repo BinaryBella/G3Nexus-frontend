@@ -26,8 +26,8 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
     );
 };
 
-// Modal component for viewing attachments
-const AttachmentModal = ({ isOpen, onClose, requirement }: {
+// Enhanced Modal component for viewing requirement details
+const RequirementDetailsModal = ({ isOpen, onClose, requirement }: {
     isOpen: boolean;
     onClose: () => void;
     requirement: Requirement | null;
@@ -42,8 +42,8 @@ const AttachmentModal = ({ isOpen, onClose, requirement }: {
                 {/* Modal Header */}
                 <div className="flex items-center justify-between p-6 border-b">
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-900">{requirement.requirementTitle}</h2>
-                        <p className="text-sm text-gray-600">Requirement Details</p>
+                        <h2 className="text-xl font-semibold text-gray-900">Requirement Details</h2>
+                        <p className="text-sm text-gray-600">Complete requirement information</p>
                     </div>
                     <button
                         onClick={onClose}
@@ -54,7 +54,44 @@ const AttachmentModal = ({ isOpen, onClose, requirement }: {
                 </div>
 
                 {/* Modal Content */}
-                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6">
+                    {/* Requirement Title Section */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-3">Requirement Title</h3>
+                        <div className="bg-gray-50 rounded-lg p-4 border">
+                            <p className="text-gray-900 text-base font-medium">
+                                {requirement.requirementTitle || 'No title provided'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Requirement Description Section */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-3">Requirement Description</h3>
+                        <div className="bg-gray-50 rounded-lg p-4 border">
+                            <p className="text-gray-700 text-base leading-relaxed whitespace-pre-wrap">
+                                {requirement.requirementDescription || 'No description provided'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Additional Details Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <h4 className="text-sm font-medium text-blue-900 mb-2">Priority</h4>
+                            <PriorityBadge priority={requirement.priority || 'Medium'} />
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                            <h4 className="text-sm font-medium text-green-900 mb-2">Status</h4>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${requirement.isActive
+                                    ? 'bg-green-100 text-green-800 border-green-200'
+                                    : 'bg-gray-100 text-gray-800 border-gray-200'
+                                }`}>
+                                {requirement.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                    </div>
+
                     {/* Attachments Section */}
                     <div>
                         <h3 className="text-lg font-medium text-gray-900 mb-3">Attachments</h3>
@@ -402,8 +439,8 @@ export default function CompanyRequirementsPage() {
                 )}
             </div>
 
-            {/* Attachment Modal */}
-            <AttachmentModal
+            {/* Requirement Details Modal */}
+            <RequirementDetailsModal
                 isOpen={isModalOpen}
                 onClose={closeModal}
                 requirement={selectedRequirement}

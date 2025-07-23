@@ -348,7 +348,15 @@ export default function CompanyRequirementsPage() {
                                     <tr key={req.requirementId} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">{req.requirementTitle}</p>
+                                                {/* <p className="text-sm font-medium text-gray-900">{req.requirementTitle}</p> */}
+                                                <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                        {req.requirementTitle}
+                                        {req.isNew && (
+                                            <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-300">
+                                            NEW
+                                            </span>
+                                        )}
+                                        </p>
                                                 <p className="text-sm text-gray-600 truncate max-w-xs">{req.requirementDescription}</p>
                                             </div>
                                         </td>
