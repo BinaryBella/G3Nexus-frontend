@@ -25,14 +25,14 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
 };
 
 // Modal Component
-const RequirementModal = ({ 
-    requirement, 
-    isOpen, 
-    onClose 
-}: { 
-    requirement: Requirement | null; 
-    isOpen: boolean; 
-    onClose: () => void; 
+const RequirementModal = ({
+    requirement,
+    isOpen,
+    onClose
+}: {
+    requirement: Requirement | null;
+    isOpen: boolean;
+    onClose: () => void;
 }) => {
     if (!isOpen || !requirement) return null;
 
@@ -94,11 +94,10 @@ const RequirementModal = ({
                                 Status
                             </label>
                             <div className="bg-gray-50 rounded-lg p-4">
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                                    requirement.isActive 
-                                        ? 'bg-green-100 text-green-800 border-green-200' 
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${requirement.isActive
+                                        ? 'bg-green-100 text-green-800 border-green-200'
                                         : 'bg-gray-100 text-gray-800 border-gray-200'
-                                }`}>
+                                    }`}>
                                     {requirement.isActive ? 'Active' : 'Inactive'}
                                 </span>
                             </div>
@@ -117,7 +116,7 @@ const RequirementModal = ({
                                         <FileText className="h-8 w-8 text-blue-600" />
                                         <div>
                                             <p className="text-sm font-medium text-gray-900">
-                                                {typeof requirement.attachment === 'string' 
+                                                {typeof requirement.attachment === 'string'
                                                     ? requirement.attachment.split('/').pop() || 'Attachment'
                                                     : 'Attachment'
                                                 }
@@ -171,7 +170,7 @@ export default function CompanyRequirementsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const itemsPerPage = 6;
 
-    const { data: requirements = [], error, isLoading } = useQuery<Requirement[], Error>({
+    const { data: requirements = [], error, isLoading, refetch } = useQuery<Requirement[], Error>({
         queryKey: ['requirements'],
         queryFn: requirementService.getAllRequirements,
     });
@@ -181,9 +180,16 @@ export default function CompanyRequirementsPage() {
         setCurrentPage(1);
     }, [searchText]);
 
-    const filteredRequirements = requirements.filter(req => {
+    // Sort requirements so 'new' ones are at the top
+    const sortedRequirements = [...requirements].sort((a, b) => {
+        if (a.isNew && !b.isNew) return -1;
+        if (!a.isNew && b.isNew) return 1;
+        return 0;
+    });
+
+    const filteredRequirements = sortedRequirements.filter(req => {
         if (searchText.trim() === '') return true;
-        
+
         // Helper function to check if search text matches beginning of any word
         const matchesWordBeginning = (text: string) => {
             if (!text) return false;
@@ -191,10 +197,10 @@ export default function CompanyRequirementsPage() {
             const searchLower = searchText.toLowerCase();
             return words.some(word => word.startsWith(searchLower));
         };
-        
+
         return matchesWordBeginning(req.requirementTitle || '') ||
-               matchesWordBeginning(req.requirementDescription || '') ||
-               matchesWordBeginning(req.priority || '');
+            matchesWordBeginning(req.requirementDescription || '') ||
+            matchesWordBeginning(req.priority || '');
     });
 
     // Pagination calculations
@@ -206,8 +212,29 @@ export default function CompanyRequirementsPage() {
         setCurrentPage(page);
     };
 
-    const handleViewMore = (requirement: Requirement) => {
-        setSelectedRequirement(requirement);
+    const handleViewMore = async (requirement: Requirement) => {
+        // If requirement is new, update its status locally and on the backend
+        if (requirement.isNew) {
+            // Optimistically update local requirements
+            const updatedRequirements = requirements.map((r) =>
+                r.requirementId === requirement.requirementId ? { ...r, isNew: false } : r
+            );
+            // This will update the UI instantly
+            setSelectedRequirement({ ...requirement, isNew: false });
+            // Optionally, you can use a state for requirements if you want instant UI update for the table
+            // If you want to keep using react-query, you can use queryClient.setQueryData
+            // But for now, refetch will update from backend
+            try {
+                if (requirementService.markAsViewed) {
+                    await requirementService.markAsViewed(requirement.requirementId);
+                    refetch();
+                }
+            } catch (e) {
+                // Optionally handle error
+            }
+        } else {
+            setSelectedRequirement(requirement);
+        }
         setIsModalOpen(true);
     };
 
@@ -345,18 +372,21 @@ export default function CompanyRequirementsPage() {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {paginatedRequirements.map((req) => (
-                                    <tr key={req.requirementId} className="hover:bg-gray-50">
+<tr
+                                        key={req.requirementId}
+                                        className={`hover:bg-gray-50 ${req.isNew ? 'bg-blue-50 animate-highlight' : ''}`}
+                                        style={req.isNew ? { transition: 'background-color 0.5s' } : {}}
+                                    >
                                         <td className="px-6 py-4">
                                             <div>
-                                                {/* <p className="text-sm font-medium text-gray-900">{req.requirementTitle}</p> */}
                                                 <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                                        {req.requirementTitle}
-                                        {req.isNew && (
-                                            <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-300">
-                                            NEW
-                                            </span>
-                                        )}
-                                        </p>
+                                                    {req.requirementTitle}
+                                                    {req.isNew && (
+                                                        <span className="bg-[#eca909] text-white text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-300">
+                                                            NEW
+                                                        </span>
+                                                    )}
+                                                </p>
                                                 <p className="text-sm text-gray-600 truncate max-w-xs">{req.requirementDescription}</p>
                                             </div>
                                         </td>
@@ -370,11 +400,10 @@ export default function CompanyRequirementsPage() {
                                             Project {req.projectId}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                                                req.isActive 
-                                                    ? 'bg-green-100 text-green-800 border-green-200' 
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${req.isActive
+                                                    ? 'bg-green-100 text-green-800 border-green-200'
                                                     : 'bg-gray-100 text-gray-800 border-gray-200'
-                                            }`}>
+                                                }`}>
                                                 {req.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
