@@ -30,6 +30,9 @@ interface ProjectFormData {
     totalBudget: string;
     paymentType: string;
     paymentStatus: string;
+    // Client fields
+    clientName: string;
+    clientEmail: string;
 }
 
 export default function ProjectForm({ projectId }: ProjectFormProps) {
@@ -72,6 +75,8 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         totalBudget: '',
         paymentType: '',
         paymentStatus: '',
+        clientName: '',
+        clientEmail: '',
     });
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,8 +117,13 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         setError(null);
         
         // Validate required fields for initialization tab
-        if (!formData.companyId || !formData.projectName || !formData.projectType || !formData.projectSize) {
-            setError('Please fill in all project initialization fields');
+        if (!formData.companyId || !formData.projectName || !formData.projectType || !formData.projectSize || !formData.clientName || !formData.clientEmail) {
+            setError('Please fill in all required fields including client name and email');
+            return;
+        }
+        // Validate client email format
+        if (formData.clientEmail && !/^\S+@\S+\.\S+$/.test(formData.clientEmail)) {
+            setError('Please enter a valid client email address');
             return;
         }
         // Validate Estimated Budget format
@@ -152,7 +162,9 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                 paymentStatus: formData.paymentStatus,
                 status: formData.status,
                 isActive: true,
-                companyId: parseInt(formData.companyId)
+                companyId: parseInt(formData.companyId),
+                clientName: formData.clientName,
+                clientEmail: formData.clientEmail,
             };
 
             await addProjectMutation.mutateAsync(projectData);
@@ -209,7 +221,18 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                     <ArrowLeft className="h-5 w-5 mr-2" />
                     Back to Projects
                 </button>
+                </div>
                 
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
+                <button
+                    onClick={handleCancel}
+                    className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+                >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back to Projects
+                </button>
                 <div className="flex items-center gap-3">
                     <FolderPlus className="h-8 w-8 text-[#3450A3]" />
                     <div>
@@ -217,8 +240,8 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                         <p className="text-gray-600 mt-1">Create a new project record</p>
                     </div>
                 </div>
+                {/* Close header div */}
             </div>
-
             {/* Tab Navigation */}
             <div className="max-w-4xl mx-auto mb-6">
                 <div className="border-b border-gray-200">
@@ -246,7 +269,6 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                     </nav>
                 </div>
             </div>
-
             {/* Form */}
             <div className="max-w-4xl mx-auto">
                 <div className="bg-white rounded-lg shadow-sm border p-8">
@@ -261,299 +283,140 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                             </div>
                         </div>
                     )}
-
                     <form onSubmit={handleSubmit}>
                         {activeTab === 0 && (
                             <div className="space-y-6">
-                                <h2 className="text-xl font-semibold text-gray-900 mb-6">Project Initialization</h2>
-                                
                                 {/* Company Name */}
                                 <div>
-                                    <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Company Name *
-                                    </label>
+                                    <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
                                     {companiesLoading ? (
-                                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-500">
-                                            Loading companies...
-                                        </div>
+                                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-500">Loading companies...</div>
                                     ) : companiesError ? (
-                                        <div className="w-full px-3 py-2 border border-red-300 rounded-md shadow-sm text-red-700">
-                                            Error loading companies
-                                        </div>
+                                        <div className="w-full px-3 py-2 border border-red-300 rounded-md shadow-sm text-red-700">Error loading companies</div>
                                     ) : (
-                                        <select
-                                            id="companyId"
-                                            name="companyId"
-                                            value={formData.companyId}
-                                            onChange={handleChange}
-                                            className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                            required
-                                        >
+                                        <select id="companyId" name="companyId" value={formData.companyId} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" required>
                                             <option value="">Select Company</option>
                                             {companies.map((company) => (
-                                                <option key={company.companyId} value={company.companyId}>
-                                                    {company.companyName}
-                                                </option>
+                                                <option key={company.companyId} value={company.companyId}>{company.companyName}</option>
                                             ))}
                                         </select>
                                     )}
                                 </div>
-
                                 {/* Project Name */}
                                 <div>
-                                    <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Project Name *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="projectName"
-                                        name="projectName"
-                                        value={formData.projectName}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Enter project name"
-                                        required
-                                    />
+                                    <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-2">Project Name *</label>
+                                    <input type="text" id="projectName" name="projectName" value={formData.projectName} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter project name" required />
                                 </div>
-
                                 {/* Project Type */}
                                 <div>
-                                    <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Project Type *
-                                    </label>
-                                    <select
-                                        id="projectType"
-                                        name="projectType"
-                                        value={formData.projectType}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        required
-                                    >
+                                    <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">Project Type *</label>
+                                    <select id="projectType" name="projectType" value={formData.projectType} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" required>
                                         <option value="">Select Project Type</option>
                                         <option value="web">Web Development</option>
                                         <option value="mobile">Mobile Development</option>
                                         <option value="desktop">Desktop Application</option>
                                     </select>
                                 </div>
-
                                 {/* Project Size */}
                                 <div>
-                                    <label htmlFor="projectSize" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Project Size *
-                                    </label>
-                                    <select
-                                        id="projectSize"
-                                        name="projectSize"
-                                        value={formData.projectSize}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        required
-                                    >
+                                    <label htmlFor="projectSize" className="block text-sm font-medium text-gray-700 mb-2">Project Size *</label>
+                                    <select id="projectSize" name="projectSize" value={formData.projectSize} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" required>
                                         <option value="">Select Project Size</option>
                                         <option value="small">Small</option>
                                         <option value="medium">Medium</option>
                                         <option value="large">Large</option>
                                     </select>
                                 </div>
-
                                 {/* Creation Date */}
                                 <div>
-                                    <label htmlFor="creationDate" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Creation Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        id="creationDate"
-                                        name="creationDate"
-                                        value={formData.creationDate}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    />
+                                    <label htmlFor="creationDate" className="block text-sm font-medium text-gray-700 mb-2">Creation Date</label>
+                                    <input type="date" id="creationDate" name="creationDate" value={formData.creationDate} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" />
                                 </div>
-
                                 {/* Estimated Budget */}
                                 <div>
-                                    <label htmlFor="estimatedBudget" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Estimated Budget
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="estimatedBudget"
-                                        name="estimatedBudget"
-                                        value={formData.estimatedBudget}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Enter estimated budget"
-                                    />
+                                    <label htmlFor="estimatedBudget" className="block text-sm font-medium text-gray-700 mb-2">Estimated Budget</label>
+                                    <input type="text" id="estimatedBudget" name="estimatedBudget" value={formData.estimatedBudget} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter estimated budget" />
                                 </div>
-
                                 {/* Project Description */}
                                 <div>
-                                    <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Project Description
-                                    </label>
-                                    <textarea
-                                        id="projectDescription"
-                                        name="projectDescription"
-                                        value={formData.projectDescription}
-                                        onChange={handleChange}
-                                        rows={3}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Enter project description"
-                                    />
+                                    <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-700 mb-2">Project Description</label>
+                                    <textarea id="projectDescription" name="projectDescription" value={formData.projectDescription} onChange={handleChange} rows={3} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter project description" />
                                 </div>
-
+                                {/* Client Name */}
+                                <div>
+                                    <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-2">Client Name *</label>
+                                    <input type="text" id="clientName" name="clientName" value={formData.clientName} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter client name" required />
+                                </div>
+                                {/* Client Email */}
+                                <div>
+                                    <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 mb-2">Client Email *</label>
+                                    <input type="email" id="clientEmail" name="clientEmail" value={formData.clientEmail} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter client email" required />
+                                </div>
                                 {/* Form Actions */}
                                 <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                                    <button
-                                        type="button"
-                                        onClick={handleCancel}
-                                        className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleNext}
-                                        className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] flex items-center gap-2"
-                                    >
-                                        Next
-                                        <ArrowRight className="h-4 w-4" />
-                                    </button>
+                                    <button type="button" onClick={handleCancel} className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">Cancel</button>
+                                    <button type="button" onClick={handleNext} className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] flex items-center gap-2">Next<ArrowRight className="h-4 w-4" /></button>
                                 </div>
                             </div>
                         )}
-
                         {activeTab === 1 && (
                             <div className="space-y-6">
-                                <h2 className="text-xl font-semibold text-gray-900 mb-6">More Details</h2>
-                                
                                 {/* Actual Start Date */}
                                 <div>
-                                    <label htmlFor="actualStartDate" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Actual Start Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        id="actualStartDate"
-                                        name="actualStartDate"
-                                        value={formData.actualStartDate}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    />
+                                    <label htmlFor="actualStartDate" className="block text-sm font-medium text-gray-700 mb-2">Actual Start Date</label>
+                                    <input type="date" id="actualStartDate" name="actualStartDate" value={formData.actualStartDate} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" />
                                 </div>
-
                                 {/* Actual End Date */}
                                 <div>
-                                    <label htmlFor="actualEndDate" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Actual End Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        id="actualEndDate"
-                                        name="actualEndDate"
-                                        value={formData.actualEndDate}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    />
+                                    <label htmlFor="actualEndDate" className="block text-sm font-medium text-gray-700 mb-2">Actual End Date</label>
+                                    <input type="date" id="actualEndDate" name="actualEndDate" value={formData.actualEndDate} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" />
                                 </div>
-
                                 {/* Total Budget */}
                                 <div>
-                                    <label htmlFor="totalBudget" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Total Budget
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="totalBudget"
-                                        name="totalBudget"
-                                        value={formData.totalBudget}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Enter total budget"
-                                    />
+                                    <label htmlFor="totalBudget" className="block text-sm font-medium text-gray-700 mb-2">Total Budget</label>
+                                    <input type="text" id="totalBudget" name="totalBudget" value={formData.totalBudget} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter total budget" />
                                 </div>
-
                                 {/* Payment Type */}
                                 <div>
-                                    <label htmlFor="paymentType" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Payment Type
-                                    </label>
-                                    <select
-                                        id="paymentType"
-                                        name="paymentType"
-                                        value={formData.paymentType}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    >
+                                    <label htmlFor="paymentType" className="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
+                                    <select id="paymentType" name="paymentType" value={formData.paymentType} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]">
                                         <option value="">Select Payment Type</option>
                                         <option value="fixed">Fixed</option>
                                         <option value="hourly">Hourly</option>
                                         <option value="milestone">Milestone</option>
                                     </select>
                                 </div>
-
                                 {/* Payment Status */}
                                 <div>
-                                    <label htmlFor="paymentStatus" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Payment Status
-                                    </label>
-                                    <select
-                                        id="paymentStatus"
-                                        name="paymentStatus"
-                                        value={formData.paymentStatus}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    >
+                                    <label htmlFor="paymentStatus" className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
+                                    <select id="paymentStatus" name="paymentStatus" value={formData.paymentStatus} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]">
                                         <option value="">Select Payment Status</option>
                                         <option value="pending">Pending</option>
                                         <option value="partial">Partial</option>
                                         <option value="paid">Paid</option>
                                     </select>
                                 </div>
-
                                 {/* Status */}
                                 <div>
-                                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Project Status
-                                    </label>
-                                    <select
-                                        id="status"
-                                        name="status"
-                                        value={formData.status}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    >
+                                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">Project Status</label>
+                                    <select id="status" name="status" value={formData.status} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]">
                                         <option value="Active">Active</option>
                                         <option value="Inactive">Inactive</option>
                                         <option value="Completed">Completed</option>
                                         <option value="On Hold">On Hold</option>
                                     </select>
                                 </div>
-
                                 {/* Form Actions */}
                                 <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveTab(0)}
-                                        className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 flex items-center gap-2"
-                                    >
-                                        <ArrowLeft className="h-4 w-4" />
-                                        Back
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isSubmitting}
-                                        className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                    >
-                                        {isSubmitting ? 'Adding...' : 'Add Project'}
-                                    </button>
+                                    <button type="button" onClick={() => setActiveTab(0)} className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 flex items-center gap-2"><ArrowLeft className="h-4 w-4" />Back</button>
+                                    <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">{isSubmitting ? 'Adding...' : 'Add Project'}</button>
                                 </div>
                             </div>
                         )}
                     </form>
                 </div>
             </div>
+        </div>
         </div>
     );
 }
