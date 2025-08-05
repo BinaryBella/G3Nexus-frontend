@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import Pagination from '@/app/components/Pagination';
 import { Users, Plus, Edit, Trash2, Search, UserCheck, UserX, AlertTriangle, FileSearch } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -10,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import DeleteConfirmationModal from "@/app/components/DeleteConfirmationModal";
 
 const StatusBadge = ({ isActive }: { isActive: boolean }) => {
     return (
@@ -58,18 +58,12 @@ const EmployeesPage = () => {
         queryFn: employeeService.getAllEmployees,
     });
 
-    // Clear deleteError when employees data changes (after successful delete)
+    // Clear deleteError when employee's data changes (after successful delete)
     useEffect(() => {
         setDeleteError(null);
     }, [employees]);
-    // const queryClient = useQueryClient();
 
-    // const { data: employees = [], error, isLoading } = useQuery<Employee[], Error>({
-    //     queryKey: ['employees'],
-    //     queryFn: employeeService.getAllEmployees,
-    // });
-
-    // Reset to first page when search text changes
+    // Reset to the first page when a search text changes
     useEffect(() => {
         setCurrentPage(1);
     }, [searchText]);
@@ -94,7 +88,7 @@ const EmployeesPage = () => {
         total: employees.length,
         active: employees.filter(employee => employee.isActive).length,
         inactive: employees.filter(employee => !employee.isActive).length,
-        admins: employees.filter(employee => employee.role === 'Admin').length
+        admins: employees.filter(employee => employee.role === 'COMPANY_ADMIN').length
     };
 
     const handleEdit = (id: number | undefined) => {
@@ -301,7 +295,7 @@ const EmployeesPage = () => {
                                             <div className="text-sm text-gray-500">{employee.contactNo}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <RoleBadge role={employee.role} />
+                                            <RoleBadge role={employee.role == "COMPANY_ADMIN" ? "Admin" : "Developer"} />
                                         </td>
                                         <td className="px-6 py-4">
                                             <StatusBadge isActive={employee.isActive} />

@@ -1,6 +1,6 @@
 // src/app/services/clientService.ts
 import api from './api';
-import { ApiResponse, Client } from '@/app/lib/types';
+import { ApiResponse, Client, ClientEditPayload } from '@/app/lib/types';
 
 // Re-export Client interface for convenience
 export type { Client };
@@ -67,9 +67,10 @@ export const clientService = {
   },
 
   // Update client
-  updateClient: async (id: number, clientData: Partial<Omit<Client, 'id'>>): Promise<Client> => {
+  updateClient: async (clientData: ClientEditPayload): Promise<ClientEditPayload> => {
     try {
-      const response = await api.put<ApiResponse<Client>>(`/client/${id}`, clientData);
+      debugger;
+      const response = await api.put<ApiResponse<ClientEditPayload>>(`/client`, clientData);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update client');

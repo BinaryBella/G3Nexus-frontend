@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, X, Eye, EyeOff } from 'lucide-react';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
@@ -56,27 +55,6 @@ interface FormErrors {
 const EmployeeForm = () => {
     const router = useRouter();
     const { canManageEmployees } = useRoleAccess();
-    
-    // Redirect if user doesn't have permission to manage employees
-    useEffect(() => {
-        if (!canManageEmployees()) {
-            router.push('/company/employees');
-            return;
-        }
-    }, [canManageEmployees, router]);
-
-    // Don't render if user doesn't have permission
-    if (!canManageEmployees()) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don't have permission to add employees.</p>
-                </div>
-            </div>
-        );
-    }
 
     const [employeeName, setEmployeeName] = useState('');
     const [contactNo, setContactNo] = useState('');
@@ -127,6 +105,41 @@ const EmployeeForm = () => {
         const timeoutId = setTimeout(checkEmployeeEmail, 500);
         return () => clearTimeout(timeoutId);
     }, [email]);
+    
+    // Redirect if the user doesn't have permission to manage employees
+    useEffect(() => {
+        if (!canManageEmployees()) {
+            router.push('/company/employees');
+            return;
+        }
+    }, [canManageEmployees, router]);
+
+    const addEmployeeMutation = useMutation({
+        mutationFn: employeeService.addEmployee,
+        onSuccess: () => {
+            setSuccess(true);
+            setTimeout(() => {
+                router.push('/company/employees');
+            }, 1500);
+        },
+        onError: (error: Error) => {
+            setModalMessage(`Error: ${error.message}`);
+            setIsModalOpen(true);
+        },
+    });
+
+    // Don't render if the user doesn't have permission
+    if (!canManageEmployees()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don&apos;t have permission to add employees.</p>
+                </div>
+            </div>
+        );
+    }
 
     // Validation functions
     const validateEmail = (email: string): boolean => {
@@ -137,7 +150,7 @@ const EmployeeForm = () => {
     const validateContactNo = (contactNo: string): boolean => {
         // More strict phone number validation
         // Supports formats: +1234567890, (123) 456-7890, 123-456-7890, 123.456.7890, 1234567890
-        const phoneRegex = /^[\+]?[1-9]?[0-9]{1,3}?[-.\s]?[(]?[0-9]{3}[)]?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4,6}$/;
+        const phoneRegex = /^\+?[1-9]?[0-9]{1,3}?[-.\s]?[(]?[0-9]{3}[)]?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4,6}$/;
         const cleanedNumber = contactNo.replace(/\s/g, '');
         return phoneRegex.test(cleanedNumber) && cleanedNumber.length >= 10 && cleanedNumber.length <= 15;
     };
@@ -196,20 +209,6 @@ const EmployeeForm = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const addEmployeeMutation = useMutation({
-        mutationFn: employeeService.addEmployee,
-        onSuccess: () => {
-            setSuccess(true);
-            setTimeout(() => {
-                router.push('/company/employees');
-            }, 1500);
-        },
-        onError: (error: Error) => {
-            setModalMessage(`Error: ${error.message}`);
-            setIsModalOpen(true);
-        },
-    });
-
     // Real-time validation handlers
     const handleEmployeeNameChange = (value: string) => {
         setEmployeeName(value);
@@ -240,7 +239,7 @@ const EmployeeForm = () => {
                 setErrors(newErrors);
             }
         }
-        // Clear emailValidationError when user starts typing
+        // Clear emailValidationError when the user starts typing
         if (emailValidationError && value.trim() && validateEmail(value)) {
             setEmailValidationError('');
         }
@@ -274,7 +273,7 @@ const EmployeeForm = () => {
             }
         }
 
-        // Re-validate confirm password if it exists
+        // Re-validate the confirmation password if it exists
         if (confirmPassword && value !== confirmPassword) {
             setErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
         } else if (confirmPassword && value === confirmPassword) {

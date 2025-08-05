@@ -62,6 +62,18 @@ export interface Client {
     companyId: number;
 }
 
+export interface ClientEditPayload {
+    id: number;
+    name: string;
+    contactNo: string;
+    email: string;
+    address: string;
+    role: string;
+    isActive: boolean;
+    companyId: number;
+    profileImageUrl: string;
+}
+
 export interface Employee {
     employeeId?: number;
     contactNo: string;

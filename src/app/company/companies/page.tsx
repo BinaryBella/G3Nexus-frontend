@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import Pagination from '@/app/components/Pagination';
-import { Building2, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, Users, CheckCircle } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, CheckCircle } from 'lucide-react';
 import { companyService } from '@/app/lib/services/companyService';
 import { Company } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import FeedbackPopup from "@/app/components/FeedbackPopup";
 
 const CompaniesPage = () => {
     const router = useRouter();
@@ -20,6 +21,8 @@ const CompaniesPage = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupMessage, setPopupMessage] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
 
@@ -79,11 +82,18 @@ const CompaniesPage = () => {
 
         try {
             setIsDeleting(true);
-            await companyService.deleteCompany(selectedCompany.companyId);
-            await fetchCompanies(); // Refresh the list
-            setShowDeleteModal(false);
-            setSelectedCompany(null);
+            const result = await companyService.deleteCompany(selectedCompany.companyId);
+            if (result.status) {
+                await fetchCompanies(); // Refresh the list
+                setShowDeleteModal(false);
+                setSelectedCompany(null);
+            } else {
+                setPopupMessage(result.message);
+                setShowPopup(true);
+            }
         } catch (err) {
+            setPopupMessage(err instanceof Error ? err.message : 'Failed to delete company');
+            setShowPopup(true);
             setError(err instanceof Error ? err.message : 'Failed to delete company');
         } finally {
             setIsDeleting(false);
@@ -327,6 +337,22 @@ const CompaniesPage = () => {
                 itemName={selectedCompany?.companyName}
                 warningMessage="This action will set the company as inactive."
             />
+
+            <FeedbackPopup
+                isOpen={showPopup}
+                onConfirm={() => {
+                    setShowPopup(false)
+                    setShowDeleteModal(false)
+                }}
+                onClose={() => {
+                    setShowPopup(false)
+                    setShowDeleteModal(false)
+                }}
+                type={"error"}
+                title={'Failed to Delete Company'}
+            >
+                {popupMessage}
+            </FeedbackPopup>
         </div>
     );
 };

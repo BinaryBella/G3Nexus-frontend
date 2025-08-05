@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Building2, ArrowLeft, Save, X } from 'lucide-react';
+import { Building2, ArrowLeft, X } from 'lucide-react';
 import { companyService } from '@/app/lib/services/companyService';
-import { Company } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const EditCompanyPage = () => {
@@ -12,27 +11,6 @@ const EditCompanyPage = () => {
     const params = useParams();
     const { canManageCompanies } = useRoleAccess();
     const companyId = parseInt(params.id as string);
-    
-    // Redirect if user doesn't have permission to manage companies
-    useEffect(() => {
-        if (!canManageCompanies()) {
-            router.push('/company/companies');
-            return;
-        }
-    }, [canManageCompanies, router]);
-
-    // Don't render if user doesn't have permission
-    if (!canManageCompanies()) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don't have permission to edit companies.</p>
-                </div>
-            </div>
-        );
-    }
 
     const [formData, setFormData] = useState({
         companyName: '',
@@ -44,7 +22,6 @@ const EditCompanyPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [nameValidationError, setNameValidationError] = useState('');
-    const [isCheckingName, setIsCheckingName] = useState(false);
     const [originalCompanyName, setOriginalCompanyName] = useState('');
 
     useEffect(() => {
@@ -52,6 +29,53 @@ const EditCompanyPage = () => {
             fetchCompany();
         }
     }, [companyId]);
+    
+    // Redirect if user doesn't have permission to manage companies
+    useEffect(() => {
+        if (!canManageCompanies()) {
+            router.push('/company/companies');
+            return;
+        }
+    }, [canManageCompanies, router]);
+
+    useEffect(() => {
+        const checkCompanyName = async () => {
+            const trimmedName = formData.companyName.trim();
+
+            // Don't validate if empty, unchanged, or currently checking
+            if (!trimmedName || trimmedName === originalCompanyName) {
+                setNameValidationError('');
+                return;
+            }
+
+            try {
+                const exists = await companyService.checkCompanyExists(trimmedName);
+                if (exists) {
+                    setNameValidationError('A company with this name already exists');
+                } else {
+                    setNameValidationError('');
+                }
+            } catch (error) {
+                setNameValidationError('');
+            }
+        };
+
+        const timeoutId = setTimeout(checkCompanyName, 500);
+        return () => clearTimeout(timeoutId);
+    }, [formData.companyName, originalCompanyName]);
+
+    // Don't render if user doesn't have permission
+    if (!canManageCompanies()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don&apos;t have permission to edit companies.</p>
+                </div>
+            </div>
+        );
+    }
 
     const fetchCompany = async () => {
         try {
@@ -121,34 +145,6 @@ const EditCompanyPage = () => {
     };
 
     // Debounced validation for company name (only if name changed)
-    useEffect(() => {
-        const checkCompanyName = async () => {
-            const trimmedName = formData.companyName.trim();
-            
-            // Don't validate if empty, unchanged, or currently checking
-            if (!trimmedName || trimmedName === originalCompanyName) {
-                setNameValidationError('');
-                return;
-            }
-
-            setIsCheckingName(true);
-            try {
-                const exists = await companyService.checkCompanyExists(trimmedName);
-                if (exists) {
-                    setNameValidationError('A company with this name already exists');
-                } else {
-                    setNameValidationError('');
-                }
-            } catch (error) {
-                setNameValidationError('');
-            } finally {
-                setIsCheckingName(false);
-            }
-        };
-
-        const timeoutId = setTimeout(checkCompanyName, 500);
-        return () => clearTimeout(timeoutId);
-    }, [formData.companyName, originalCompanyName]);
 
     if (loading) {
         return (
@@ -285,15 +281,14 @@ const EditCompanyPage = () => {
                                 className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {submitting ? (
-                                    <>
+                                    <span>
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                                         Updating...
-                                    </>
+                                    </span>
                                 ) : (
-                                    <>
-                                        <Save className="h-4 w-4" />
+                                    <span>
                                         Update Company
-                                    </>
+                                    </span>
                                 )}
                             </button>
                         </div>

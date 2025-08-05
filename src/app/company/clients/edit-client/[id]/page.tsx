@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { User, ArrowLeft, Save, X, Eye, EyeOff } from 'lucide-react';
+import { User, ArrowLeft, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
-import { Client, Company } from '@/app/lib/types';
+import { ClientEditPayload } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const EditClientPage: React.FC = () => {
@@ -15,43 +15,22 @@ const EditClientPage: React.FC = () => {
     const queryClient = useQueryClient();
     const { canManageClients } = useRoleAccess();
     const clientId = parseInt(params.id as string, 10);
-    
-    // Redirect if user doesn't have permission to manage clients
-    useEffect(() => {
-        if (!canManageClients()) {
-            router.push('/company/clients');
-            return;
-        }
-    }, [canManageClients, router]);
-
-    // Don't render if user doesn't have permission
-    if (!canManageClients()) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don't have permission to edit clients.</p>
-                </div>
-            </div>
-        );
-    }
-
     const [activeTab, setActiveTab] = useState(0);
-    const [clientData, setClientData] = useState<Omit<Client, 'id'>>({
+    const [clientData, setClientData] = useState<ClientEditPayload>({
         name: '',
         contactNo: '',
         address: '',
         email: '',
-        password: '',
         role: '',
         isActive: true,
         companyId: 0,
+        id: clientId,
+        profileImageUrl: ""
     });
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [designation, setDesignation] = useState('');
 
     // Fetch client data
     const { data: client, isLoading: clientLoading, error: clientError } = useQuery({
@@ -68,7 +47,7 @@ const EditClientPage: React.FC = () => {
 
     // Update client mutation
     const updateClientMutation = useMutation({
-        mutationFn: (data: Partial<Omit<Client, 'id'>>) => clientService.updateClient(clientId, data),
+        mutationFn: (data: ClientEditPayload) => clientService.updateClient(data),
         onSuccess: () => {
             setSuccess(true);
             queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -91,13 +70,35 @@ const EditClientPage: React.FC = () => {
                 contactNo: client.contactNo || '',
                 address: client.address || '',
                 email: client.email || '',
-                password: '', // Don't pre-fill password for security
                 role: client.role || '',
                 isActive: client.isActive,
                 companyId: client.companyId || 0,
+                id: clientId,
+                profileImageUrl: ""
             });
         }
     }, [client, companies]);
+    
+    // Redirect if user doesn't have permission to manage clients
+    useEffect(() => {
+        if (!canManageClients()) {
+            router.push('/company/clients');
+            return;
+        }
+    }, [canManageClients, router]);
+
+    // Don't render if user doesn't have permission
+    if (!canManageClients()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don&apos;t have permission to edit clients.</p>
+                </div>
+            </div>
+        );
+    }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -131,23 +132,16 @@ const EditClientPage: React.FC = () => {
             setError('Please select a role');
             return;
         }
-        
-        // Only validate password if it's being changed
-        if (clientData.password && clientData.password !== confirmPassword) {
-            setError("Passwords don't match");
-            return;
-        }
-        
+
         try {
             setIsSubmitting(true);
-            // Only include password in update if it's provided
-            const updateData: Partial<Omit<Client, 'id'>> = { ...clientData };
-            if (!updateData.password) {
-                const { password, ...dataWithoutPassword } = updateData;
-                await updateClientMutation.mutateAsync(dataWithoutPassword);
-            } else {
-                await updateClientMutation.mutateAsync(updateData);
-            }
+            const updateData: ClientEditPayload = {
+                ...clientData,
+                id: clientId,
+                profileImageUrl: ""
+
+            };
+            await updateClientMutation.mutateAsync(updateData);
         } catch (error) {
             // Error handling is done in the mutation's onError callback
         } finally {
@@ -420,39 +414,6 @@ const EditClientPage: React.FC = () => {
                                         placeholder="Email address"
                                     />
                                     <p className="mt-1 text-xs text-gray-500">Email address cannot be changed</p>
-                                </div>
-
-                                {/* Password */}
-                                <div>
-                                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                                        New Password
-                                    </label>
-                                    <input
-                                        type="password"
-                                        id="password"
-                                        name="password"
-                                        value={clientData.password}
-                                        onChange={handleChange}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Leave blank to keep current password"
-                                    />
-                                    <p className="mt-1 text-xs text-gray-500">Leave blank to keep the current password</p>
-                                </div>
-
-                                {/* Confirm Password */}
-                                <div>
-                                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Confirm New Password
-                                    </label>
-                                    <input
-                                        type="password"
-                                        id="confirmPassword"
-                                        name="confirmPassword"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Confirm new password"
-                                    />
                                 </div>
 
                                 {/* Role */}

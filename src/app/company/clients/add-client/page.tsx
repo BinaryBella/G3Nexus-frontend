@@ -2,38 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, ArrowLeft, ArrowRight, Save, X, Eye, EyeOff } from 'lucide-react';
+import { User, ArrowLeft, ArrowRight, X, Eye, EyeOff } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
-import { Client, Company } from '@/app/lib/types';
+import { Client } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const ClientsPage: React.FC = () => {
     const router = useRouter();
     const { canManageClients } = useRoleAccess();
-    
-    // Redirect if user doesn't have permission to manage clients
-    useEffect(() => {
-        if (!canManageClients()) {
-            router.push('/company/clients');
-            return;
-        }
-    }, [canManageClients, router]);
-
-    // Don't render if user doesn't have permission
-    if (!canManageClients()) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don't have permission to add clients.</p>
-                </div>
-            </div>
-        );
-    }
-
     const [activeTab, setActiveTab] = useState(0);
     const [clientData, setClientData] = useState<Omit<Client, 'id'>>({
         name: '',
@@ -108,6 +86,27 @@ const ClientsPage: React.FC = () => {
         },
     });
 
+    // Redirect if user doesn't have permission to manage clients
+    useEffect(() => {
+        if (!canManageClients()) {
+            router.push('/company/clients');
+            return;
+        }
+    }, [canManageClients, router]);
+
+    // Don't render if user doesn't have permission
+    if (!canManageClients()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don&apos;t have permission to add clients.</p>
+                </div>
+            </div>
+        );
+    }
+    
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         setClientData((prev) => ({
@@ -542,15 +541,14 @@ const ClientsPage: React.FC = () => {
                                         className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                     >
                                         {isSubmitting || addClientMutation.isPending ? (
-                                            <>
+                                            <span>
                                                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                                                 Adding...
-                                            </>
+                                            </span>
                                         ) : (
-                                            <>
-                                                <Save className="h-4 w-4" />
+                                            <span>
                                                 Add Client
-                                            </>
+                                            </span>
                                         )}
                                     </button>
                                 </div>

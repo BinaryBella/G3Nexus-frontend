@@ -2,6 +2,7 @@
 import api from './api';
 import { ApiResponse } from '@/app/lib/types';
 import { Company } from '@/app/lib/types';
+import { AxiosError } from "axios";
 
 
 export const companyService = {
@@ -71,17 +72,19 @@ export const companyService = {
   },
 
   // Delete company (soft delete by setting isActive to false)
-  deleteCompany: async (id: number): Promise<boolean> => {
+  deleteCompany: async (id: number): Promise<{ status: boolean, message: string }> => {
     try {
-      const response = await api.delete<ApiResponse<boolean>>(`/company/${id}`);
+      debugger;
+      const response = await api.delete<ApiResponse<boolean>>(`/Company/${id}`);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to delete company');
       }
 
-      return response.data.data;
+      return { status: true, message: response.data.message || 'Company deleted successfully' };
     } catch (error) {
-      throw error;
+      debugger;
+      return { status: false, message: error instanceof AxiosError ? error.response!.data.message : 'Could not delete company.' };
     }
   },
 

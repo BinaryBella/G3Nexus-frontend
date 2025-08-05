@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, UserCheck, X } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, UserCheck } from 'lucide-react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
 import { Client, Company } from '@/app/lib/types';
 import Pagination from '@/app/components/Pagination';
-import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import { DeleteConfirmationModal } from '@/app/components/DeleteConfirmationModal';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const StatusBadge = ({ isActive }: { isActive: boolean }) => {
@@ -52,7 +52,6 @@ export default function CompanyClientsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     const { data: clients = [], error, isLoading } = useQuery<Client[], Error>({
         queryKey: ['clients'],
@@ -69,13 +68,10 @@ export default function CompanyClientsPage() {
         mutationFn: (clientId: number) => clientService.deleteClient(clientId),
         onSuccess: () => {
             // Invalidate and refetch clients data
-            queryClient.invalidateQueries({ queryKey: ['clients'] });
+            queryClient.invalidateQueries({queryKey: ['clients']}).then();
             setShowDeleteModal(false);
             setSelectedClient(null);
             setDeleteError(null);
-            setSuccessMessage(`Client "${selectedClient?.name}" has been deleted successfully.`);
-            // Clear success message after 3 seconds
-            setTimeout(() => setSuccessMessage(null), 3000);
         },
         onError: (error: Error) => {
             console.error('Failed to delete client:', error);
@@ -127,7 +123,7 @@ export default function CompanyClientsPage() {
         total: clients.length,
         active: clients.filter(client => client.isActive).length,
         inactive: clients.filter(client => !client.isActive).length,
-        admins: clients.filter(client => client.role === 'Admin').length
+        admins: clients.filter(client => client.role === 'CLIENT_ADMIN').length
     };
 
     const handleEdit = (id: number) => {
@@ -158,10 +154,6 @@ export default function CompanyClientsPage() {
         setShowDeleteModal(false);
         setSelectedClient(null);
         setDeleteError(null);
-    };
-
-    const handleDetails = (id: number) => {
-        console.log(`View more details for client with id: ${id}`);
     };
 
     if (isLoading) {
@@ -241,34 +233,6 @@ export default function CompanyClientsPage() {
                         </div>
                     </div>
                 </div>
-
-                {/* Success Message */}
-                {successMessage && (
-                    <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center">
-                            <svg className="h-5 w-5 text-green-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            <p className="text-sm text-green-700">{successMessage}</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Error Message */}
-                {deleteError && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center">
-                            <AlertTriangle className="h-5 w-5 text-red-400 mr-3" />
-                            <p className="text-sm text-red-700">{deleteError}</p>
-                            <button
-                                onClick={() => setDeleteError(null)}
-                                className="ml-auto text-red-400 hover:text-red-600"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                    </div>
-                )}
 
                 {/* Search */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -357,7 +321,7 @@ export default function CompanyClientsPage() {
                                             <div className="text-sm text-gray-500">{client.contactNo}</div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <RoleBadge role={client.role} />
+                                            <RoleBadge role={client.role == "CLIENT_ADMIN" ? "Admin" : "User"} />
                                         </td>
                                         <td className="px-6 py-4">
                                             <StatusBadge isActive={client.isActive} />

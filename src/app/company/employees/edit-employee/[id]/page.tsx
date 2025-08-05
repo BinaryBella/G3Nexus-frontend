@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
-import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, User, X } from 'lucide-react';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
@@ -48,27 +47,6 @@ const EditEmployeeForm = () => {
     const { canManageEmployees } = useRoleAccess();
     const employeeId = params.id as string;
 
-    // Redirect if user doesn't have permission to manage employees
-    useEffect(() => {
-        if (!canManageEmployees()) {
-            router.push('/company/employees');
-            return;
-        }
-    }, [canManageEmployees, router]);
-
-    // Don't render if user doesn't have permission
-    if (!canManageEmployees()) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don't have permission to edit employees.</p>
-                </div>
-            </div>
-        );
-    }
-
     const [employeeName, setEmployeeName] = useState('');
     const [contactNo, setContactNo] = useState('');
     const [email, setEmail] = useState('');
@@ -108,6 +86,14 @@ const EditEmployeeForm = () => {
         }
     }, [employee]);
 
+    // Redirect if the user doesn't have permission to manage employees
+    useEffect(() => {
+        if (!canManageEmployees()) {
+            router.push('/company/employees');
+            return;
+        }
+    }, [canManageEmployees, router]);
+
     const updateEmployeeMutation = useMutation({
         mutationFn: ({ data }: { data: Employee }) =>
             employeeService.updateEmployee(data),
@@ -122,6 +108,27 @@ const EditEmployeeForm = () => {
             setIsModalOpen(true);
         },
     });
+
+    // Don't render if the user doesn't have permission
+    if (!canManageEmployees()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don&apos;t have permission to edit employees.</p>
+                </div>
+            </div>
+        );
+    }
+
+    const validateContactNo = (contactNo: string): boolean => {
+        // More strict phone number validation
+        // Supports formats: +1234567890, (123) 456-7890, 123-456-7890, 123.456.7890, 1234567890
+        const phoneRegex = /^\+?[1-9]?[0-9]{1,3}?[-.\s]?[(]?[0-9]{3}[)]?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4,6}$/;
+        const cleanedNumber = contactNo.replace(/\s/g, '');
+        return phoneRegex.test(cleanedNumber) && cleanedNumber.length >= 10 && cleanedNumber.length <= 15;
+    };
 
     const validateForm = () => {
         let isValid = true;
@@ -142,10 +149,8 @@ const EditEmployeeForm = () => {
         // Validate contact number
         if (!contactNo.trim()) {
             newErrors.contactNo = 'Contact number is required';
-            isValid = false;
-        } else if (!/^\d{10,15}$/.test(contactNo.replace(/[-()\s]/g, ''))) {
+        } else if (!validateContactNo(contactNo)) {
             newErrors.contactNo = 'Please enter a valid contact number';
-            isValid = false;
         }
 
         // Validate email (even though it's read-only in this form)
@@ -171,6 +176,15 @@ const EditEmployeeForm = () => {
 
         setErrors(newErrors);
         return isValid;
+    };
+
+    const handleDesignationChange = (value: string) => {
+        setDesignation(value);
+        if (errors.designation && value.trim()) {
+            const newErrors = { ...errors };
+            newErrors.designation = "";
+            setErrors(newErrors);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -394,17 +408,19 @@ const EditEmployeeForm = () => {
                                 <label htmlFor="designation" className="block text-sm font-medium text-gray-700 mb-2">
                                     Designation *
                                 </label>
-                                <input
-                                    type="text"
+                                <select
                                     id="designation"
-                                    placeholder="Enter designation"
                                     value={designation}
-                                    onChange={(e) => setDesignation(e.target.value)}
+                                    onChange={(e) => handleDesignationChange(e.target.value)}
                                     className={`text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
                                         errors.designation ? 'border-red-500' : ''
                                     }`}
                                     required
-                                />
+                                >
+                                    <option value="">Select a designation</option>
+                                    <option value="COMPANY_ADMIN">Admin</option>
+                                    <option value="COMPANY_DEVELOPER">Developer</option>
+                                </select>
                                 {errors.designation && (
                                     <p className="text-red-500 text-sm mt-1">{errors.designation}</p>
                                 )}

@@ -10,27 +10,6 @@ import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 const AddCompanyForm = () => {
     const router = useRouter();
     const { canManageCompanies } = useRoleAccess();
-    
-    // Redirect if user doesn't have permission to manage companies
-    useEffect(() => {
-        if (!canManageCompanies()) {
-            router.push('/company/companies');
-            return;
-        }
-    }, [canManageCompanies, router]);
-
-    // Don't render if user doesn't have permission
-    if (!canManageCompanies()) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don't have permission to add companies.</p>
-                </div>
-            </div>
-        );
-    }
 
     const [companyName, setCompanyName] = useState('');
     const [address, setAddress] = useState('');
@@ -67,6 +46,27 @@ const AddCompanyForm = () => {
         const timeoutId = setTimeout(checkCompanyName, 500);
         return () => clearTimeout(timeoutId);
     }, [companyName]);
+    
+    // Redirect if user doesn't have permission to manage companies
+    useEffect(() => {
+        if (!canManageCompanies()) {
+            router.push('/company/companies');
+            return;
+        }
+    }, [canManageCompanies, router]);
+
+    // Don't render if user doesn't have permission
+    if (!canManageCompanies()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don&apos;t have permission to add companies.</p>
+                </div>
+            </div>
+        );
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -261,15 +261,15 @@ const AddCompanyForm = () => {
                                 className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {isSubmitting ? (
-                                    <>
+                                    <span>
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                                         Adding...
-                                    </>
+                                    </span>
                                 ) : (
-                                    <>
-                                        <Save className="h-4 w-4" />
+                                    <span>
+
                                         Add Company
-                                    </>
+                                    </span>
                                 )}
                             </button>
                         </div>
