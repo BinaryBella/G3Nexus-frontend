@@ -8,7 +8,7 @@ import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
 import { Client, Company } from '@/app/lib/types';
 import Pagination from '@/app/components/Pagination';
-import { DeleteConfirmationModal } from '@/app/components/DeleteConfirmationModal';
+import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const StatusBadge = ({ isActive }: { isActive: boolean }) => {

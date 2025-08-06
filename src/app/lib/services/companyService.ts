@@ -74,7 +74,6 @@ export const companyService = {
   // Delete company (soft delete by setting isActive to false)
   deleteCompany: async (id: number): Promise<{ status: boolean, message: string }> => {
     try {
-      debugger;
       const response = await api.delete<ApiResponse<boolean>>(`/Company/${id}`);
 
       if (!response.data.status) {
@@ -83,7 +82,6 @@ export const companyService = {
 
       return { status: true, message: response.data.message || 'Company deleted successfully' };
     } catch (error) {
-      debugger;
       return { status: false, message: error instanceof AxiosError ? error.response!.data.message : 'Could not delete company.' };
     }
   },

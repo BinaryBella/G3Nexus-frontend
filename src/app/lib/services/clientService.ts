@@ -69,7 +69,6 @@ export const clientService = {
   // Update client
   updateClient: async (clientData: ClientEditPayload): Promise<ClientEditPayload> => {
     try {
-      debugger;
       const response = await api.put<ApiResponse<ClientEditPayload>>(`/client`, clientData);
 
       if (!response.data.status) {
