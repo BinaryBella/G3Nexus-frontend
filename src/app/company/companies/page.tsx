@@ -244,10 +244,7 @@ const CompaniesPage = () => {
                                     </th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Address
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
+                                    </th>                                
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Actions
                                     </th>
@@ -277,10 +274,7 @@ const CompaniesPage = () => {
                                             <div className="max-w-xs truncate">
                                                 {company.address}
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {getStatusBadge(company.isActive)}
-                                        </td>
+                                        </td>                                        
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-3">
                                                 {canManageCompanies() ? (

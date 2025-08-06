@@ -261,15 +261,14 @@ const AddCompanyForm = () => {
                                 className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {isSubmitting ? (
-                                    <span>
+                                    <>
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                                         Adding...
-                                    </span>
+                                    </>
                                 ) : (
-                                    <span>
-
+                                    <>
                                         Add Company
-                                    </span>
+                                    </>
                                 )}
                             </button>
                         </div>
