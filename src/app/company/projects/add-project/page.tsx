@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import FeedbackPopup from '@/app/components/FeedbackPopup';
 import { useRouter } from 'next/navigation';
 import Image from "next/image";
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -81,6 +82,8 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [showQuotationConfirm, setShowQuotationConfirm] = useState(false);
+    const [pendingProjectData, setPendingProjectData] = useState<any>(null);
 
     // Fetch companies for dropdown
     const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery<Company[], Error>({
@@ -115,7 +118,6 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        
         // Validate required fields for initialization tab
         if (!formData.companyId || !formData.projectName || !formData.projectType || !formData.projectSize || !formData.clientName || !formData.clientEmail) {
             setError('Please fill in all required fields including client name and email');
@@ -145,34 +147,51 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                 return;
             }
         }
-        try {
-            setIsSubmitting(true);
-            // Prepare data for API call
-            const projectData = {
-                projectName: formData.projectName,
-                projectType: formData.projectType,
-                projectSize: formData.projectSize,
-                creationDate: formData.creationDate,
-                projectDescription: formData.projectDescription,
-                estimatedBudget: parseFloat(formData.estimatedBudget) || 0,
-                actualStartDate: formData.actualStartDate,
-                actualEndDate: formData.actualEndDate,
-                totalBudget: parseFloat(formData.totalBudget) || 0,
-                paymentType: formData.paymentType,
-                paymentStatus: formData.paymentStatus,
-                status: formData.status,
-                isActive: true,
-                companyId: parseInt(formData.companyId),
-                clientName: formData.clientName,
-                clientEmail: formData.clientEmail,
-            };
+        // Prepare data for API call
+        const projectData = {
+            projectName: formData.projectName,
+            projectType: formData.projectType,
+            projectSize: formData.projectSize,
+            creationDate: formData.creationDate,
+            projectDescription: formData.projectDescription,
+            estimatedBudget: parseFloat(formData.estimatedBudget) || 0,
+            actualStartDate: formData.actualStartDate,
+            actualEndDate: formData.actualEndDate,
+            totalBudget: parseFloat(formData.totalBudget) || 0,
+            paymentType: formData.paymentType,
+            paymentStatus: formData.paymentStatus,
+            status: formData.status,
+            isActive: true,
+            companyId: parseInt(formData.companyId),
+            clientName: formData.clientName,
+            clientEmail: formData.clientEmail,
+        };
+        setPendingProjectData(projectData);
+        setShowQuotationConfirm(true);
+    };
 
-            await addProjectMutation.mutateAsync(projectData);
-        } catch (error) {
-            // Error handling is done in the mutation's onError callback
+    // Called if user confirms quotation generation
+    const handleConfirmQuotation = async () => {
+        setShowQuotationConfirm(false);
+        setIsSubmitting(true);
+        setError(null);
+        try {
+            if (pendingProjectData) {
+                await addProjectMutation.mutateAsync(pendingProjectData);
+                // TODO: Add quotation generation logic here if needed
+            }
+        } catch (err) {
+            // Error handled in mutation
         } finally {
             setIsSubmitting(false);
+            setPendingProjectData(null);
         }
+    };
+
+    // If user cancels, just close the popup
+    const handleCancelQuotation = () => {
+        setShowQuotationConfirm(false);
+        setPendingProjectData(null);
     };
 
     const handleNext = () => {
@@ -211,133 +230,131 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
-            {/* Header */}
-            <div className="mb-8">
-                <button
-                    onClick={handleCancel}
-                    className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
-                >
-                    <ArrowLeft className="h-5 w-5 mr-2" />
-                    Back to Projects
-                </button>
-                </div>
-                
-        <div className="min-h-screen bg-gray-50 p-6">
-            {/* Header */}
-            <div className="mb-8">
-                <button
-                    onClick={handleCancel}
-                    className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
-                >
-                    <ArrowLeft className="h-5 w-5 mr-2" />
-                    Back to Projects
-                </button>
-                <div className="flex items-center gap-3">
-                    <FolderPlus className="h-8 w-8 text-[#3450A3]" />
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Add New Project</h1>
-                        <p className="text-gray-600 mt-1">Create a new project record</p>
+        <>
+            <FeedbackPopup
+                isOpen={showQuotationConfirm}
+                onClose={handleCancelQuotation}
+                type="info"
+                title="Generate Quotation?"
+                confirmButtonText="Yes, Generate"
+                onConfirm={handleConfirmQuotation}
+            >
+                Do you want to generate a quotation for this project?
+            </FeedbackPopup>
+            <div className="min-h-screen bg-gray-50 p-6">
+                {/* Header */}
+                <div className="mb-8">
+                    <button
+                        onClick={handleCancel}
+                        className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+                    >
+                        <ArrowLeft className="h-5 w-5 mr-2" />
+                        Back to Projects
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <FolderPlus className="h-8 w-8 text-[#3450A3]" />
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900">Add New Project</h1>
+                            <p className="text-gray-600 mt-1">Create a new project record</p>
+                        </div>
                     </div>
                 </div>
-                {/* Close header div */}
-            </div>
-            {/* Tab Navigation */}
-            <div className="max-w-4xl mx-auto mb-6">
-                <div className="border-b border-gray-200">
-                    <nav className="-mb-px flex space-x-8">
-                        <button
-                            onClick={() => setActiveTab(0)}
-                            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                                activeTab === 0
-                                    ? 'border-[#3450A3] text-[#3450A3]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            }`}
-                        >
-                            Project Initialization
-                        </button>
-                        <button
-                            onClick={() => setActiveTab(1)}
-                            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                                activeTab === 1
-                                    ? 'border-[#3450A3] text-[#3450A3]'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            }`}
-                        >
-                            More Details
-                        </button>
-                    </nav>
+                {/* Tab Navigation */}
+                <div className="max-w-4xl mx-auto mb-6">
+                    <div className="border-b border-gray-200">
+                        <nav className="-mb-px flex space-x-8">
+                            <button
+                                onClick={() => setActiveTab(0)}
+                                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                    activeTab === 0
+                                        ? 'border-[#3450A3] text-[#3450A3]'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                            >
+                                Project Initialization
+                            </button>
+                            <button
+                                onClick={() => setActiveTab(1)}
+                                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                    activeTab === 1
+                                        ? 'border-[#3450A3] text-[#3450A3]'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                            >
+                                More Details
+                            </button>
+                        </nav>
+                    </div>
                 </div>
-            </div>
-            {/* Form */}
-            <div className="max-w-4xl mx-auto">
-                <div className="bg-white rounded-lg shadow-sm border p-8">
-                    {error && (
-                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-                            <div className="flex">
-                                <X className="h-5 w-5 text-red-400" />
-                                <div className="ml-3">
-                                    <h3 className="text-sm font-medium text-red-800">Error</h3>
-                                    <p className="mt-1 text-sm text-red-700">{error}</p>
+                {/* Form */}
+                <div className="max-w-4xl mx-auto">
+                    <div className="bg-white rounded-lg shadow-sm border p-8">
+                        {error && (
+                            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                                <div className="flex">
+                                    <X className="h-5 w-5 text-red-400" />
+                                    <div className="ml-3">
+                                        <h3 className="text-sm font-medium text-red-800">Error</h3>
+                                        <p className="mt-1 text-sm text-red-700">{error}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                    <form onSubmit={handleSubmit}>
-                        {activeTab === 0 && (
-                            <div className="space-y-6">
-                                {/* Company Name */}
-                                <div>
-                                    <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
-                                    {companiesLoading ? (
-                                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-500">Loading companies...</div>
-                                    ) : companiesError ? (
-                                        <div className="w-full px-3 py-2 border border-red-300 rounded-md shadow-sm text-red-700">Error loading companies</div>
-                                    ) : (
-                                        <select id="companyId" name="companyId" value={formData.companyId} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" required>
-                                            <option value="">Select Company</option>
-                                            {companies.map((company) => (
-                                                <option key={company.companyId} value={company.companyId}>{company.companyName}</option>
-                                            ))}
+                        )}
+                        <form onSubmit={handleSubmit}>
+                            {activeTab === 0 && (
+                                <div className="space-y-6">
+                                    {/* Company Name */}
+                                    <div>
+                                        <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
+                                        {companiesLoading ? (
+                                            <div className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-500">Loading companies...</div>
+                                        ) : companiesError ? (
+                                            <div className="w-full px-3 py-2 border border-red-300 rounded-md shadow-sm text-red-700">Error loading companies</div>
+                                        ) : (
+                                            <select id="companyId" name="companyId" value={formData.companyId} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" required>
+                                                <option value="">Select Company</option>
+                                                {companies.map((company) => (
+                                                    <option key={company.companyId} value={company.companyId}>{company.companyName}</option>
+                                                ))}
+                                            </select>
+                                        )}
+                                    </div>
+                                    {/* Project Name */}
+                                    <div>
+                                        <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-2">Project Name *</label>
+                                        <input type="text" id="projectName" name="projectName" value={formData.projectName} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter project name" required />
+                                    </div>
+                                    {/* Project Type */}
+                                    <div>
+                                        <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">Project Type *</label>
+                                        <select id="projectType" name="projectType" value={formData.projectType} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" required>
+                                            <option value="">Select Project Type</option>
+                                            <option value="web">Web Development</option>
+                                            <option value="mobile">Mobile Development</option>
+                                            <option value="desktop">Desktop Application</option>
                                         </select>
-                                    )}
-                                </div>
-                                {/* Project Name */}
-                                <div>
-                                    <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-2">Project Name *</label>
-                                    <input type="text" id="projectName" name="projectName" value={formData.projectName} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter project name" required />
-                                </div>
-                                {/* Project Type */}
-                                <div>
-                                    <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">Project Type *</label>
-                                    <select id="projectType" name="projectType" value={formData.projectType} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" required>
-                                        <option value="">Select Project Type</option>
-                                        <option value="web">Web Development</option>
-                                        <option value="mobile">Mobile Development</option>
-                                        <option value="desktop">Desktop Application</option>
-                                    </select>
-                                </div>
-                                {/* Project Size */}
-                                <div>
-                                    <label htmlFor="projectSize" className="block text-sm font-medium text-gray-700 mb-2">Project Size *</label>
-                                    <select id="projectSize" name="projectSize" value={formData.projectSize} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" required>
-                                        <option value="">Select Project Size</option>
-                                        <option value="small">Small</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="large">Large</option>
-                                    </select>
-                                </div>
-                                {/* Creation Date */}
-                                <div>
-                                    <label htmlFor="creationDate" className="block text-sm font-medium text-gray-700 mb-2">Creation Date</label>
-                                    <input type="date" id="creationDate" name="creationDate" value={formData.creationDate} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" />
-                                </div>
-                                {/* Estimated Budget */}
-                                <div>
-                                    <label htmlFor="estimatedBudget" className="block text-sm font-medium text-gray-700 mb-2">Estimated Budget</label>
-                                    <input type="text" id="estimatedBudget" name="estimatedBudget" value={formData.estimatedBudget} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter estimated budget" />
-                                </div>
-                                {/* Project Description */}
+                                    </div>
+                                    {/* Project Size */}
+                                    <div>
+                                        <label htmlFor="projectSize" className="block text-sm font-medium text-gray-700 mb-2">Project Size *</label>
+                                        <select id="projectSize" name="projectSize" value={formData.projectSize} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" required>
+                                            <option value="">Select Project Size</option>
+                                            <option value="small">Small</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="large">Large</option>
+                                        </select>
+                                    </div>
+                                    {/* Creation Date */}
+                                    <div>
+                                        <label htmlFor="creationDate" className="block text-sm font-medium text-gray-700 mb-2">Creation Date</label>
+                                        <input type="date" id="creationDate" name="creationDate" value={formData.creationDate} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" />
+                                    </div>
+                                    {/* Estimated Budget */}
+                                    <div>
+                                        <label htmlFor="estimatedBudget" className="block text-sm font-medium text-gray-700 mb-2">Estimated Budget</label>
+                                        <input type="text" id="estimatedBudget" name="estimatedBudget" value={formData.estimatedBudget} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter estimated budget" />
+                                    </div>
+                                    {/* Project Description */}
                                 <div>
                                     <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-700 mb-2">Project Description</label>
                                     <textarea id="projectDescription" name="projectDescription" value={formData.projectDescription} onChange={handleChange} rows={3} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter project description" />
@@ -417,6 +434,5 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                 </div>
             </div>
         </div>
-        </div>
-    );
+    </>);
 }
