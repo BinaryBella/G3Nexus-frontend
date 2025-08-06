@@ -12,17 +12,8 @@ import { ApiResponse, TermsConditions, Project } from "../../lib/types";
 
 const TermsAndConditionsPage = () => {
     const queryClient = useQueryClient();
-    
-    // State for selected project
-    const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-    
-    // Fetch all projects for the dropdown
-    const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
-        queryKey: ['projects'],
-        queryFn: projectService.getAllProjects,
-    });
 
-    // Fetch the general terms data (for fallback)
+    // Fetch the general terms data
     const { data: termsData, isLoading, error } = useQuery<TermsConditions>({
         queryKey: ['terms'],
         queryFn: () => termsService.getTerms(),
@@ -32,59 +23,25 @@ const TermsAndConditionsPage = () => {
     const [termsText, setTermsText] = useState<string>('');
     const [showSuccess, setShowSuccess] = useState<boolean>(false);
     const [showError, setShowError] = useState<string>('');
-    
-    // Store project-specific terms in localStorage for now
-    const getProjectTermsKey = (projectId: string) => `terms_project_${projectId}`;
-    
-    // Get selected project details
-    const selectedProject = projects.find(p => p.projectId.toString() === selectedProjectId);
 
-    // Update state when data is loaded or project changes
     useEffect(() => {
-        if (selectedProjectId) {
-            // Try to load project-specific terms from localStorage first
-            const savedTerms = localStorage.getItem(getProjectTermsKey(selectedProjectId));
-            if (savedTerms) {
-                setTermsText(savedTerms);
-            } else if (termsData?.content) {
-                // Check if the global terms contain this project's terms
-                const projectSpecificContent = extractProjectTerms(termsData.content, selectedProjectId);
-                setTermsText(projectSpecificContent);
-            } else {
-                // Start with empty editor
-                setTermsText('');
-            }
+        if (termsData?.content) {
+            // Remove leading numbers from each list item if present
+            let cleanedContent = termsData.content;
+            // Regex to remove numbers like '1. ', '2. ', etc. at the start of list items
+            cleanedContent = cleanedContent.replace(/<li>\s*\d+\.\s*/g, '<li>');
+            setTermsText(cleanedContent);
         } else {
             setTermsText('');
         }
-    }, [termsData, selectedProjectId, selectedProject]);
-    
-    // Helper function to extract project-specific terms from global terms
-    const extractProjectTerms = (content: string, projectId: string): string => {
-        const projectMarker = `<!-- PROJECT_${projectId}_START -->`;
-        const projectEndMarker = `<!-- PROJECT_${projectId}_END -->`;
-        
-        const startIndex = content.indexOf(projectMarker);
-        const endIndex = content.indexOf(projectEndMarker);
-        
-        if (startIndex !== -1 && endIndex !== -1) {
-            return content.substring(startIndex + projectMarker.length, endIndex).trim();
-        }
-        
-        return '';
-    };
+    }, [termsData]);
 
     // Mutation for adding new terms
     const createMutation = useMutation<TermsConditions, AxiosError<ApiResponse<TermsConditions>>, string>({
-        mutationFn: (content: string) => {
-            // For now, save project-specific terms to localStorage and update global terms
-            const projectSpecificContent = `<!-- PROJECT_${selectedProjectId}_START -->\n${content}\n<!-- PROJECT_${selectedProjectId}_END -->`;
-            localStorage.setItem(getProjectTermsKey(selectedProjectId), content);
-            return termsService.addTerms(projectSpecificContent);
-        },
+        mutationFn: (content: string) => termsService.addTerms(content),
         onSuccess: (data) => {
-            queryClient.setQueryData(['terms', selectedProjectId], data);
-            queryClient.invalidateQueries({ queryKey: ['terms', selectedProjectId] });
+            queryClient.setQueryData(['terms'], data);
+            queryClient.invalidateQueries({ queryKey: ['terms'] });
             setShowSuccess(true);
             setShowError('');
             setTimeout(() => setShowSuccess(false), 3000);
@@ -97,18 +54,10 @@ const TermsAndConditionsPage = () => {
 
     // Mutation for updating existing terms
     const updateMutation = useMutation<TermsConditions, AxiosError<ApiResponse<TermsConditions>>, { tcId: number; content: string }>({
-        mutationFn: ({ tcId, content }) => {
-            // Save project-specific terms to localStorage
-            localStorage.setItem(getProjectTermsKey(selectedProjectId), content);
-            
-            // For updating, we'll just update the project-specific content
-            // In a real implementation, you'd want to merge with other project terms
-            const projectSpecificContent = `<!-- PROJECT_${selectedProjectId}_START -->\n${content}\n<!-- PROJECT_${selectedProjectId}_END -->`;
-            return termsService.updateTerms(tcId, projectSpecificContent);
-        },
+        mutationFn: ({ tcId, content }) => termsService.updateTerms(tcId, content),
         onSuccess: (data) => {
-            queryClient.setQueryData(['terms', selectedProjectId], data);
-            queryClient.invalidateQueries({ queryKey: ['terms', selectedProjectId] });
+            queryClient.setQueryData(['terms'], data);
+            queryClient.invalidateQueries({ queryKey: ['terms'] });
             setShowSuccess(true);
             setShowError('');
             setTimeout(() => setShowSuccess(false), 3000);
@@ -121,18 +70,13 @@ const TermsAndConditionsPage = () => {
 
     // Handle save logic
     const handleSave = () => {
-        if (!selectedProjectId) {
-            setShowError('Please select a project first');
-            return;
-        }
-        
         if (!termsText.trim()) {
             setShowError('Terms and conditions content cannot be empty');
             return;
         }
 
         setShowError('');
-        
+
         if (termsData?.tcId) {
             updateMutation.mutate({ tcId: termsData.tcId, content: termsText });
         } else {
@@ -141,18 +85,8 @@ const TermsAndConditionsPage = () => {
     };
 
     const handleCancel = () => {
-        if (selectedProjectId) {
-            // Reload from localStorage or reset to empty
-            const savedTerms = localStorage.getItem(getProjectTermsKey(selectedProjectId));
-            if (savedTerms) {
-                setTermsText(savedTerms);
-            } else if (termsData?.content) {
-                const projectSpecificContent = extractProjectTerms(termsData.content, selectedProjectId);
-                setTermsText(projectSpecificContent);
-            } else {
-                // Reset to empty
-                setTermsText('');
-            }
+        if (termsData?.content) {
+            setTermsText(termsData.content);
         } else {
             setTermsText('');
         }
@@ -160,14 +94,7 @@ const TermsAndConditionsPage = () => {
         setShowSuccess(false);
     };
 
-    const handleProjectChange = (projectId: string) => {
-        setSelectedProjectId(projectId);
-        setShowError('');
-        setShowSuccess(false);
-        // Text will be updated by useEffect
-    };
-
-    if (isLoading || projectsLoading) {
+    if (isLoading) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
@@ -223,7 +150,7 @@ const TermsAndConditionsPage = () => {
                         Terms and conditions saved successfully!
                     </div>
                 )}
-                
+
                 {showError && (
                     <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center gap-2">
                         <AlertTriangle className="h-5 w-5" />
@@ -232,115 +159,61 @@ const TermsAndConditionsPage = () => {
                 )}
             </div>
 
-            {/* Project Selection */}
-            <div className="bg-white rounded-lg shadow-sm border mb-6">
+            {/* Editor Section */}
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
                 <div className="p-6 border-b bg-gray-50">
-                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                        <FolderOpen className="h-5 w-5 text-[#3450A3]" />
-                        Select Project
-                    </h2>
-                    <p className="text-sm text-gray-600 mt-1">Choose a project to manage its terms and conditions</p>
-                </div>
-                
-                <div className="p-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="flex items-center justify-between">
                         <div>
-                            <label htmlFor="projectSelect" className="block text-sm font-medium text-gray-700 mb-2">
-                                Project *
-                            </label>
-                            <select
-                                id="projectSelect"
-                                value={selectedProjectId}
-                                onChange={(e) => handleProjectChange(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] text-gray-900"
-                            >
-                                <option value="">Select a project...</option>
-                                {projects.map((project) => (
-                                    <option key={project.projectId} value={project.projectId.toString()}>
-                                        {project.projectName} ({project.projectType})
-                                    </option>
-                                ))}
-                            </select>
+                            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                <Edit className="h-5 w-5 text-[#3450A3]" />
+                                Terms and Conditions Editor
+                            </h2>
+                            <p className="text-sm text-gray-600 mt-1">
+                                Edit your company's terms and conditions below.
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm text-gray-500">Use numbered lists only</p>
+                            <p className="text-xs text-gray-400">Bold and italic formatting available</p>
                         </div>
                     </div>
+                </div>
+
+                <div className="p-6">
+                    <div className="quill-container">
+                        <ReactQuill
+                            value={termsText}
+                            onChange={setTermsText}
+                            className="min-h-[500px]"
+                            modules={modules}
+                            formats={formats}
+                            placeholder="Enter your terms and conditions here using numbered lists..."
+                            theme="snow"
+                        />
+                    </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="px-6 py-4 bg-gray-50 border-t flex justify-end items-center">
+                    <button
+                        className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
+                        type="button"
+                        onClick={handleCancel}
+                    >
+                        <RotateCcw className="h-4 w-4" />
+                        Reset
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={createMutation.isPending || updateMutation.isPending}
+                        className="px-6 py-2 bg-[#3450A3] hover:bg-blue-700 text-white disabled:bg-gray-400 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
+                        type="button"
+                    >
+                        <Save className="h-4 w-4" />
+                        {(createMutation.isPending || updateMutation.isPending) ? 'Saving...' : 'Save Terms'}
+                    </button>
                 </div>
             </div>
-
-            {/* Editor Section - Only show when project is selected */}
-            {selectedProjectId && (
-                <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                    <div className="p-6 border-b bg-gray-50">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                    <Edit className="h-5 w-5 text-[#3450A3]" />
-                                    Terms and Conditions Editor
-                                </h2>
-                                <p className="text-sm text-gray-600 mt-1">
-                                    Creating terms for: <span className="font-medium text-gray-900">{selectedProject?.projectName}</span>
-                                </p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-sm text-gray-500">Use numbered lists only</p>
-                                <p className="text-xs text-gray-400">Bold and italic formatting available</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="p-6">
-                        <div className="quill-container">
-                            <ReactQuill
-                                value={termsText}
-                                onChange={setTermsText}
-                                className="min-h-[500px]"
-                                modules={modules}
-                                formats={formats}
-                                placeholder="Enter your terms and conditions here using numbered lists..."
-                                theme="snow"
-                            />
-                        </div>
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="px-6 py-4 bg-gray-50 border-t flex justify-between items-center">
-                        <div className="text-sm text-gray-500">
-                            Terms will be saved for project: <span className="font-medium">{selectedProject?.projectName}</span>
-                        </div>
-                        <div className="flex gap-4">
-                            <button
-                                className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
-                                type="button"
-                                onClick={handleCancel}
-                            >
-                                <RotateCcw className="h-4 w-4" />
-                                Reset
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={createMutation.isPending || updateMutation.isPending}
-                                className="px-6 py-2 bg-[#3450A3] hover:bg-blue-700 text-white disabled:bg-gray-400 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors flex items-center gap-2"
-                                type="button"
-                            >
-                                <Save className="h-4 w-4" />
-                                {(createMutation.isPending || updateMutation.isPending) ? 'Saving...' : 'Save Terms'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* No Project Selected Message */}
-            {!selectedProjectId && (
-                <div className="bg-white rounded-lg shadow-sm border">
-                    <div className="p-12 text-center">
-                        <FolderOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">No Project Selected</h3>
-                        <p className="text-gray-600 max-w-md mx-auto">
-                            Please select a project from the dropdown above to start creating or editing terms and conditions.
-                        </p>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
