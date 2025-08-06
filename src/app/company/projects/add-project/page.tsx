@@ -100,6 +100,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         hosting: '',
         ssl: '',
         server: '',
+        deployment: '',
     });
     const [costError, setCostError] = useState<string | null>(null);
     // Terms & Conditions state
@@ -245,7 +246,8 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         const host = parseFloat(costInputs.hosting) || 0;
         const ssl = parseFloat(costInputs.ssl) || 0;
         const server = parseFloat(costInputs.server) || 0;
-        return dev + host + ssl + server;
+        const deployment = parseFloat(costInputs.deployment) || 0;
+        return dev + host + ssl + server + deployment;
     };
     const getAdvance = () => {
         return (getTotalCost() * 0.25).toFixed(2);
@@ -261,7 +263,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     // Step 1: Confirm cost breakdown, then fetch terms and go to step 2
     const handleCostModalNext = async () => {
         setCostError(null);
-        if (!costInputs.development || !costInputs.hosting || !costInputs.ssl || !costInputs.server) {
+        if (!costInputs.development || !costInputs.hosting || !costInputs.ssl || !costInputs.server || !costInputs.deployment) {
             setCostError('Please fill in all cost fields.');
             return;
         }
@@ -291,41 +293,67 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
             setTermsLoading(false);
         }
     };
-
+    
     // Step 2: Finalize project creation with cost breakdown and selected terms
-    const handleTermsModalConfirm = async () => {
-        setCostError(null);
-        // Require at least one term checked (or all, if needed)
-        if (!Object.values(checkedTerms).some(Boolean)) {
-            setCostError('Please agree to at least one term and condition.');
-            return;
+const handleTermsModalConfirm = async () => {
+    setCostError(null);
+    // Require at least one term checked (or all, if needed)
+    if (!Object.values(checkedTerms).some(Boolean)) {
+        setCostError('Please agree to at least one term and condition.');
+        return;
+    }
+    
+    if (pendingProjectData) {
+        setIsSubmitting(true);
+        try {
+            // Prepare the quotation cost object with correct field names
+            const quotationCost = {
+                advancePayment: parseFloat(getAdvance()),
+                developmentCost: parseFloat(costInputs.development),
+                hostingAndDomain: parseFloat(costInputs.hosting),
+                sslCertificate: parseFloat(costInputs.ssl),
+                serverCost: parseFloat(costInputs.server),
+                deploymentCost: parseFloat(costInputs.deployment),
+            };
+
+            // Prepare terms and conditions array with correct structure
+            const termsConditions = Object.entries(checkedTerms)
+                .filter(([_, checked]) => checked)
+                .map(([tcId]) => ({
+                    tcId: Number(tcId),
+                    isChecked: true
+                }));
+
+            // Create the payload matching the API schema exactly
+            const requestPayload = {
+                projectName: pendingProjectData.projectName,
+                projectType: pendingProjectData.projectType,
+                projectSize: pendingProjectData.projectSize,
+                creationDate: pendingProjectData.creationDate || new Date().toISOString(),
+                projectDescription: pendingProjectData.projectDescription || "",
+                estimatedBudget: getTotalCost(),
+                actualStartDate: pendingProjectData.actualStartDate || null,
+                actualEndDate: pendingProjectData.actualEndDate || null,
+                totalBudget: pendingProjectData.totalBudget || 0,
+                paymentType: pendingProjectData.paymentType || "",
+                paymentStatus: pendingProjectData.paymentStatus || "",
+                status: pendingProjectData.status,
+                isActive: pendingProjectData.isActive,
+                companyId: pendingProjectData.companyId,
+                quotationCost: quotationCost,
+                termsConditions: termsConditions,
+            };
+
+            await addProjectMutation.mutateAsync(requestPayload);
+            setShowCostModal(false);
+        } catch (err) {
+            // Error handled in mutation
+        } finally {
+            setIsSubmitting(false);
+            setPendingProjectData(null);
         }
-        if (pendingProjectData) {
-            setIsSubmitting(true);
-            try {
-                await addProjectMutation.mutateAsync({
-                    ...pendingProjectData,
-                    estimatedBudget: getTotalCost(),
-                    costBreakdown: {
-                        development: parseFloat(costInputs.development),
-                        hosting: parseFloat(costInputs.hosting),
-                        ssl: parseFloat(costInputs.ssl),
-                        server: parseFloat(costInputs.server),
-                        advance: parseFloat(getAdvance()),
-                    },
-                    agreedTerms: Object.entries(checkedTerms)
-                        .filter(([_, checked]) => checked)
-                        .map(([tcId]) => Number(tcId)),
-                });
-                setShowCostModal(false);
-            } catch (err) {
-                // Error handled in mutation
-            } finally {
-                setIsSubmitting(false);
-                setPendingProjectData(null);
-            }
-        }
-    };
+    }
+};
 
     const handleCostModalCancel = () => {
         setShowCostModal(false);
@@ -461,11 +489,24 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">Server Setup & Final Delivery</label>
-                                        <div className="text-xs text-gray-500 mb-1">Server configuration, deployment, and final handover</div>
+                                        <div className="text-xs text-gray-500 mb-1">Server configuration and final handover</div>
                                         <input
                                             type="text"
                                             name="server"
                                             value={costInputs.server}
+                                            onChange={handleCostInputChange}
+                                            className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            placeholder="Rs."
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-black mb-1">Deployment Cost</label>
+                                        <div className="text-xs text-gray-500 mb-1">Deployment configuration and go-live</div>
+                                        <input
+                                            type="text"
+                                            name="deployment"
+                                            value={costInputs.deployment}
                                             onChange={handleCostInputChange}
                                             className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                             placeholder="Rs."
@@ -489,6 +530,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                     <div>.com domain + 10GB SSD Hosting</div>
                                     <div>Standard 256-bit SSL (1 Year)</div>
                                     <div>Server setup & final delivery</div>
+                                    <div>Deployment</div>
                                 </div>
                                 {costError && <div className="mt-4 text-red-600">{costError}</div>}
                                 <div className="flex justify-end space-x-3 mt-8">
