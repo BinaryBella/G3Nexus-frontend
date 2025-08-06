@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService'; 
+import { projectService } from '@/app/lib/services/projectService';
 import { Requirement } from '../../../lib/types';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/app/contexts/AuthContext';
 import { FileText, ArrowLeft, X } from 'lucide-react';
 
 // Modal Component for Notifications
@@ -36,18 +38,42 @@ const Modal = ({ isOpen, onClose, children = 'Notice' }: any) => {
 
 const RequirementForm = () => {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const { user } = useAuth();
 
     // State variables for form fields and error handling
     const [requirementTitle, setRequirementTitle] = useState('');
     const [priority, setPriority] = useState('');
     const [requirementDescription, setRequirementDescription] = useState('');
     const [attachment, setAttachment] = useState('');
-    const [clientId, setClientId] = useState<number | null>(null);
-    const [projectId, setProjectId] = useState<number | null>(null);
-    const [isActive, setIsActive] = useState(true); // Default value for isActive
+    const [project, setProject] = useState<number | null>(null);
+    const [projectName, setProjectName] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
+
+    // Get projectId from query params and set it
+    useEffect(() => {
+        const projectIdParam = searchParams.get('projectId');
+        console.log(user);
+        
+        if (projectIdParam) {
+            setProject(Number(projectIdParam));
+        }
+    }, [searchParams]);
+    // Fetch project details when project ID is available
+    const { data: projectData, isLoading: projectLoading } = useQuery({
+        queryKey: ['project', project],
+        queryFn: () => projectService.getProjectById(project!),
+        enabled: !!project,
+    });
+
+    // Set project name when project data is loaded
+    useEffect(() => {
+        if (projectData) {
+            setProjectName(projectData.projectName);
+        }
+    }, [projectData]);
 
     // Mutation for adding requirement
     const addRequirementMutation = useMutation({
@@ -67,7 +93,7 @@ const RequirementForm = () => {
         e.preventDefault();
         setError(null);
 
-        if (!requirementTitle || !priority || !requirementDescription || clientId === null || projectId === null) {
+        if (!requirementTitle || !priority || !requirementDescription || user?.clientId === null || project === null) {
             setError('Please fill in all the required fields.');
             return;
         }
@@ -77,9 +103,10 @@ const RequirementForm = () => {
             priority,
             requirementDescription,
             attachment,
-            isActive,
-            clientId,
-            projectId,
+            isActive: true,
+            clientId: user?.clientId!,
+            projectId: project,
+            isNew: true,
         };
 
         try {
@@ -93,7 +120,7 @@ const RequirementForm = () => {
     const closeModal = () => {
         setIsModalOpen(false);
         if (modalMessage.startsWith('Requirement added successfully')) {
-            router.push('/company/requirements'); // Redirect after successful addition
+            router.push('/client/requirements'); // Redirect after successful addition
         }
     };
 
@@ -118,7 +145,7 @@ const RequirementForm = () => {
             {/* Header */}
             <div className="mb-8">
                 <button
-                    onClick={() => router.push('/company/requirements')}
+                    onClick={() => router.push('/client/requirements')}
                     className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
                 >
                     <ArrowLeft className="h-5 w-5 mr-2" />
@@ -215,56 +242,25 @@ const RequirementForm = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="clientId">
-                                Client ID *
-                            </label>
-                            <input
-                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                id="clientId"
-                                type="number"
-                                placeholder="Enter Client ID"
-                                value={clientId ?? ''}
-                                onChange={(e) => setClientId(Number(e.target.value))}
-                                required
-                            />
-                        </div>
-
-                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="projectId">
-                                Project ID *
+                                Project
                             </label>
                             <input
-                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] bg-gray-50"
                                 id="projectId"
-                                type="number"
-                                placeholder="Enter Project ID"
-                                value={projectId ?? ''}
-                                onChange={(e) => setProjectId(Number(e.target.value))}
+                                disabled
+                                placeholder={projectLoading ? "Loading project..." : "Project will be auto-filled"}
+                                value={projectLoading ? "Loading..." : projectName || ''}
                                 required
                             />
-                        </div>
-
-                        <div>
-                            <label className="flex items-center">
-                                <input
-                                    className="h-4 w-4 text-[#3450A3] focus:ring-[#3450A3] border-gray-300 rounded"
-                                    type="checkbox"
-                                    checked={isActive}
-                                    onChange={() => setIsActive(!isActive)}
-                                />
-                                <span className="ml-2 text-sm font-medium text-gray-700">Active</span>
-                            </label>
-                            <p className="mt-1 text-sm text-gray-500">
-                                Inactive requirements will be hidden from most views
-                            </p>
-                        </div>
+                        </div>            
 
                         {/* Form Actions */}
-                        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                        <div className="flex justify-end space-x-4 pt-6">
                             <button
                                 className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                                 type="button"
-                                onClick={() => router.push('/company/requirements')}
+                                onClick={() => router.push('/client/requirements')}
                             >
                                 Cancel
                             </button>

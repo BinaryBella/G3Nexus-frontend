@@ -376,7 +376,7 @@ export default function CompanyRequirementsPage() {
                                         : '/client/requirements/add-requirement';
                                     router.push(addRequirementUrl);
                                 }}
-                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                                className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Add Requirement
                             </button>
