@@ -1,4 +1,8 @@
-'use client';
+   
+   'use client';
+
+import { clientService, Client } from '@/app/lib/services/clientService';
+
 
 import React, { useState, useEffect } from 'react';
 import { termsService } from '@/app/lib/services/termsService';
@@ -41,7 +45,10 @@ interface ProjectFormData {
 export default function ProjectForm({ projectId }: ProjectFormProps) {
     const router = useRouter();
     const { canManageProjects } = useRoleAccess();
-    
+       // State for filtered client admins
+    const [clientAdmins, setClientAdmins] = useState<Client[]>([]);
+    const [allClients, setAllClients] = useState<Client[]>([]);
+    const [clientsLoading, setClientsLoading] = useState(false);
     // Redirect if user doesn't have permission to manage projects
     useEffect(() => {
         if (!canManageProjects()) {
@@ -125,11 +132,49 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        if (name === 'companyId') {
+            setFormData((prev) => ({
+                ...prev,
+                companyId: value,
+                clientName: '',
+                clientEmail: '',
+            }));
+        } else if (name === 'clientName') {
+            const selectedClient = clientAdmins.find((c) => c.name === value);
+            setFormData((prev) => ({
+                ...prev,
+                clientName: value,
+                clientEmail: selectedClient ? selectedClient.email : '',
+            }));
+        } else {
+            setFormData((prev) => ({
+                ...prev,
+                [name]: value,
+            }));
+        }
     };
+    // Fetch all clients on mount
+    useEffect(() => {
+        setClientsLoading(true);
+        clientService.getAllClients()
+            .then((clients) => {
+                setAllClients(clients);
+                setClientsLoading(false);
+            })
+            .catch(() => setClientsLoading(false));
+    }, []);
+
+    // Filter client admins when companyId changes
+    useEffect(() => {
+        if (!formData.companyId) {
+            setClientAdmins([]);
+            return;
+        }
+        const filtered = allClients.filter(
+            (c) => String(c.companyId) === String(formData.companyId) && c.role === 'CLIENT_ADMIN'
+        );
+        setClientAdmins(filtered);
+    }, [formData.companyId, allClients]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -626,15 +671,37 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                                     <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-700 mb-2">Project Description</label>
                                     <textarea id="projectDescription" name="projectDescription" value={formData.projectDescription} onChange={handleChange} rows={3} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter project description" />
                                 </div>
-                                {/* Client Name */}
+                                {/* Client Name Dropdown */}
                                 <div>
                                     <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-2">Client Name *</label>
-                                    <input type="text" id="clientName" name="clientName" value={formData.clientName} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter client name" required />
+                                    <select
+                                        id="clientName"
+                                        name="clientName"
+                                        value={formData.clientName}
+                                        onChange={handleChange}
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        required
+                                        disabled={!formData.companyId || clientsLoading || clientAdmins.length === 0}
+                                    >
+                                        <option value="">Select Client Admin</option>
+                                        {clientAdmins.map((client) => (
+                                            <option key={client.id} value={client.name}>{client.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                {/* Client Email */}
+                                {/* Client Email (auto-filled) */}
                                 <div>
                                     <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 mb-2">Client Email *</label>
-                                    <input type="email" id="clientEmail" name="clientEmail" value={formData.clientEmail} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter client email" required />
+                                    <input
+                                        type="email"
+                                        id="clientEmail"
+                                        name="clientEmail"
+                                        value={formData.clientEmail}
+                                        readOnly
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] bg-gray-100"
+                                        placeholder="Client email will be auto-filled"
+                                        required
+                                    />
                                 </div>
                                 {/* Form Actions */}
                                 <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
