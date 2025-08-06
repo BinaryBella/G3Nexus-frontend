@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { termsService } from '@/app/lib/services/termsService';
 import FeedbackPopup from '@/app/components/FeedbackPopup';
 import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -86,6 +87,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     const [showQuotationConfirm, setShowQuotationConfirm] = useState(false);
     const [pendingProjectData, setPendingProjectData] = useState<any>(null);
     const [showCostModal, setShowCostModal] = useState(false);
+    const [costModalStep, setCostModalStep] = useState(0); // 0: cost, 1: terms
     const [costInputs, setCostInputs] = useState({
         development: '',
         hosting: '',
@@ -93,6 +95,11 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         server: '',
     });
     const [costError, setCostError] = useState<string | null>(null);
+    // Terms & Conditions state
+    const [terms, setTerms] = useState<any[]>([]);
+    const [termsLoading, setTermsLoading] = useState(false);
+    const [termsError, setTermsError] = useState<string | null>(null);
+    const [checkedTerms, setCheckedTerms] = useState<{ [key: number]: boolean }>({});
 
     // Fetch companies for dropdown
     const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery<Company[], Error>({
@@ -184,6 +191,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     const handleConfirmQuotation = () => {
         setShowQuotationConfirm(false);
         setShowCostModal(true);
+        setCostModalStep(0);
     };
 
     // Calculate total and advance
@@ -205,11 +213,46 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         setCostInputs((prev) => ({ ...prev, [name]: value }));
     };
 
-    // Finalize project creation with cost breakdown
-    const handleCostModalConfirm = async () => {
+    // Step 1: Confirm cost breakdown, then fetch terms and go to step 2
+    const handleCostModalNext = async () => {
         setCostError(null);
         if (!costInputs.development || !costInputs.hosting || !costInputs.ssl || !costInputs.server) {
             setCostError('Please fill in all cost fields.');
+            return;
+        }
+        setTermsLoading(true);
+        setTermsError(null);
+        try {
+            const termsList = await termsService.getTerms();
+            // If the API returns a single object, wrap in array; if array, use as is
+            const allTerms = Array.isArray(termsList) ? termsList : [termsList];
+            const activeTerms = allTerms.filter((t: any) => t.isActive);
+            setTerms(activeTerms);
+            // Initialize checked state
+            const checked: { [key: number]: boolean } = {};
+            activeTerms.forEach((t: any) => { checked[t.tcId] = false; });
+            setCheckedTerms(checked);
+            setCostModalStep(1);
+            if (activeTerms.length === 0) {
+                setTermsError('No active terms and conditions found.');
+            }
+        } catch (err: any) {
+            setTermsError('Failed to load terms and conditions. Please check your connection or try again later.');
+            console.error('Error fetching terms and conditions:', err);
+            setTerms([]);
+            setCheckedTerms({});
+            setCostModalStep(1); // Still show the step so user sees the error
+        } finally {
+            setTermsLoading(false);
+        }
+    };
+
+    // Step 2: Finalize project creation with cost breakdown and selected terms
+    const handleTermsModalConfirm = async () => {
+        setCostError(null);
+        // Require at least one term checked (or all, if needed)
+        if (!Object.values(checkedTerms).some(Boolean)) {
+            setCostError('Please agree to at least one term and condition.');
             return;
         }
         if (pendingProjectData) {
@@ -225,6 +268,9 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                         server: parseFloat(costInputs.server),
                         advance: parseFloat(getAdvance()),
                     },
+                    agreedTerms: Object.entries(checkedTerms)
+                        .filter(([_, checked]) => checked)
+                        .map(([tcId]) => Number(tcId)),
                 });
                 setShowCostModal(false);
             } catch (err) {
@@ -239,6 +285,14 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     const handleCostModalCancel = () => {
         setShowCostModal(false);
         setPendingProjectData(null);
+        setCostModalStep(0);
+        setTerms([]);
+        setCheckedTerms({});
+    };
+
+    // Checkbox handler for terms
+    const handleTermCheck = (tcId: number) => {
+        setCheckedTerms((prev) => ({ ...prev, [tcId]: !prev[tcId] }));
     };
 
     // If user cancels, just close the popup
@@ -296,10 +350,10 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                 Do you want to generate a quotation for this project?
             </FeedbackPopup>
 
-            {/* Cost Breakdown Modal */}
+            {/* Cost Breakdown & Terms Modal (Stepper) */}
             {showCostModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-8 max-w-lg w-full mx-4 shadow-xl relative">
+                    <div className="bg-white rounded-lg p-8 max-w-lg w-full mx-6 shadow-xl relative">
                         <button
                             className="absolute top-4 right-4 text-black hover:text-black"
                             onClick={handleCostModalCancel}
@@ -308,94 +362,148 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                             <span className="sr-only">Close</span>
                             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
-                        <h2 className="text-2xl font-bold mb-2 text-black">Project Cost Breakdown & Advance Payment</h2>
-                        <div className="mb-4 text-gray-700 text-sm">
-                            Please fill in the cost amounts for each item below. The system will calculate the <b>Total Project Cost</b> and the <b>Advance Payment (25%)</b> automatically.
+                        {/* Stepper */}
+                        <div className="flex items-center mb-6">
+                            <div className={`flex-1 text-center ${costModalStep === 0 ? 'font-bold text-[#3450A3]' : 'text-gray-400'}`}>Cost Breakdown</div>
+                            <div className="w-8 h-0.5 bg-gray-300 mx-2" />
+                            <div className={`flex-1 text-center ${costModalStep === 1 ? 'font-bold text-[#3450A3]' : 'text-gray-400'}`}>Terms & Conditions</div>
                         </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-1">Development Cost</label>
-                                <div className="text-xs text-gray-500 mb-1">UI/UX design, frontend & backend development</div>
-                                <input
-                                    type="text"
-                                    name="development"
-                                    value={costInputs.development}
-                                    onChange={handleCostInputChange}
-                                    className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    placeholder="Rs."
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-1">Hosting & Domain (1 Year)</label>
-                                <div className="text-xs text-gray-500 mb-1">.com domain + 10GB SSD hosting</div>
-                                <input
-                                    type="text"
-                                    name="hosting"
-                                    value={costInputs.hosting}
-                                    onChange={handleCostInputChange}
-                                    className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    placeholder="Rs."
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-1">SSL Certificate</label>
-                                <div className="text-xs text-gray-500 mb-1">Standard 256-bit SSL for 1 year</div>
-                                <input
-                                    type="text"
-                                    name="ssl"
-                                    value={costInputs.ssl}
-                                    onChange={handleCostInputChange}
-                                    className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    placeholder="Rs."
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-black mb-1">Server Setup & Final Delivery</label>
-                                <div className="text-xs text-gray-500 mb-1">Server configuration, deployment, and final handover</div>
-                                <input
-                                    type="text"
-                                    name="server"
-                                    value={costInputs.server}
-                                    onChange={handleCostInputChange}
-                                    className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                    placeholder="Rs."
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-                        </div>
-                        <div className="mt-6 border-t pt-4 space-y-2">
-                            <div className="flex justify-between text-base font-semibold">
-                                <span className='text-black'>Total Project Cost</span>
-                                <span className='text-black'>Rs. {getTotalCost().toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                            </div>
-                            <div className="flex justify-between text-base">
-                                <span className='text-black'>Advance Payment (25%)</span>
-                                <span className='text-black'>Rs. {getAdvance()}</span>
-                            </div>
-                        </div>
-                        <div className="mt-6 text-sm text-black">
-                            <div>Deployment & Handover: Required before project kickoff</div>
-                            <div>UI/UX Design, Frontend & Backend Dev</div>
-                            <div>.com domain + 10GB SSD Hosting</div>
-                            <div>Standard 256-bit SSL (1 Year)</div>
-                            <div>Server setup & final delivery</div>
-                        </div>
-                        {costError && <div className="mt-4 text-red-600">{costError}</div>}
-                        <div className="flex justify-end space-x-3 mt-8">
-                            <button
-                                onClick={handleCostModalCancel}
-                                disabled={isSubmitting}
-                                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >Cancel</button>
-                            <button
-                                onClick={handleCostModalConfirm}
-                                disabled={isSubmitting}
-                                className="px-4 py-2 bg-[#3450A3] text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >{isSubmitting ? 'Adding...' : 'Confirm & Add Project'}</button>
-                        </div>
+                        {costModalStep === 0 && (
+                            <>
+                                <h2 className="text-2xl font-bold mb-2 text-black">Project Cost Breakdown & Advance Payment</h2>
+                                <div className="mb-4 text-gray-700 text-sm">
+                                    Please fill in the cost amounts for each item below. The system will calculate the <b>Total Project Cost</b> and the <b>Advance Payment (25%)</b> automatically.
+                                </div>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-black mb-1">Development Cost</label>
+                                        <div className="text-xs text-gray-500 mb-1">UI/UX design, frontend & backend development</div>
+                                        <input
+                                            type="text"
+                                            name="development"
+                                            value={costInputs.development}
+                                            onChange={handleCostInputChange}
+                                            className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            placeholder="Rs."
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-black mb-1">Hosting & Domain (1 Year)</label>
+                                        <div className="text-xs text-gray-500 mb-1">.com domain + 10GB SSD hosting</div>
+                                        <input
+                                            type="text"
+                                            name="hosting"
+                                            value={costInputs.hosting}
+                                            onChange={handleCostInputChange}
+                                            className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            placeholder="Rs."
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-black mb-1">SSL Certificate</label>
+                                        <div className="text-xs text-gray-500 mb-1">Standard 256-bit SSL for 1 year</div>
+                                        <input
+                                            type="text"
+                                            name="ssl"
+                                            value={costInputs.ssl}
+                                            onChange={handleCostInputChange}
+                                            className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            placeholder="Rs."
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-black mb-1">Server Setup & Final Delivery</label>
+                                        <div className="text-xs text-gray-500 mb-1">Server configuration, deployment, and final handover</div>
+                                        <input
+                                            type="text"
+                                            name="server"
+                                            value={costInputs.server}
+                                            onChange={handleCostInputChange}
+                                            className="w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            placeholder="Rs."
+                                            disabled={isSubmitting}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mt-6 border-t pt-4 space-y-2">
+                                    <div className="flex justify-between text-base font-semibold">
+                                        <span className='text-black'>Total Project Cost</span>
+                                        <span className='text-black'>Rs. {getTotalCost().toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                    </div>
+                                    <div className="flex justify-between text-base">
+                                        <span className='text-black'>Advance Payment (25%)</span>
+                                        <span className='text-black'>Rs. {getAdvance()}</span>
+                                    </div>
+                                </div>
+                                <div className="mt-6 text-sm text-black">
+                                    <div>Deployment & Handover: Required before project kickoff</div>
+                                    <div>UI/UX Design, Frontend & Backend Dev</div>
+                                    <div>.com domain + 10GB SSD Hosting</div>
+                                    <div>Standard 256-bit SSL (1 Year)</div>
+                                    <div>Server setup & final delivery</div>
+                                </div>
+                                {costError && <div className="mt-4 text-red-600">{costError}</div>}
+                                <div className="flex justify-end space-x-3 mt-8">
+                                    <button
+                                        type="button"
+                                        onClick={handleCostModalCancel}
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >Cancel</button>
+                                    <button
+                                        type="button"
+                                        onClick={handleCostModalNext}
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 bg-[#3450A3] text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >Next</button>
+                                </div>
+                            </>
+                        )}
+                        {costModalStep === 1 && (
+                            <>
+                                <h2 className="text-2xl font-bold mb-2 text-black">Terms & Conditions</h2>
+                                <div className="mb-4 text-gray-700 text-sm">Please review and agree to the terms and conditions before sending the quotation.</div>
+                                {termsLoading ? (
+                                    <div className="text-gray-500">Loading terms and conditions...</div>
+                                ) : termsError ? (
+                                    <div className="text-red-600">{termsError}</div>
+                                ) : (
+                                    <div className="max-h-60 overflow-y-auto space-y-4 mb-4">
+                                        {terms.map((term) => (
+                                            <div key={term.tcId} className="flex items-start gap-2 border-b pb-2">
+                                                <input
+                                                    type="checkbox"
+                                                    id={`term-${term.tcId}`}
+                                                    checked={checkedTerms[term.tcId] || false}
+                                                    onChange={() => handleTermCheck(term.tcId)}
+                                                    className="mt-1"
+                                                    disabled={isSubmitting}
+                                                />
+                                                <label htmlFor={`term-${term.tcId}`} className="text-black text-sm" style={{flex:1}}>
+                                                    <span dangerouslySetInnerHTML={{ __html: term.content }} />
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {costError && <div className="mt-2 text-red-600">{costError}</div>}
+                                <div className="flex justify-between mt-8">
+                                    <button
+                                        onClick={() => setCostModalStep(0)}
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >Back</button>
+                                    <button
+                                        onClick={handleTermsModalConfirm}
+                                        disabled={isSubmitting}
+                                        className="px-4 py-2 bg-[#3450A3] text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >{isSubmitting ? 'Adding...' : 'Confirm & Add Project'}</button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
