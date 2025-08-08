@@ -1,7 +1,8 @@
 // src/services/api.ts
 import axios from 'axios';
-import { AuthUser, LoginRequest, LoginResponse, ApiResponse, JWTPayload, TermsConditions } from '@/app/lib/types';
+import { AuthUser, LoginRequest, LoginResponse, ApiResponse, JWTPayload } from '@/app/lib/types';
 import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
+import { companyService } from './companyService';
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -151,9 +152,12 @@ const getUserFromToken = (accessToken: string): AuthUser | null => {
                       payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
                       '';
 
+    const userId = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+
     console.log('Extracted user data:', {
         email: userEmail,
         role: role,
+        id: userId,
         payload: payload
     });
 
@@ -161,11 +165,7 @@ const getUserFromToken = (accessToken: string): AuthUser | null => {
         email: userEmail,
         role: role,
         isActive: true,
-        organizationName: payload.organizationName || payload['OrganizationName'],
-        contactNo: payload.contactNo || payload['ContactNo'],
-        address: payload.address || payload['Address'],
-        employeeId: payload.employeeId || payload['EmployeeId'],
-        clientId: payload.clientId || payload['ClientId'],
+        userId: parseInt(userId)
     };
     
     console.log('Final user data object:', userData);
@@ -193,13 +193,21 @@ export const authService = {
     },
 
     // Get the current user's information from the stored access token
-    getCurrentUser: (): AuthUser => {
+    getCurrentUser: async (): Promise<AuthUser> => {
         const { accessToken } = authService.getTokens();
         if (!accessToken) {
             throw new Error('No access token found');
         }
 
         const user = getUserFromToken(accessToken);
+        const isClient = authService.isClient();
+        if (isClient) {
+            debugger;
+            var clientData = await profileService.getClientById(user!.userId);
+            const companyId = clientData.data.companyId;
+            const companyData = await companyService.getCompanyById(companyId);
+            user!.organizationName = companyData.companyName
+        }
         if (!user) {
             throw new Error('Invalid access token');
         }

@@ -1,11 +1,11 @@
 // src/app/services/requirementService.ts
 import api from './api';
-import { ApiResponse, Requirement } from '@/app/lib/types';
+import { ApiResponse, Requirement, RequirementListItem } from '@/app/lib/types';
 import { authService } from './api';
 
 export const requirementService = {
   // Get all requirements
-  getAllRequirements: async (): Promise<Requirement[]> => {
+  getAllRequirements: async (): Promise<RequirementListItem[]> => {
     try {
       const { accessToken } = authService.getTokens();
       if (!accessToken) throw new Error('Access token is missing');
@@ -14,7 +14,7 @@ export const requirementService = {
       const userId = payload?.employeeId || payload?.clientId;
       const lastLogin = payload?.lastLoginTime || new Date().toISOString();
 
-      const response = await api.get<ApiResponse<Requirement[]>>('/Requirement', {
+      const response = await api.get<ApiResponse<RequirementListItem[]>>('/Requirement', {
         params: { userId, lastLogin },
       });
 
@@ -30,9 +30,9 @@ export const requirementService = {
   },
 
   // Get requirements by project
-  getRequirementsByProject: async (projectId: number): Promise<Requirement[]> => {
+  getRequirementsByProject: async (projectId: number): Promise<RequirementListItem[]> => {
     try {
-      const response = await api.get<ApiResponse<Requirement[]>>('/Requirement');
+      const response = await api.get<ApiResponse<RequirementListItem[]>>('/Requirement');
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch requirements');
@@ -46,7 +46,7 @@ export const requirementService = {
   },
 
   // Get requirements by client
-  getRequirementsByClient: async (clientEmail: string): Promise<Requirement[]> => {
+  getRequirementsByClient: async (clientEmail: string): Promise<RequirementListItem[]> => {
     try {
       const projectsResponse = await api.get<ApiResponse<any[]>>(`/Project/client/${clientEmail}`);
       if (!projectsResponse.data.status) {
@@ -55,7 +55,7 @@ export const requirementService = {
 
       const projectIds = projectsResponse.data.data.map(project => project.projectId);
 
-      const requirementsResponse = await api.get<ApiResponse<Requirement[]>>('/Requirement');
+      const requirementsResponse = await api.get<ApiResponse<RequirementListItem[]>>('/Requirement');
       if (!requirementsResponse.data.status) {
         throw new Error(requirementsResponse.data.error || 'Failed to fetch requirements');
       }
@@ -98,9 +98,9 @@ export const requirementService = {
   },
 
   // Update requirement
-  updateRequirement: async (id: number, requirementData: Partial<Omit<Requirement, 'requirementId'>>): Promise<Requirement> => {
+  updateRequirement: async (requirementData: Requirement): Promise<Requirement> => {
     try {
-      const response = await api.put<ApiResponse<Requirement>>(`/Requirement/${id}`, requirementData);
+      const response = await api.put<ApiResponse<Requirement>>(`/Requirement`, requirementData);
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update requirement');
       }
@@ -125,47 +125,5 @@ export const requirementService = {
       console.error('Error deleting requirement:', error);
       throw error;
     }
-  },
-
-  // Upload requirement attachment
-  uploadAttachment: async (requirementId: number, file: File): Promise<string> => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await api.post<ApiResponse<string>>(
-        `/Requirement/${requirementId}/attachment`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-
-      if (!response.data.status) {
-        throw new Error(response.data.error || 'Failed to upload attachment');
-      }
-
-      return response.data.data;
-    } catch (error) {
-      console.error('Error uploading attachment:', error);
-      throw error;
-    }
-  },
-
-  // Mark requirement as viewed
-  markAsViewed: async (requirementId: number): Promise<void> => {
-    try {
-      const { accessToken } = authService.getTokens();
-      if (!accessToken) throw new Error('Access token is missing');
-
-      await api.put(`/Requirement/MarkAsViewed/${requirementId}`, {}, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-    } catch (error) {
-      console.error('Error marking requirement as viewed:', error);
-      throw error;
-    }
-  },
+  }
 };

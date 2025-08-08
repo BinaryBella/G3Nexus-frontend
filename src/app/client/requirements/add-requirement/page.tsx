@@ -8,6 +8,7 @@ import { Requirement } from '../../../lib/types';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { FileText, ArrowLeft, X } from 'lucide-react';
+import { fileService } from '@/app/lib/services/fileService';
 
 // Modal Component for Notifications
 const Modal = ({ isOpen, onClose, children = 'Notice' }: any) => {
@@ -45,7 +46,7 @@ const RequirementForm = () => {
     const [requirementTitle, setRequirementTitle] = useState('');
     const [priority, setPriority] = useState('');
     const [requirementDescription, setRequirementDescription] = useState('');
-    const [attachment, setAttachment] = useState('');
+    const [attachment, setAttachment] = useState<File | null>(null);
     const [project, setProject] = useState<number | null>(null);
     const [projectName, setProjectName] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
@@ -61,6 +62,68 @@ const RequirementForm = () => {
             setProject(Number(projectIdParam));
         }
     }, [searchParams]);
+
+    // File upload handler
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            validateAndSetFile(file);
+        }
+    };
+
+    // Drag and drop handlers
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const files = e.dataTransfer.files;
+        if (files && files[0]) {
+            validateAndSetFile(files[0]);
+        }
+    };
+
+    // File validation helper
+    const validateAndSetFile = (file: File) => {
+        // Check file type
+        const allowedTypes = [
+            'image/jpeg',
+            'image/jpg', 
+            'image/png',
+            'application/pdf',
+            'text/plain',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        
+        if (!allowedTypes.includes(file.type)) {
+            setError('Please select a valid file type (JPEG, JPG, PNG, PDF, TXT, DOCX)');
+            return;
+        }
+        
+        // Check file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            setError('File size must be less than 10MB');
+            return;
+        }
+        
+        setAttachment(file);
+        setError(null);
+    };
     // Fetch project details when project ID is available
     const { data: projectData, isLoading: projectLoading } = useQuery({
         queryKey: ['project', project],
@@ -81,6 +144,9 @@ const RequirementForm = () => {
         onSuccess: () => {
             setModalMessage('Requirement added successfully!');
             setIsModalOpen(true);
+            setTimeout(() => {
+                router.push('/client/requirements');
+            }, 1500);
         },
         onError: (error: Error) => {
             setModalMessage(`Error: ${error.message}`);
@@ -93,23 +159,37 @@ const RequirementForm = () => {
         e.preventDefault();
         setError(null);
 
-        if (!requirementTitle || !priority || !requirementDescription || user?.clientId === null || project === null) {
+        if (!requirementTitle || !priority || !requirementDescription || user?.userId === null || project === null) {
             setError('Please fill in all the required fields.');
             return;
         }
 
-        const newRequirement: Omit<Requirement, 'requirementId'> = {
-            requirementTitle,
-            priority,
-            requirementDescription,
-            attachment,
-            isActive: true,
-            clientId: user?.clientId!,
-            projectId: project,
-            isNew: true,
-        };
-
         try {
+            let savedFileName = '';
+            
+            // If there's a file attachment, save it to the frontend server first
+            if (attachment) {
+                try {
+                    savedFileName = await fileService.saveFile(attachment);
+                } catch (uploadError) {
+                    console.error('Error saving file:', uploadError);
+                    setError('Failed to save attachment. Please try again.');
+                    return;
+                }
+            }
+
+            const newRequirement: Omit<Requirement, 'requirementId'> = {
+                requirementTitle,
+                priority,
+                requirementDescription,
+                attachment: savedFileName, // Use the saved filename
+                isActive: true,
+                clientId: user?.userId!,
+                projectId: project,
+                isNew: true,
+            };
+
+            // Create the requirement with the saved filename
             await addRequirementMutation.mutateAsync(newRequirement);
         } catch (error) {
             // Error handling is done in mutation's onError callback
@@ -231,14 +311,67 @@ const RequirementForm = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="attachment">
                                 Attachment (Optional)
                             </label>
-                            <input
-                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                id="attachment"
-                                type="text"
-                                placeholder="Link to attachment"
-                                value={attachment}
-                                onChange={(e) => setAttachment(e.target.value)}
-                            />
+                            <div 
+                                className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors"
+                                onDragOver={handleDragOver}
+                                onDragEnter={handleDragEnter}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                            >
+                                <div className="space-y-1 text-center">
+                                    <svg
+                                        className="mx-auto h-12 w-12 text-gray-400"
+                                        stroke="currentColor"
+                                        fill="none"
+                                        viewBox="0 0 48 48"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                            strokeWidth={2}
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
+                                    <div className="flex text-sm text-gray-600">
+                                        <label
+                                            htmlFor="attachment"
+                                            className="relative cursor-pointer bg-white rounded-md font-medium text-[#3450A3] hover:text-blue-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#3450A3]"
+                                        >
+                                            <span>Upload a file</span>
+                                            <input
+                                                id="attachment"
+                                                name="attachment"
+                                                type="file"
+                                                className="sr-only"
+                                                accept=".jpg,.jpeg,.png,.pdf,.txt,.docx"
+                                                onChange={handleFileChange}
+                                            />
+                                        </label>
+                                        <p className="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                        JPEG, JPG, PNG, PDF, TXT, DOCX up to 10MB
+                                    </p>
+                                    {attachment && (
+                                        <div className="mt-2 flex items-center justify-center">
+                                            <div className="flex items-center px-3 py-2 bg-green-50 border border-green-200 rounded-md">
+                                                <svg className="h-4 w-4 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span className="text-sm text-green-700 font-medium">{attachment.name}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAttachment(null)}
+                                                    className="ml-2 text-green-400 hover:text-green-600"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         <div>

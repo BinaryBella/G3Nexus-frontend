@@ -1,15 +1,11 @@
    
-   'use client';
+'use client';
 
 import { clientService, Client } from '@/app/lib/services/clientService';
-
-
 import React, { useState, useEffect } from 'react';
 import { termsService } from '@/app/lib/services/termsService';
 import FeedbackPopup from '@/app/components/FeedbackPopup';
-import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from "next/image";
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { companyService } from '@/app/lib/services/companyService';
 import { projectService } from '@/app/lib/services/projectService';
@@ -426,7 +422,7 @@ const handleTermsModalConfirm = async () => {
             {/* Cost Breakdown & Terms Modal (Stepper) */}
             {showCostModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-8 max-w-lg w-full mx-6 shadow-xl relative">
+                    <div className="bg-white rounded-lg p-8 w-[600px] mx-6 shadow-xl relative">
                         <button
                             className="absolute top-4 right-4 text-black hover:text-black"
                             onClick={handleCostModalCancel}
@@ -436,10 +432,51 @@ const handleTermsModalConfirm = async () => {
                             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                         {/* Stepper */}
-                        <div className="flex items-center mb-6">
-                            <div className={`flex-1 text-center ${costModalStep === 0 ? 'font-bold text-[#3450A3]' : 'text-gray-400'}`}>Cost Breakdown</div>
-                            <div className="w-8 h-0.5 bg-gray-300 mx-2" />
-                            <div className={`flex-1 text-center ${costModalStep === 1 ? 'font-bold text-[#3450A3]' : 'text-gray-400'}`}>Terms & Conditions</div>
+                        <div className="flex items-center justify-center mb-8">
+                            <div className="flex items-center w-full max-w-md">
+                                {/* Step 1 */}
+                                <div className="flex items-center">
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                                        costModalStep === 0 
+                                            ? 'bg-[#3450A3] border-[#3450A3] text-white' 
+                                            : 'bg-green-500 border-green-500 text-white'
+                                    }`}>
+                                        {costModalStep === 0 ? (
+                                            <span className="text-sm font-medium">1</span>
+                                        ) : (
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <span className={`ml-2 text-sm font-medium ${
+                                        costModalStep === 0 ? 'text-[#3450A3]' : 'text-green-600'
+                                    }`}>
+                                        Cost Breakdown
+                                    </span>
+                                </div>
+
+                                {/* Connector Line */}
+                                <div className={`flex-1 h-0.5 mx-4 ${
+                                    costModalStep === 1 ? 'bg-[#3450A3]' : 'bg-gray-300'
+                                }`} />
+
+                                {/* Step 2 */}
+                                <div className="flex items-center">
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
+                                        costModalStep === 1 
+                                            ? 'bg-[#3450A3] border-[#3450A3] text-white' 
+                                            : 'bg-gray-200 border-gray-300 text-gray-500'
+                                    }`}>
+                                        <span className="text-sm font-medium">2</span>
+                                    </div>
+                                    <span className={`ml-2 text-sm font-medium ${
+                                        costModalStep === 1 ? 'text-[#3450A3]' : 'text-gray-500'
+                                    }`}>
+                                        Terms & Conditions
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         {costModalStep === 0 && (
                             <>
@@ -447,7 +484,7 @@ const handleTermsModalConfirm = async () => {
                                 <div className="mb-4 text-gray-700 text-sm">
                                     Please fill in the cost amounts for each item below. The system will calculate the <b>Total Project Cost</b> and the <b>Advance Payment (25%)</b> automatically.
                                 </div>
-                                <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">Development Cost</label>
                                         <div className="text-xs text-gray-500 mb-1">UI/UX design, frontend & backend development</div>
@@ -500,7 +537,7 @@ const handleTermsModalConfirm = async () => {
                                             disabled={isSubmitting}
                                         />
                                     </div>
-                                    <div>
+                                    <div className="md:col-span-2">
                                         <label className="block text-sm font-medium text-black mb-1">Deployment Cost</label>
                                         <div className="text-xs text-gray-500 mb-1">Deployment configuration and go-live</div>
                                         <input

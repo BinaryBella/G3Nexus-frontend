@@ -17,19 +17,11 @@ export interface LoginResponse {
 }
 
 export interface AuthUser {
-    id?: number;
-    name?: string;
-    email: string;
-    role: string;
-    isActive: boolean;
-    profileImage?: string;
-    // Additional fields that might be present in the user data
-    organizationName?: string;
-    contactNo?: string;
-    address?: string;
-    employeeId?: number;
-    clientId?: number;
-    companyId?: number;
+    email: string,
+    role: string,
+    isActive: boolean,
+    userId: number,
+    organizationName?: string,
 }
 
 // JWT Token payload interface
@@ -98,6 +90,18 @@ export interface Requirement {
     projectId: number;
     isNew?: boolean;
 }
+
+export interface RequirementListItem {
+    requirementId: number;
+    requirementTitle: string;
+    priority: string;
+    clientId: number;
+    projectId: number;
+    isNew?: boolean;
+    clientName?: string;
+    projectName?: string;
+}
+
 
 export interface Bug {
     bugId: number;

@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FileText, Search, Plus, Clock, CheckCircle, AlertTriangle, Eye, X, Download } from 'lucide-react';
+import { FileText, Search, Clock, CheckCircle, AlertTriangle, Eye, X, Download } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService';
 import { projectService, Project } from '@/app/lib/services/projectService';
 import { clientService } from '@/app/lib/services/clientService';
-import { Requirement, Client } from '../../lib/types';
+import { Requirement, RequirementListItem, Client } from '../../lib/types';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
@@ -20,7 +20,7 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
     const colorClass = colorMap[priority] || "bg-gray-100 text-gray-800 border-gray-200";
 
     return (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${colorClass}`}>
+        <span className={`px-3 py-1 rounded-full h-fit w-fit text-xs font-medium border ${colorClass}`}>
             {priority}
         </span>
     );
@@ -38,117 +38,107 @@ const RequirementDetailsModal = ({ isOpen, onClose, requirement }: {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Modal Header */}
                 <div className="flex items-center justify-between p-6 border-b">
-                    <div>
+                    <div className="flex flex-col">
                         <h2 className="text-xl font-semibold text-gray-900">Requirement Details</h2>
                         <p className="text-sm text-gray-600">Complete requirement information</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                        <X className="h-5 w-5 text-gray-500" />
+                        <X className="h-6 w-6" />
                     </button>
                 </div>
 
-                {/* Modal Content */}
-                <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6">
-                    {/* Requirement Title Section */}
+                {/* Modal Body */}
+                <div className="p-6 space-y-6">
+                    {/* Requirement Title */}
                     <div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-3">Requirement Title</h3>
-                        <div className="bg-gray-50 rounded-lg p-4 border">
-                            <p className="text-gray-900 text-base font-medium">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Requirement Title
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <p className="text-gray-900 font-medium">
                                 {requirement.requirementTitle || 'No title provided'}
                             </p>
                         </div>
                     </div>
 
-                    {/* Requirement Description Section */}
+                    {/* Requirement Description */}
                     <div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-3">Requirement Description</h3>
-                        <div className="bg-gray-50 rounded-lg p-4 border">
-                            <p className="text-gray-700 text-base leading-relaxed whitespace-pre-wrap">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Description
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4 min-h-[120px]">
+                            <p className="text-gray-900 whitespace-pre-wrap">
                                 {requirement.requirementDescription || 'No description provided'}
                             </p>
                         </div>
                     </div>
 
-                    {/* Additional Details Section */}
+                    {/* Additional Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                            <h4 className="text-sm font-medium text-blue-900 mb-2">Priority</h4>
-                            <PriorityBadge priority={requirement.priority || 'Medium'} />
-                        </div>
-                        <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                            <h4 className="text-sm font-medium text-green-900 mb-2">Status</h4>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${requirement.isActive
-                                    ? 'bg-green-100 text-green-800 border-green-200'
-                                    : 'bg-gray-100 text-gray-800 border-gray-200'
-                                }`}>
-                                {requirement.isActive ? 'Active' : 'Inactive'}
-                            </span>
-                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Priority
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <PriorityBadge priority={requirement.priority || 'Medium'} />
+                            </div>
+                        </div>                        
                     </div>
 
-                    {/* Attachments Section */}
+                    {/* Attachment Section */}
                     <div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-3">Attachments</h3>
-                        {hasAttachment ? (
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                                <div className="text-center">
-                                    {/* Check if it's an image */}
-                                    {requirement.attachment.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i) ? (
-                                        <div className="mb-4">
-                                            <img
-                                                src={requirement.attachment}
-                                                alt="Requirement attachment"
-                                                className="max-w-full max-h-96 mx-auto rounded-lg shadow-md"
-                                                onError={(e) => {
-                                                    const target = e.target as HTMLImageElement;
-                                                    target.style.display = 'none';
-                                                    const parent = target.parentElement;
-                                                    if (parent) {
-                                                        parent.innerHTML = `
-                                                            <div class="text-center py-8">
-                                                                <FileText class="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                                                                <p class="text-gray-600">Unable to load image</p>
-                                                                <p class="text-sm text-gray-500 mt-1">File: ${requirement.attachment}</p>
-                                                            </div>
-                                                        `;
-                                                    }
-                                                }}
-                                            />
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Attachment
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            {requirement.attachment ? (
+                                <div className="flex items-center justify-between bg-white rounded-lg p-3 border">
+                                    <div className="flex items-center space-x-3">
+                                        <FileText className="h-8 w-8 text-blue-600" />
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900">
+                                                {typeof requirement.attachment === 'string'
+                                                    ? requirement.attachment.split('/').pop() || 'Attachment'
+                                                    : 'Attachment'
+                                                }
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                Click to download
+                                            </p>
                                         </div>
-                                    ) : (
-                                        <div className="py-8">
-                                            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                            <p className="text-gray-600 mb-2">Attachment File</p>
-                                            <p className="text-sm text-gray-500 break-all">{requirement.attachment}</p>
-                                        </div>
-                                    )}
-
-                                    {/* Download/View Button */}
+                                    </div>
                                     <a
-                                        href={requirement.attachment}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                                        download
+                                        href={'/uploads/' + requirement.attachment}
+                                        className="text-blue-600 hover:text-blue-800 transition-colors"
                                     >
-                                        <Download className="h-4 w-4" />
-                                        Download/View File
+                                        <Download className="h-5 w-5" />
                                     </a>
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                <p className="text-gray-600">No attachments available</p>
-                                <p className="text-sm text-gray-500">This requirement doesn't have any attached files.</p>
-                            </div>
-                        )}
+                            ) : (
+                                <div className="text-center py-8">
+                                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                                    <p className="text-gray-500 text-sm">No attachment available</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                    <button
+                        onClick={onClose}
+                        className="bg-[#2b4b93] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                    >
+                        Close
+                    </button>
                 </div>
             </div>
         </div>
@@ -183,7 +173,7 @@ export default function CompanyRequirementsPage() {
         queryFn: () => projectService.getAllProjects(),
     });
 
-    const { data: requirements = [], error, isLoading } = useQuery<Requirement[], Error>({
+    const { data: requirements = [], error, isLoading } = useQuery<RequirementListItem[], Error>({
         queryKey: ['requirements', projectId, user?.email],
         queryFn: () => {
             console.log('Fetching requirements for projectId:', projectId);
@@ -211,9 +201,15 @@ export default function CompanyRequirementsPage() {
     }, {} as Record<number, string>);
 
     // Modal handlers
-    const openModal = (requirement: Requirement) => {
-        setSelectedRequirement(requirement);
-        setIsModalOpen(true);
+    const openModal = (requirementId: number) => {
+        requirementService.getRequirementById(requirementId)
+            .then(requirement => {
+                setSelectedRequirement(requirement);
+                setIsModalOpen(true);
+            })
+            .catch(error => {
+                console.error('Error fetching requirement details:', error);
+            });
     };
 
     const closeModal = () => {
@@ -223,7 +219,6 @@ export default function CompanyRequirementsPage() {
 
     const filteredRequirements = requirements.filter(req =>
         req.requirementTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
-        req.requirementDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
         req.priority?.toLowerCase().includes(searchText.toLowerCase())
     );
 
@@ -391,7 +386,6 @@ export default function CompanyRequirementsPage() {
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -401,7 +395,6 @@ export default function CompanyRequirementsPage() {
                                         <td className="px-6 py-4">
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">{req.requirementTitle}</p>
-                                                <p className="text-sm text-gray-600 truncate max-w-xs">{req.requirementDescription}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -412,18 +405,10 @@ export default function CompanyRequirementsPage() {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
                                             {projectNameMap[req.projectId] || `Project ${req.projectId}`}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${req.isActive
-                                                    ? 'bg-green-100 text-green-800 border-green-200'
-                                                    : 'bg-gray-100 text-gray-800 border-gray-200'
-                                                }`}>
-                                                {req.isActive ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
+                                        </td>                                       
                                         <td className="px-6 py-4">
                                             <button
-                                                onClick={() => openModal(req)}
+                                                onClick={() => openModal(req.requirementId)}
                                                 className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1 rounded-lg transition-colors"
                                                 title="View attachment"
                                             >

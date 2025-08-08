@@ -44,7 +44,7 @@ const DashboardPage = () => {
         const fetchProjects = async () => {
             // Using dummy data for demonstration
             try {
-                var user = authService.getCurrentUser();
+                var user = await authService.getCurrentUser();
                 console.log('Current user:', user);
 
                 setLoading(true);

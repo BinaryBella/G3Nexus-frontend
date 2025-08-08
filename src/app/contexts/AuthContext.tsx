@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const { accessToken } = authService.getTokens();
             if (accessToken && !authService.isTokenExpired()) {
                 try {
-                    const userData = authService.getCurrentUser();
+                    const userData = await authService.getCurrentUser();
                     setUser(userData);
                     setIsAuthenticated(true);
                 } catch (error) {
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 // Get user data from token
                 try {
-                    const userData = authService.getCurrentUser();
+                    const userData = await authService.getCurrentUser();
                     console.log('User data extracted from token:', userData);
                     setUser(userData);
                     setIsAuthenticated(true);
@@ -139,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!user || !isAuthenticated) return;
 
         try {
-            const userData = authService.getCurrentUser();
+            const userData = await authService.getCurrentUser();
             setUser(userData);
         } catch (error) {
             console.error('Failed to refresh user data:', error);
