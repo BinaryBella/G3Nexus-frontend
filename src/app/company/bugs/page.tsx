@@ -190,6 +190,11 @@ export default function CompanyBugsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const itemsPerPage = 6;
 
+    // Selection and quotation modal state
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
+    const [quotationCosts, setQuotationCosts] = useState<Record<number, string>>({});
+
     const { data: bugs = [], error, isLoading } = useQuery<BugType[], Error>({
         queryKey: ['bugs'],
         queryFn: bugService.getAllBugs,
@@ -251,6 +256,33 @@ export default function CompanyBugsPage() {
         resolved: Math.floor(bugs.length * 0.4) // Mock data - replace with actual status when available
     };
 
+    // Selection and quotation modal handlers
+    const handleSelect = (id: number) => {
+        setSelectedIds((prev: number[]) => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+    const handleSelectAll = () => {
+        const currentPageIds = paginatedBugs.map((b: BugType) => b.bugId);
+        const allSelected = currentPageIds.every((id: number) => selectedIds.includes(id));
+        setSelectedIds(allSelected ? selectedIds.filter((id: number) => !currentPageIds.includes(id)) : [...selectedIds, ...currentPageIds.filter((id: number) => !selectedIds.includes(id))]);
+    };
+
+    // Quotation modal handlers
+    const openQuotationModal = () => {
+        setQuotationCosts({});
+        setIsQuotationModalOpen(true);
+    };
+    const closeQuotationModal = () => {
+        setIsQuotationModalOpen(false);
+    };
+    const handleCostChange = (id: number, value: string) => {
+        setQuotationCosts((prev: Record<number, string>) => ({ ...prev, [id]: value }));
+    };
+    const handleSendQuotation = async () => {
+        // TODO: Call API to send email with selectedIds and quotationCosts
+        closeQuotationModal();
+        setSelectedIds([]);
+    };
+
     if (isLoading) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
@@ -285,6 +317,17 @@ export default function CompanyBugsPage() {
                         </h1>
                         <p className="text-gray-600 mt-2">Manage and track bug reports</p>
                     </div>
+
+                                            {/* Generate Quotation Button */}
+                        <div className="flex justify-end mt-4">
+                            <button
+                                className={`bg-[#2b4b93] text-white px-6 py-2 rounded-lg font-medium transition-colors ${selectedIds.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+                                disabled={selectedIds.length === 0}
+                                onClick={openQuotationModal}
+                            >
+                                Generate Quotation
+                            </button>
+                        </div>
                 </div>
 
                 {/* Stats Cards */}
@@ -359,75 +402,125 @@ export default function CompanyBugsPage() {
                         )}
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bug</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {paginatedBugs.map((bug) => (
-                                    <tr key={bug.bugId} className={bug.isNew ? "bg-yellow-50 hover:bg-yellow-100" : "hover:bg-gray-50"}>
-                                        <td className="px-6 py-4">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                                                    {bug.bugTitle}
-                                                    {bug.isNew && (
-                                                        <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-300">
-                                                            NEW
-                                                        </span>
-                                                    )}
-                                                </p>    
-                                                <p className="text-sm text-gray-600 truncate max-w-xs">{bug.bugDescription}</p>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <StatusBadge status={bug.isActive ? 'Open' : 'Closed'} />
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <SeverityBadge severity={bug.severity || 'Medium'} />
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            Client {bug.clientId}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">
-                                            {new Date().toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => handleViewMore(bug)}
-                                                    className="text-green-600 hover:text-green-800 text-sm font-medium"
-                                                    title="View More Details"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => router.push(`/company/bugs/edit-bug-report?id=${bug.bugId}`)}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                    title="Edit Bug"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => console.log(`Delete project ${bug.bugId}`)}
-                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                                    title="Delete Bug"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <input type="checkbox" checked={paginatedBugs.length > 0 && paginatedBugs.every(b => selectedIds.includes(b.bugId))} onChange={handleSelectAll} />
+                                        </th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bug</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {paginatedBugs.map((bug) => (
+                                        <tr key={bug.bugId} className={bug.isNew ? "bg-yellow-50 hover:bg-yellow-100" : "hover:bg-gray-50"}>
+                                            <td className="px-4 py-4">
+                                                <input type="checkbox" checked={selectedIds.includes(bug.bugId)} onChange={() => handleSelect(bug.bugId)} />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                                        {bug.bugTitle}
+                                                        {bug.isNew && (
+                                                            <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-300">
+                                                                NEW
+                                                            </span>
+                                                        )}
+                                                    </p>    
+                                                    <p className="text-sm text-gray-600 truncate max-w-xs">{bug.bugDescription}</p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <StatusBadge status={bug.isActive ? 'Open' : 'Closed'} />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <SeverityBadge severity={bug.severity || 'Medium'} />
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">
+                                                Client {bug.clientId}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-600">
+                                                {new Date().toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        onClick={() => handleViewMore(bug)}
+                                                        className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                                        title="View More Details"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => router.push(`/company/bugs/edit-bug-report?id=${bug.bugId}`)}
+                                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                        title="Edit Bug"
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => console.log(`Delete project ${bug.bugId}`)}
+                                                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                        title="Delete Bug"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+
+                        {/* Quotation Modal */}
+                        {isQuotationModalOpen && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+                                    <h2 className="text-xl text-black font-semibold mb-4">Enter Quotation Cost</h2>
+                                    <form onSubmit={e => { e.preventDefault(); handleSendQuotation(); }}>
+                                        <div className="space-y-4">
+                                            {filteredBugs.filter(b => selectedIds.includes(b.bugId)).map(b => (
+                                                <div key={b.bugId}>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{b.bugTitle}</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        className="w-full text-black border border-gray-300 rounded-lg px-3 py-2"
+                                                        value={quotationCosts[b.bugId] || ''}
+                                                        onChange={e => handleCostChange(b.bugId, e.target.value)}
+                                                        required
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {/* Total Cost Calculation */}
+                                        <div className="mt-6 text-right">
+                                            <span className="text-lg text-black">Total Cost: </span>
+                                            <span className="text-lg font-bold text-black">
+                                                {Object.values(quotationCosts)
+                                                    .map(val => parseFloat(val) || 0)
+                                                    .reduce((acc, curr) => acc + curr, 0)
+                                                    .toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-end gap-3 mt-6">
+                                            <button type="button" className="bg-gray-500 px-4 py-2 rounded-lg" onClick={closeQuotationModal}>Cancel</button>
+                                            <button type="submit" className="bg-[#2b4b93] text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">Send Quotation</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
