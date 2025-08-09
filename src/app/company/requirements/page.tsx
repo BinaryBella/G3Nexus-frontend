@@ -169,6 +169,9 @@ export default function CompanyRequirementsPage() {
     const [requirementToDelete, setRequirementToDelete] = useState<RequirementListItem | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const itemsPerPage = 6;
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
+    const [quotationCosts, setQuotationCosts] = useState<Record<number, string>>({});
 
     const { data: requirements = [], error, isLoading, refetch } = useQuery<RequirementListItem[], Error>({
         queryKey: ['requirements'],
@@ -189,7 +192,6 @@ export default function CompanyRequirementsPage() {
 
     const filteredRequirements = sortedRequirements.filter(req => {
         if (searchText.trim() === '') return true;
-
         // Helper function to check if search text matches beginning of any word
         const matchesWordBeginning = (text: string) => {
             if (!text) return false;
@@ -197,9 +199,7 @@ export default function CompanyRequirementsPage() {
             const searchLower = searchText.toLowerCase();
             return words.some(word => word.startsWith(searchLower));
         };
-
-        return matchesWordBeginning(req.requirementTitle || '') ||
-            matchesWordBeginning(req.priority || '');
+        return matchesWordBeginning(req.requirementTitle || '') || matchesWordBeginning(req.priority || '');
     });
 
     // Pagination calculations
@@ -219,7 +219,6 @@ export default function CompanyRequirementsPage() {
         } catch (error) {
             console.error('Error fetching requirement details:', error);
         }
-        
     };
 
     const handleEdit = (id: number) => {
@@ -288,6 +287,35 @@ export default function CompanyRequirementsPage() {
         );
     }
 
+    // Checkbox handlers
+    const handleSelect = (id: number) => {
+        setSelectedIds((prev) => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+    const handleSelectAll = () => {
+        const currentPageIds = paginatedRequirements.map(r => r.requirementId);
+        const allSelected = currentPageIds.every(id => selectedIds.includes(id));
+        setSelectedIds(allSelected ? selectedIds.filter(id => !currentPageIds.includes(id)) : [...selectedIds, ...currentPageIds.filter(id => !selectedIds.includes(id))]);
+    };
+
+    // Quotation modal handlers
+    const openQuotationModal = () => {
+        setQuotationCosts({});
+        setIsQuotationModalOpen(true);
+    };
+    const closeQuotationModal = () => {
+        setIsQuotationModalOpen(false);
+    };
+    const handleCostChange = (id: number, value: string) => {
+        setQuotationCosts((prev) => ({ ...prev, [id]: value }));
+    };
+
+    // Placeholder for sending email (to be implemented)
+    const handleSendQuotation = async () => {
+        // TODO: Call API to send email with selectedIds and quotationCosts
+        closeQuotationModal();
+        setSelectedIds([]);
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             {/* Header */}
@@ -300,6 +328,58 @@ export default function CompanyRequirementsPage() {
                         </h1>
                         <p className="text-gray-600 mt-2">Manage project requirements and specifications</p>
                     </div>
+
+                        {/* Generate Quotation Button */}
+                        <div className="flex justify-end mt-4">
+                            <button
+                                className={`bg-[#2b4b93] text-white px-6 py-2 rounded-lg font-medium transition-colors ${selectedIds.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+                                disabled={selectedIds.length === 0}
+                                onClick={openQuotationModal}
+                            >
+                                Generate Quotation
+                            </button>
+                        </div>
+
+                        {/* Quotation Modal */}
+                        {isQuotationModalOpen && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+                                    <h2 className="text-xl text-black font-semibold mb-4">Enter Quotation Cost</h2>
+                                    <form onSubmit={e => { e.preventDefault(); handleSendQuotation(); }}>
+                                        <div className="space-y-4">
+                                            {filteredRequirements.filter(r => selectedIds.includes(r.requirementId)).map(r => (
+                                                <div key={r.requirementId}>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{r.requirementTitle}</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        className="w-full border text-black border-gray-300 rounded-lg px-3 py-2"
+                                                        value={quotationCosts[r.requirementId] || ''}
+                                                        onChange={e => handleCostChange(r.requirementId, e.target.value)}
+                                                        required
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {/* Total Cost Calculation */}
+                                        <div className="mt-6 text-right">
+                                            <span className="text-lg text-black">Total Cost: </span>
+                                            <span className="text-lg font-bold text-black">
+                                                {Object.values(quotationCosts)
+                                                    .map(val => parseFloat(val) || 0)
+                                                    .reduce((acc, curr) => acc + curr, 0)
+                                                    .toFixed(2)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-end gap-3 mt-6">
+                                            <button type="button" className="bg-gray-500 px-4 py-2 rounded-lg" onClick={closeQuotationModal}>Cancel</button>
+                                            <button type="submit" className="bg-[#2b4b93] text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">Send Quotation</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
                 </div>
 
                 {/* Stats Cards */}
@@ -366,76 +446,84 @@ export default function CompanyRequirementsPage() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requirement</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {paginatedRequirements.map((req) => (
-<tr
-                                        key={req.requirementId}
-                                        className={`hover:bg-gray-50 ${req.isNew ? 'bg-blue-50 animate-highlight' : ''}`}
-                                        style={req.isNew ? { transition: 'background-color 0.5s' } : {}}
-                                    >
-                                        <td className="px-6 py-4">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                                                    {req.requirementTitle}
-                                                    {req.isNew && (
-                                                        <span className="bg-[#eca909] text-white text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-300">
-                                                            NEW
-                                                        </span>
-                                                    )}
-                                                </p>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <PriorityBadge priority={req.priority || 'Medium'} />
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            {req.clientName}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            {req.projectName}
-                                        </td>
-                                        
-                                        <td className="px-6 py-4">
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => handleViewMore(req.requirementId)}
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                                                    title="View More Details"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => router.push(`/company/requirements/edit-requirement/${req.requirementId}`)}
-                                                    className="text-green-600 hover:text-green-800 text-sm font-medium"
-                                                    title="Edit Requirement"
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteClick(req)}
-                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                                    title="Delete Requirement"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b">
+                                    <tr>
+                                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <input type="checkbox" checked={paginatedRequirements.length > 0 && paginatedRequirements.every(r => selectedIds.includes(r.requirementId))} onChange={handleSelectAll} />
+                                        </th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requirement</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {paginatedRequirements.map((req) => (
+                                        <tr
+                                            key={req.requirementId}
+                                            className={`hover:bg-gray-50 ${req.isNew ? 'bg-blue-50 animate-highlight' : ''}`}
+                                            style={req.isNew ? { transition: 'background-color 0.5s' } : {}}
+                                        >
+                                            <td className="px-4 py-4">
+                                                <input type="checkbox" checked={selectedIds.includes(req.requirementId)} onChange={() => handleSelect(req.requirementId)} />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                                        {req.requirementTitle}
+                                                        {req.isNew && (
+                                                            <span className="bg-[#eca909] text-white text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-300">
+                                                                NEW
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <PriorityBadge priority={req.priority || 'Medium'} />
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">
+                                                {req.clientName}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">
+                                                {req.projectName}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex space-x-2">
+                                                    <button
+                                                        onClick={() => handleViewMore(req.requirementId)}
+                                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                                                        title="View More Details"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => router.push(`/company/requirements/edit-requirement/${req.requirementId}`)}
+                                                        className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                                        title="Edit Requirement"
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteClick(req)}
+                                                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                        title="Delete Requirement"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </>
                 )}
             </div>
 
