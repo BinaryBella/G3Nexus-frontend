@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { FileSearch, Search, Plus, Bug, AlertTriangle, CheckCircle, Clock, Trash2, Edit, Eye, X, Download } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bugService } from '@/app/lib/services/bugService';
+import { clientService } from '@/app/lib/services/clientService';
+import { projectService } from '@/app/lib/services/projectService';
 import { Bug as BugType } from '../../lib/types';
 import Pagination from '@/app/components/Pagination';
 
@@ -197,7 +199,23 @@ export default function CompanyBugsPage() {
 
     const { data: bugs = [], error, isLoading } = useQuery<BugType[], Error>({
         queryKey: ['bugs'],
-        queryFn: bugService.getAllBugs,
+        queryFn: async () => {
+            const bugsData = await bugService.getAllBugs();
+            console.log('Fetched bugs data:', bugsData);
+            return bugsData;
+        },
+    });
+
+    // Fetch clients for displaying client names
+    const { data: clients = [] } = useQuery({
+        queryKey: ['clients'],
+        queryFn: clientService.getAllClients,
+    });
+
+    // Fetch projects for displaying project names
+    const { data: projects = [] } = useQuery({
+        queryKey: ['projects'],
+        queryFn: projectService.getAllProjects,
     });
 
     const markAsViewedMutation = useMutation({
@@ -226,6 +244,21 @@ export default function CompanyBugsPage() {
                    matchesWordBeginning(bug.severity || '');
         })
         .sort((a, b) => ((b.isNew ? 1 : 0) - (a.isNew ? 1 : 0))); // Sort new bugs first
+
+    console.log('Total bugs:', bugs.length);
+    console.log('Filtered bugs:', filteredBugs.length);
+    console.log('Sample bug data:', filteredBugs[0]);
+
+    // Helper functions to get names
+    const getClientName = (clientId: number) => {
+        const client = clients.find(c => c.id === clientId);
+        return client ? client.name : `Client ${clientId}`;
+    };
+
+    const getProjectName = (projectId: number) => {
+        const project = projects.find(p => p.projectId === projectId);
+        return project ? project.projectName : `Project ${projectId}`;
+    };
 
     // Pagination calculations
     const totalPages = Math.ceil(filteredBugs.length / itemsPerPage);
@@ -411,9 +444,10 @@ export default function CompanyBugsPage() {
                                             <input type="checkbox" checked={paginatedBugs.length > 0 && paginatedBugs.every(b => selectedIds.includes(b.bugId))} onChange={handleSelectAll} />
                                         </th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bug</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
@@ -443,10 +477,10 @@ export default function CompanyBugsPage() {
                                                 <SeverityBadge severity={bug.severity || 'Medium'} />
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">
-                                                Client {bug.clientId}
+                                                {getClientName(bug.clientId)}
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-gray-600">
-                                                {new Date().toLocaleDateString()}
+                                            <td className="px-6 py-4 text-sm text-gray-900">
+                                                {getProjectName(bug.projectId)}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex space-x-2">

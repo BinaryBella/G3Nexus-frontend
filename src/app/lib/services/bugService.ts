@@ -11,12 +11,34 @@ export const bugService = {
       if (!accessToken) throw new Error('Access token is missing');
 
       const payload = JSON.parse(atob(accessToken.split('.')[1]));
-      const userId = payload?.employeeId || payload?.clientId;
-      const lastLogin = payload?.lastLoginTime || new Date().toISOString();
+      console.log('JWT Payload in bugService:', payload);
+      
+      // Check user role to determine how to fetch bugs
+      const userRole = payload?.role || payload['Role'] || payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+      
+      // For company users, we might need to fetch all bugs without user filtering
+      // For client users, we filter by clientId
+      let apiUrl = '/Bug';
+      let params = {};
+      
+      if (userRole && (userRole.includes('CLIENT') || userRole === 'CLIENT_ADMIN' || userRole === 'CLIENT_USER')) {
+        // Client users - filter by clientId
+        const userId = payload?.clientId || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+        const lastLogin = payload?.lastLoginTime || new Date().toISOString();
+        params = { userId, lastLogin };
+      } else {
+        // Company users - fetch all bugs (or filter by company if needed)
+        // We might need to pass employeeId or companyId depending on backend logic
+        const userId = payload?.employeeId || payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+        const lastLogin = payload?.lastLoginTime || new Date().toISOString();
+        params = { userId, lastLogin };
+      }
 
-      const response = await api.get<ApiResponse<Bug[]>>('/Bug', {
-        params: { userId, lastLogin },
-      });
+      console.log('Using role:', userRole, 'params:', params);
+
+      const response = await api.get<ApiResponse<Bug[]>>(apiUrl, { params });
+
+      console.log('Bug API response:', response.data);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch bugs');
