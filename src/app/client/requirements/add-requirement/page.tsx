@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService'; 
-import { projectService } from '@/app/lib/services/projectService';
+import { projectService, Project } from '@/app/lib/services/projectService';
 import { Requirement } from '../../../lib/types';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -52,6 +52,7 @@ const RequirementForm = () => {
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
+    const [hasProjectIdParam, setHasProjectIdParam] = useState(false);
 
     // Get projectId from query params and set it
     useEffect(() => {
@@ -60,6 +61,9 @@ const RequirementForm = () => {
         
         if (projectIdParam) {
             setProject(Number(projectIdParam));
+            setHasProjectIdParam(true);
+        } else {
+            setHasProjectIdParam(false);
         }
     }, [searchParams]);
 
@@ -128,15 +132,22 @@ const RequirementForm = () => {
     const { data: projectData, isLoading: projectLoading } = useQuery({
         queryKey: ['project', project],
         queryFn: () => projectService.getProjectById(project!),
-        enabled: !!project,
+        enabled: !!project && hasProjectIdParam,
+    });
+
+    // Fetch all projects for client when no projectId in URL
+    const { data: allProjects, isLoading: allProjectsLoading } = useQuery({
+        queryKey: ['clientProjects', user?.email],
+        queryFn: () => projectService.getProjectsByClient(user!.email),
+        enabled: !hasProjectIdParam && !!user?.email,
     });
 
     // Set project name when project data is loaded
     useEffect(() => {
-        if (projectData) {
+        if (projectData && hasProjectIdParam) {
             setProjectName(projectData.projectName);
         }
-    }, [projectData]);
+    }, [projectData, hasProjectIdParam]);
 
     // Mutation for adding requirement
     const addRequirementMutation = useMutation({
@@ -376,16 +387,37 @@ const RequirementForm = () => {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="projectId">
-                                Project
+                                Project *
                             </label>
-                            <input
-                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] bg-gray-50"
-                                id="projectId"
-                                disabled
-                                placeholder={projectLoading ? "Loading project..." : "Project will be auto-filled"}
-                                value={projectLoading ? "Loading..." : projectName || ''}
-                                required
-                            />
+                            {hasProjectIdParam ? (
+                                <input
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] bg-gray-50"
+                                    id="projectId"
+                                    disabled
+                                    placeholder={projectLoading ? "Loading project..." : "Project will be auto-filled"}
+                                    value={projectLoading ? "Loading..." : projectName || ''}
+                                    required
+                                />
+                            ) : (
+                                <select
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    id="projectId"
+                                    value={project || ''}
+                                    onChange={(e) => setProject(e.target.value ? Number(e.target.value) : null)}
+                                    required
+                                >
+                                    <option value="">Select a Project</option>
+                                    {allProjectsLoading ? (
+                                        <option disabled>Loading projects...</option>
+                                    ) : (
+                                        allProjects?.map((proj) => (
+                                            <option key={proj.projectId} value={proj.projectId}>
+                                                {proj.projectName}
+                                            </option>
+                                        ))
+                                    )}
+                                </select>
+                            )}
                         </div>            
 
                         {/* Form Actions */}
