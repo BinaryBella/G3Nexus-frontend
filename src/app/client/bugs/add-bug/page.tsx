@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Bug, Plus, Upload, X, AlertTriangle, Save } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bugService } from '@/app/lib/services/bugService';
 import { projectService } from '@/app/lib/services/projectService';
-import { clientService } from '@/app/lib/services/clientService';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 interface BugFormData {
@@ -15,6 +14,7 @@ interface BugFormData {
   bugDescription: string;
   attachment: string;
   isActive: boolean;
+  isNew: boolean;
   clientId: number;
   projectId: number;
 }
@@ -35,6 +35,7 @@ export default function AddBugPage() {
     bugDescription: '',
     attachment: '',
     isActive: true,
+    isNew: true,
     clientId: 0,
     projectId: projectId || 0
   });
@@ -43,23 +44,8 @@ export default function AddBugPage() {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Fetch client data to get clientId
-  // Alternative approach: Use existing client data from auth context or fetch differently
-  const { data: clientData } = useQuery({
-    queryKey: ['client', user?.email],
-    queryFn: async () => {
-      // If your clientService doesn't have getClientByEmail, try this approach:
-      try {
-        return await clientService.getClientByEmail(user?.email || '');
-      } catch (error) {
-        // Alternative: get client data from user context or use a different endpoint
-        console.error('Error fetching client data:', error);
-        // Return a default or handle differently based on your API
-        throw error;
-      }
-    },
-    enabled: !!user?.email,
-  });
+  // Fetch client data to get clientId - using userId from JWT token
+  const clientId = user?.userId || 0;
 
   // Fetch project details if projectId is provided
   const { data: project } = useQuery({
@@ -75,12 +61,12 @@ export default function AddBugPage() {
     enabled: !!user?.email && !projectId,
   });
 
-  // Update clientId when clientData is available
-//   React.useEffect(() => {
-//     if (clientData) {
-//       setFormData(prev => ({ ...prev, clientId: clientData.clientId }));
-//     }
-//   }, [clientData]);
+  // Update clientId when user data is available
+  useEffect(() => {
+    if (clientId > 0) {
+      setFormData(prev => ({ ...prev, clientId: clientId }));
+    }
+  }, [clientId]);
 
   const addBugMutation = useMutation({
     mutationFn: (bugData: Omit<BugFormData, 'bugId'>) => bugService.addBug(bugData),
@@ -169,7 +155,7 @@ export default function AddBugPage() {
       newErrors.projectId = 'Project is required';
     }
 
-    if (!formData.clientId) {
+    if (!clientId || clientId === 0) {
       newErrors.clientId = 'Client information is missing';
     }
 
@@ -185,11 +171,34 @@ export default function AddBugPage() {
     }
 
     try {
-      // For now, we'll just use the filename as attachment
-      // In a real implementation, you'd upload the file first and get the URL
+      let attachmentUrl = '';
+      
+      // Upload file if selected
+      if (selectedFile) {
+        const formDataFile = new FormData();
+        formDataFile.append('file', selectedFile);
+        
+        try {
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: formDataFile,
+          });
+          
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            attachmentUrl = uploadResult.filePath || selectedFile.name;
+          } else {
+            attachmentUrl = selectedFile.name; // Fallback to filename
+          }
+        } catch (uploadError) {
+          console.error('Upload failed:', uploadError);
+          attachmentUrl = selectedFile.name; // Fallback to filename
+        }
+      }
+
       const bugData = {
         ...formData,
-        attachment: selectedFile ? selectedFile.name : ''
+        attachment: attachmentUrl
       };
 
       addBugMutation.mutate(bugData);
