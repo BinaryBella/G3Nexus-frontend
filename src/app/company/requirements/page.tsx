@@ -214,15 +214,29 @@ export default function CompanyRequirementsPage() {
     const handleViewMore = async (requirementId: number) => {
         try {
             const requirement = await requirementService.getRequirementById(requirementId);
+            requirement.isNew = false; // Mark as viewed
+            paginatedRequirements.forEach(req => {
+                if (req.requirementId === requirementId) {
+                    req.isNew = false;
+                }
+            });
+
+            filteredRequirements.forEach(req => {
+                if (req.requirementId === requirementId) {
+                    req.isNew = false;
+                }
+            });
+
+            sortedRequirements.forEach(req => {
+                if (req.requirementId === requirementId) {
+                    req.isNew = false;
+                }
+            });
             setSelectedRequirement(requirement);
             setIsModalOpen(true);
         } catch (error) {
             console.error('Error fetching requirement details:', error);
         }
-    };
-
-    const handleEdit = (id: number) => {
-        router.push(`/company/requirements/edit-requirement/${id}`);
     };
 
     const handleCloseModal = () => {
