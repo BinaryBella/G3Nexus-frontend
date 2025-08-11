@@ -246,7 +246,7 @@ export default function AddBugPage() {
               name="bugTitle"
               value={formData.bugTitle}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full text-black px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 errors.bugTitle ? 'border-red-300' : 'border-gray-300'
               }`}
               placeholder="Enter a descriptive title for the bug"
@@ -270,7 +270,7 @@ export default function AddBugPage() {
                 name="projectId"
                 value={formData.projectId}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full text-black px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.projectId ? 'border-red-300' : 'border-gray-300'
                 }`}
               >
@@ -300,7 +300,7 @@ export default function AddBugPage() {
               name="severity"
               value={formData.severity}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full text-black px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="Low">Low</option>
               <option value="Medium">Medium</option>
@@ -319,7 +319,7 @@ export default function AddBugPage() {
               rows={6}
               value={formData.bugDescription}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full text-black px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 errors.bugDescription ? 'border-red-300' : 'border-gray-300'
               }`}
               placeholder="Describe the bug in detail. Include steps to reproduce, expected behavior, and actual behavior."
