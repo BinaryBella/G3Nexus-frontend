@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService'; 
-import { projectService, Project } from '@/app/lib/services/projectService';
+import { projectService } from '@/app/lib/services/projectService';
 import { Requirement } from '../../../lib/types';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -128,6 +128,7 @@ const RequirementForm = () => {
         setAttachment(file);
         setError(null);
     };
+
     // Fetch project details when project ID is available
     const { data: projectData, isLoading: projectLoading } = useQuery({
         queryKey: ['project', project],

@@ -102,6 +102,17 @@ export interface RequirementListItem {
     projectName?: string;
 }
 
+export interface BugListItem {
+    bugId: number;
+    bugTitle: string;
+    severity: string;
+    clientId: number;
+    projectId: number;
+    isNew?: boolean;
+    clientName?: string;
+    projectName?: string;
+}
+
 
 export interface Bug {
     bugId: number;

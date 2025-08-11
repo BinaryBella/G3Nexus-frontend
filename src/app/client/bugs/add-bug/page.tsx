@@ -1,468 +1,453 @@
-"use client";
+'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Bug, Plus, Upload, X, AlertTriangle, Save } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { bugService } from '@/app/lib/services/bugService';
+import React, { useState, useEffect } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { projectService } from '@/app/lib/services/projectService';
+import { bugService } from '@/app/lib/services/bugService';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { FileText, ArrowLeft, X } from 'lucide-react';
+import { fileService } from '@/app/lib/services/fileService';
+import { Bug } from '@/app/lib/types';
 
-interface BugFormData {
-  bugTitle: string;
-  severity: string;
-  bugDescription: string;
-  attachment: string;
-  isActive: boolean;
-  isNew: boolean;
-  clientId: number;
-  projectId: number;
-}
+// Modal Component for Notifications
+const Modal = ({ isOpen, onClose, children = 'Notice' }: any) => {
+    if (!isOpen) return null;
 
-export default function AddBugPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-  
-  const projectIdParam = searchParams.get('projectId');
-  const projectId = projectIdParam ? parseInt(projectIdParam, 10) : null;
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg mx-auto relative">
+                <button
+                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    onClick={onClose}
+                >
+                    <X className="h-5 w-5" />
+                </button>
+                <div className="text-gray-700 text-left mt-6 mb-8">{children}</div>
+                <div className="flex justify-end">
+                    <button
+                        className="bg-[#3450A3] hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md focus:outline-none focus:ring-2 focus:ring-[#3450A3]"
+                        onClick={onClose}
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
-  const [formData, setFormData] = useState<BugFormData>({
-    bugTitle: '',
-    severity: 'Medium',
-    bugDescription: '',
-    attachment: '',
-    isActive: true,
-    isNew: true,
-    clientId: 0,
-    projectId: projectId || 0
-  });
+const BugForm = () => {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { user } = useAuth();
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+    // State variables for form fields and error handling
+    const [bugTitle, setBugTitle] = useState('');
+    const [severity, setPriority] = useState('');
+    const [bugDescription, setBugDescription] = useState('');
+    const [attachment, setAttachment] = useState<File | null>(null);
+    const [project, setProject] = useState<number | null>(null);
+    const [projectName, setProjectName] = useState<string>('');
+    const [error, setError] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalMessage, setModalMessage] = useState('');
+    const [hasProjectIdParam, setHasProjectIdParam] = useState(false);
 
-  // Fetch client data to get clientId - using userId from JWT token
-  const clientId = user?.userId || 0;
-
-  // Fetch project details if projectId is provided
-  const { data: project } = useQuery({
-    queryKey: ['project', projectId],
-    queryFn: () => projectService.getProjectById(projectId!),
-    enabled: !!projectId,
-  });
-
-  // Fetch all projects for the client
-  const { data: projects = [] } = useQuery({
-    queryKey: ['projects', user?.email],
-    queryFn: () => projectService.getProjectsByClient(user?.email || ''),
-    enabled: !!user?.email && !projectId,
-  });
-
-  // Update clientId when user data is available
-  useEffect(() => {
-    if (clientId > 0) {
-      setFormData(prev => ({ ...prev, clientId: clientId }));
-    }
-  }, [clientId]);
-
-  const addBugMutation = useMutation({
-    mutationFn: (bugData: Omit<BugFormData, 'bugId'>) => bugService.addBug(bugData),
-    onSuccess: () => {
-      // Invalidate and refetch bugs
-      queryClient.invalidateQueries({ queryKey: ['bugs'] });
-      
-      // Navigate back to bugs list
-      if (projectId) {
-        router.push(`/client/bugs?projectId=${projectId}`);
-      } else {
-        router.push('/client/bugs');
-      }
-    },
-    onError: (error: any) => {
-      console.error('Error adding bug:', error);
-      setErrors({ submit: error.message || 'Failed to add bug' });
-    }
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-    
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
-        setErrors(prev => ({ ...prev, attachment: 'Please select a valid image file (JPEG, PNG, GIF, WebP)' }));
-        return;
-      }
-
-      // Validate file size (5MB limit)
-      const maxSize = 5 * 1024 * 1024;
-      if (file.size > maxSize) {
-        setErrors(prev => ({ ...prev, attachment: 'File size must be less than 5MB' }));
-        return;
-      }
-
-      setSelectedFile(file);
-      setFormData(prev => ({ ...prev, attachment: file.name }));
-      
-      // Create preview URL
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      
-      // Clear any previous errors
-      setErrors(prev => ({ ...prev, attachment: '' }));
-    }
-  };
-
-  const removeFile = () => {
-    setSelectedFile(null);
-    setFormData(prev => ({ ...prev, attachment: '' }));
-    setPreviewUrl('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.bugTitle.trim()) {
-      newErrors.bugTitle = 'Bug title is required';
-    }
-
-    if (!formData.bugDescription.trim()) {
-      newErrors.bugDescription = 'Bug description is required';
-    }
-
-    if (!formData.projectId) {
-      newErrors.projectId = 'Project is required';
-    }
-
-    if (!clientId || clientId === 0) {
-      newErrors.clientId = 'Client information is missing';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    try {
-      let attachmentUrl = '';
-      
-      // Upload file if selected
-      if (selectedFile) {
-        const formDataFile = new FormData();
-        formDataFile.append('file', selectedFile);
+    // Get projectId from query params and set it
+    useEffect(() => {
+        const projectIdParam = searchParams.get('projectId');
+        console.log(user);
         
-        try {
-          const uploadResponse = await fetch('/api/upload', {
-            method: 'POST',
-            body: formDataFile,
-          });
-          
-          if (uploadResponse.ok) {
-            const uploadResult = await uploadResponse.json();
-            attachmentUrl = uploadResult.filePath || selectedFile.name;
-          } else {
-            attachmentUrl = selectedFile.name; // Fallback to filename
-          }
-        } catch (uploadError) {
-          console.error('Upload failed:', uploadError);
-          attachmentUrl = selectedFile.name; // Fallback to filename
+        if (projectIdParam) {
+            setProject(Number(projectIdParam));
+            setHasProjectIdParam(true);
+        } else {
+            setHasProjectIdParam(false);
         }
-      }
+    }, [searchParams]);
 
-      const bugData = {
-        ...formData,
-        attachment: attachmentUrl
-      };
+    // File upload handler
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            validateAndSetFile(file);
+        }
+    };
 
-      addBugMutation.mutate(bugData);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    }
-  };
+    // Drag and drop handlers
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
 
-  const handleCancel = () => {
-    if (projectId) {
-      router.push(`/client/bugs?projectId=${projectId}`);
-    } else {
-      router.push('/client/bugs');
-    }
-  };
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
-      <div className="mb-8">
-        {/* Breadcrumb */}
-        <div className="mb-4">
-          <button
-            onClick={handleCancel}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-2"
-          >
-            ← Back to {projectId ? 'Project ' : ''}Bugs
-          </button>
-        </div>
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
 
-        <div className="flex items-center gap-3 mb-2">
-          <Bug className="h-8 w-8 text-[#3450A3]" />
-          <h1 className="text-3xl font-bold text-gray-900">Add New Bug</h1>
-        </div>
-        <p className="text-gray-600">
-          {projectId && project
-            ? `Report a new bug for ${project.projectName}`
-            : 'Report a new bug in your project'
-          }
-        </p>
-      </div>
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const files = e.dataTransfer.files;
+        if (files && files[0]) {
+            validateAndSetFile(files[0]);
+        }
+    };
 
-      {/* Form */}
-      <div className="max-w-4xl mx-auto">
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border p-8">
-          {/* Bug Title */}
-          <div className="mb-6">
-            <label htmlFor="bugTitle" className="block text-sm font-medium text-gray-700 mb-2">
-              Bug Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="bugTitle"
-              name="bugTitle"
-              value={formData.bugTitle}
-              onChange={handleInputChange}
-              className={`w-full text-black px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.bugTitle ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="Enter a descriptive title for the bug"
-            />
-            {errors.bugTitle && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4" />
-                {errors.bugTitle}
-              </p>
-            )}
-          </div>
+    // File validation helper
+    const validateAndSetFile = (file: File) => {
+        // Check file type
+        const allowedTypes = [
+            'image/jpeg',
+            'image/jpg', 
+            'image/png',
+            'application/pdf',
+            'text/plain',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+        
+        if (!allowedTypes.includes(file.type)) {
+            setError('Please select a valid file type (JPEG, JPG, PNG, PDF, TXT, DOCX)');
+            return;
+        }
+        
+        // Check file size (max 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            setError('File size must be less than 10MB');
+            return;
+        }
+        
+        setAttachment(file);
+        setError(null);
+    };
 
-          {/* Project Selection (if not pre-selected) */}
-          {!projectId && (
-            <div className="mb-6">
-              <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2">
-                Project <span className="text-red-500">*</span>
-              </label>
-              <select
-                id="projectId"
-                name="projectId"
-                value={formData.projectId}
-                onChange={handleInputChange}
-                className={`w-full text-black px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.projectId ? 'border-red-300' : 'border-gray-300'
-                }`}
-              >
-                <option value={0}>Select a project</option>
-                {projects.map((project: any) => (
-                  <option key={project.projectId} value={project.projectId}>
-                    {project.projectName}
-                  </option>
-                ))}
-              </select>
-              {errors.projectId && (
-                <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                  <AlertTriangle className="h-4 w-4" />
-                  {errors.projectId}
-                </p>
-              )}
-            </div>
-          )}
+    // Fetch project details when project ID is available
+    const { data: projectData, isLoading: projectLoading } = useQuery({
+        queryKey: ['project', project],
+        queryFn: () => projectService.getProjectById(project!),
+        enabled: !!project && hasProjectIdParam,
+    });
 
-          {/* Severity */}
-          <div className="mb-6">
-            <label htmlFor="severity" className="block text-sm font-medium text-gray-700 mb-2">
-              Severity <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="severity"
-              name="severity"
-              value={formData.severity}
-              onChange={handleInputChange}
-              className="w-full text-black px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-          </div>
+    // Fetch all projects for client when no projectId in URL
+    const { data: allProjects, isLoading: allProjectsLoading } = useQuery({
+        queryKey: ['clientProjects', user?.email],
+        queryFn: () => projectService.getProjectsByClient(user!.email),
+        enabled: !hasProjectIdParam && !!user?.email,
+    });
 
-          {/* Bug Description */}
-          <div className="mb-6">
-            <label htmlFor="bugDescription" className="block text-sm font-medium text-gray-700 mb-2">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="bugDescription"
-              name="bugDescription"
-              rows={6}
-              value={formData.bugDescription}
-              onChange={handleInputChange}
-              className={`w-full text-black px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.bugDescription ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="Describe the bug in detail. Include steps to reproduce, expected behavior, and actual behavior."
-            />
-            {errors.bugDescription && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4" />
-                {errors.bugDescription}
-              </p>
-            )}
-          </div>
+    // Set project name when project data is loaded
+    useEffect(() => {
+        if (projectData && hasProjectIdParam) {
+            setProjectName(projectData.projectName);
+        }
+    }, [projectData, hasProjectIdParam]);
 
-          {/* File Attachment */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attachment (Optional)
-            </label>
+    // Mutation for adding bug
+    const addBugMutation = useMutation({
+        mutationFn: bugService.addBug,
+        onSuccess: () => {
+            setModalMessage('Bug added successfully!');
+            setIsModalOpen(true);
+            setTimeout(() => {
+                router.push('/client/bugs');
+            }, 1500);
+        },
+        onError: (error: Error) => {
+            setModalMessage(`Error: ${error.message}`);
+            setIsModalOpen(true);
+        },
+    });
+
+    // Form submission handler
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+
+        if (!bugTitle || !severity || !bugDescription || user?.userId === null || project === null) {
+            setError('Please fill in all the required fields.');
+            return;
+        }
+
+        try {
+            let savedFileName = '';
             
-            {!selectedFile ? (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+            // If there's a file attachment, save it to the frontend server first
+            if (attachment) {
+                try {
+                    savedFileName = await fileService.saveFile(attachment);
+                } catch (uploadError) {
+                    console.error('Error saving file:', uploadError);
+                    setError('Failed to save attachment. Please try again.');
+                    return;
+                }
+            }
+
+            const newBug: Omit<Bug, 'bugId'> = {
+                bugTitle,
+                severity,
+                bugDescription,
+                attachment: savedFileName, // Use the saved filename
+                isActive: true,
+                clientId: user?.userId!,
+                projectId: project,
+                isNew: true,
+            };
+
+            // Create the bug with the saved filename
+            await addBugMutation.mutateAsync(newBug);
+        } catch (error) {
+            // Error handling is done in mutation's onError callback
+        }
+    };
+
+    // Closing the modal
+    const closeModal = () => {
+        setIsModalOpen(false);
+        if (modalMessage.startsWith('Bug added successfully')) {
+            router.push('/client/bugs'); // Redirect after successful addition
+        }
+    };
+
+    if (modalMessage.startsWith('Bug added successfully')) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
-                  <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600 mb-2">Upload a screenshot or file</p>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  >
-                    Choose File
-                  </button>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 5MB</p>
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Bug Added Successfully!</h3>
+                    <p className="text-gray-600">Redirecting to bugs list...</p>
                 </div>
-              </div>
-            ) : (
-              <div className="border border-gray-300 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-gray-900">Selected File:</span>
-                  <button
-                    type="button"
-                    onClick={removeFile}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                
-                {previewUrl && (
-                  <div className="mb-3">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="max-w-full h-32 object-cover rounded border"
-                    />
-                  </div>
-                )}
-                
-                <p className="text-sm text-gray-600">{selectedFile.name}</p>
-                <p className="text-xs text-gray-500">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
-            )}
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            
-            {errors.attachment && (
-              <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4" />
-                {errors.attachment}
-              </p>
-            )}
-          </div>
-
-          {/* Status */}
-          <div className="mb-8">
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                name="isActive"
-                checked={formData.isActive}
-                onChange={handleInputChange}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="text-sm font-medium text-gray-700">Mark as Active</span>
-            </label>
-            <p className="text-xs text-gray-500 mt-1">Active bugs will appear in open bugs list</p>
-          </div>
-
-          {/* Error Message */}
-          {errors.submit && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                {errors.submit}
-              </p>
             </div>
-          )}
+        );
+    }
 
-          {/* Form Actions */}
-          <div className="flex justify-end gap-4 pt-6 border-t">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-              disabled={addBugMutation.isPending}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={addBugMutation.isPending}
-              className="px-6 py-2 bg-[#3450A3] hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {addBugMutation.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Adding Bug...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Add Bug
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+    return (
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
+                <button
+                    onClick={() => router.push('/client/bugs')}
+                    className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+                >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back to Bugs
+                </button>
+                
+                <div className="flex items-center gap-3">
+                    <FileText className="h-8 w-8 text-[#3450A3]" />
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Add New Bug</h1>
+                        <p className="text-gray-600 mt-1">Report a new bug to developers</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Form */}
+            <div className="max-w-4xl mx-auto">
+                <div className="bg-white rounded-lg shadow-sm border p-8">
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                            <div className="flex">
+                                <X className="h-5 w-5 text-red-400" />
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-red-800">Error</h3>
+                                    <p className="mt-1 text-sm text-red-700">{error}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Bug Information</h2>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="bugTitle">
+                                Bug Title *
+                            </label>
+                            <input
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                id="bugTitle"
+                                type="text"
+                                placeholder="Enter bug title"
+                                value={bugTitle}
+                                onChange={(e) => setBugTitle(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="severity">
+                                Priority *
+                            </label>
+                            <select
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                id="severity"
+                                value={severity}
+                                onChange={(e) => setPriority(e.target.value)}
+                                required
+                            >
+                                <option value="">Select Priority</option>
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="bugDescription">
+                                Bug Description *
+                            </label>
+                            <textarea
+                                className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                id="bugDescription"
+                                placeholder="Describe the bug"
+                                rows={4}
+                                value={bugDescription}
+                                onChange={(e) => setBugDescription(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="attachment">
+                                Attachment (Optional)
+                            </label>
+                            <div 
+                                className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors"
+                                onDragOver={handleDragOver}
+                                onDragEnter={handleDragEnter}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                            >
+                                <div className="space-y-1 text-center">
+                                    <svg
+                                        className="mx-auto h-12 w-12 text-gray-400"
+                                        stroke="currentColor"
+                                        fill="none"
+                                        viewBox="0 0 48 48"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                            strokeWidth={2}
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        />
+                                    </svg>
+                                    <div className="flex text-sm text-gray-600">
+                                        <label
+                                            htmlFor="attachment"
+                                            className="relative cursor-pointer bg-white rounded-md font-medium text-[#3450A3] hover:text-blue-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#3450A3]"
+                                        >
+                                            <span>Upload a file</span>
+                                            <input
+                                                id="attachment"
+                                                name="attachment"
+                                                type="file"
+                                                className="sr-only"
+                                                accept=".jpg,.jpeg,.png,.pdf,.txt,.docx"
+                                                onChange={handleFileChange}
+                                            />
+                                        </label>
+                                        <p className="pl-1">or drag and drop</p>
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                        JPEG, JPG, PNG, PDF, TXT, DOCX up to 10MB
+                                    </p>
+                                    {attachment && (
+                                        <div className="mt-2 flex items-center justify-center">
+                                            <div className="flex items-center px-3 py-2 bg-green-50 border border-green-200 rounded-md">
+                                                <svg className="h-4 w-4 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span className="text-sm text-green-700 font-medium">{attachment.name}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAttachment(null)}
+                                                    className="ml-2 text-green-400 hover:text-green-600"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="projectId">
+                                Project *
+                            </label>
+                            {hasProjectIdParam ? (
+                                <input
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] bg-gray-50"
+                                    id="projectId"
+                                    disabled
+                                    placeholder={projectLoading ? "Loading project..." : "Project will be auto-filled"}
+                                    value={projectLoading ? "Loading..." : projectName || ''}
+                                    required
+                                />
+                            ) : (
+                                <select
+                                    className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    id="projectId"
+                                    value={project || ''}
+                                    onChange={(e) => setProject(e.target.value ? Number(e.target.value) : null)}
+                                    required
+                                >
+                                    <option value="">Select a Project</option>
+                                    {allProjectsLoading ? (
+                                        <option disabled>Loading projects...</option>
+                                    ) : (
+                                        allProjects?.map((proj) => (
+                                            <option key={proj.projectId} value={proj.projectId}>
+                                                {proj.projectName}
+                                            </option>
+                                        ))
+                                    )}
+                                </select>
+                            )}
+                        </div>            
+
+                        {/* Form Actions */}
+                        <div className="flex justify-end space-x-4 pt-6">
+                            <button
+                                className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                                type="button"
+                                onClick={() => router.push('/client/bugs')}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed"
+                                type="submit"
+                                disabled={addBugMutation.isPending}
+                            >
+                                {addBugMutation.isPending ? 'Adding...' : 'Add Bug'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {/* Modal */}
+            <Modal isOpen={isModalOpen} onClose={closeModal}>
+                {modalMessage}
+            </Modal>
+        </div>
+    );
+};
+
+export default BugForm;

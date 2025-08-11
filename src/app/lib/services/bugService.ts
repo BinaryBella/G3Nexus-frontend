@@ -1,6 +1,6 @@
 // src/app/services/bugService.ts
 import api from './api';
-import { ApiResponse, Bug } from '@/app/lib/types';
+import { ApiResponse, Bug, BugListItem } from '@/app/lib/types';
 import { authService } from './api';
 
 export const bugService = {
@@ -51,11 +51,26 @@ export const bugService = {
     }
   },
 
+  getBugById: async (id: number): Promise<Bug | null> => {
+    try {
+      const response = await api.get<ApiResponse<Bug>>(`/Bug/${id}`);
+
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to fetch bug');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching bug by ID:', error);
+      throw error;
+    }
+  },
+
   // Get bugs by project
-  getBugsByProject: async (projectId: number): Promise<Bug[]> => {
+  getBugsByProject: async (projectId: number): Promise<BugListItem[]> => {
     try {
       // First try to get all bugs and filter by projectId
-      const response = await api.get<ApiResponse<Bug[]>>('/Bug');
+      const response = await api.get<ApiResponse<BugListItem[]>>('/Bug');
       
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch bugs');
