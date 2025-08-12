@@ -170,3 +170,19 @@ export interface Project {
   isActive: boolean;
   companyId?: number;
 }
+
+// Quotation related interfaces
+export interface QuotationRequest {
+  requirementId: number;
+  quotationCost: number;
+  estimatedDuration: string;
+  description: string;
+  deliveryDate: string;
+}
+
+export interface BulkQuotationRequest {
+  selectedRequirements: QuotationRequest[];
+  clientId: number;
+  projectId: number;
+  additionalNotes: string;
+}

@@ -1,6 +1,6 @@
 // src/app/services/requirementService.ts
 import api from './api';
-import { ApiResponse, Requirement, RequirementListItem } from '@/app/lib/types';
+import { ApiResponse, Requirement, RequirementListItem, QuotationRequest, BulkQuotationRequest } from '@/app/lib/types';
 import { authService } from './api';
 
 export const requirementService = {
@@ -123,6 +123,36 @@ export const requirementService = {
       return response.data.data;
     } catch (error) {
       console.error('Error deleting requirement:', error);
+      throw error;
+    }
+  },
+
+  // Send single quotation
+  sendQuotation: async (quotationData: QuotationRequest): Promise<boolean> => {
+    try {
+      const response = await api.post<ApiResponse<boolean>>('/Requirement/send-quotation', quotationData);
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to send quotation');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error sending quotation:', error);
+      throw error;
+    }
+  },
+
+  // Send bulk quotation
+  sendBulkQuotation: async (quotationData: BulkQuotationRequest): Promise<boolean> => {
+    try {
+      const response = await api.post<ApiResponse<boolean>>('/Requirement/send-bulk-quotation', quotationData);
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to send bulk quotation');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error sending bulk quotation:', error);
       throw error;
     }
   }
