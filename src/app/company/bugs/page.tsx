@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Edit, Trash2, Search, Clock, CheckCircle, AlertTriangle, Eye, X, Download } from 'lucide-react';
+import { FileText, Edit, Trash2, Search, Clock, CheckCircle, AlertTriangle, Eye, X, Download, Calendar, DollarSign, MessageSquare } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { bugService } from '@/app/lib/services/bugService';
-import { Bug, BugListItem } from '../../lib/types';
+import { Bug, BugListItem, BugQuotationRequest, BulkBugQuotationRequest } from '../../lib/types';
 import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 
@@ -163,7 +163,16 @@ export default function CompanyBugsPage() {
     const itemsPerPage = 6;
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
-    const [quotationCosts, setQuotationCosts] = useState<Record<number, string>>({});
+    const [isSendingQuotation, setIsSendingQuotation] = useState(false);
+    
+    // Enhanced quotation form state
+    const [quotationData, setQuotationData] = useState<Record<number, {
+        cost: string;
+        duration: string;
+        description: string;
+        deliveryDate: string;
+    }>>({});
+    const [additionalNotes, setAdditionalNotes] = useState("");
 
     const { data: bugs = [], error, isLoading, refetch } = useQuery<BugListItem[], Error>({
         queryKey: ['bugs'],
@@ -305,21 +314,142 @@ export default function CompanyBugsPage() {
 
     // Quotation modal handlers
     const openQuotationModal = () => {
-        setQuotationCosts({});
+        // Initialize quotation data for selected bugs
+        const initialData: Record<number, {
+            cost: string;
+            duration: string;
+            description: string;
+            deliveryDate: string;
+        }> = {};
+        
+        selectedIds.forEach(id => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 7); // Default to 1 week from now
+            initialData[id] = {
+                cost: '',
+                duration: '',
+                description: '',
+                deliveryDate: tomorrow.toISOString().split('T')[0]
+            };
+        });
+        
+        setQuotationData(initialData);
+        setAdditionalNotes('');
         setIsQuotationModalOpen(true);
     };
+
     const closeQuotationModal = () => {
         setIsQuotationModalOpen(false);
-    };
-    const handleCostChange = (id: number, value: string) => {
-        setQuotationCosts((prev) => ({ ...prev, [id]: value }));
+        setQuotationData({});
+        setAdditionalNotes('');
     };
 
-    // Placeholder for sending email (to be implemented)
+    const handleQuotationFieldChange = (bugId: number, field: string, value: string) => {
+        setQuotationData(prev => ({
+            ...prev,
+            [bugId]: {
+                ...prev[bugId],
+                [field]: value
+            }
+        }));
+    };
+
     const handleSendQuotation = async () => {
-        // TODO: Call API to send email with selectedIds and quotationCosts
-        closeQuotationModal();
-        setSelectedIds([]);
+        try {
+            setIsSendingQuotation(true);
+            
+            // Get the first selected bug to determine client and project
+            const firstBug = filteredBugs.find(r => selectedIds.includes(r.bugId));
+            if (!firstBug) {
+                throw new Error('No bugs selected');
+            }
+
+            // Validate that client and project IDs are valid
+            if (!firstBug.clientId || firstBug.clientId <= 0) {
+                throw new Error('Invalid client ID for selected bug');
+            }
+            if (!firstBug.projectId || firstBug.projectId <= 0) {
+                throw new Error('Invalid project ID for selected bug');
+            }
+
+            // Validate that all required fields are filled
+            for (const id of selectedIds) {
+                const data = quotationData[id];
+                if (!data) {
+                    throw new Error(`Missing quotation data for bug ID: ${id}`);
+                }
+                if (!data.cost || parseFloat(data.cost) <= 0) {
+                    throw new Error(`Please enter a valid cost for bug: ${filteredBugs.find(b => b.bugId === id)?.bugTitle}`);
+                }
+                if (!data.duration.trim()) {
+                    throw new Error(`Please enter estimated duration for bug: ${filteredBugs.find(b => b.bugId === id)?.bugTitle}`);
+                }
+                if (!data.description.trim()) {
+                    throw new Error(`Please enter description for bug: ${filteredBugs.find(b => b.bugId === id)?.bugTitle}`);
+                }
+                if (!data.deliveryDate) {
+                    throw new Error(`Please select delivery date for bug: ${filteredBugs.find(b => b.bugId === id)?.bugTitle}`);
+                }
+            }
+
+            // Prepare quotation requests
+            const selectedBugs: BugQuotationRequest[] = selectedIds.map(id => {
+                const data = quotationData[id];
+                // Ensure delivery date is properly formatted and in the future
+                const deliveryDate = new Date(data.deliveryDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+                
+                if (isNaN(deliveryDate.getTime())) {
+                    throw new Error(`Invalid delivery date for bug ID: ${id}`);
+                }
+                if (deliveryDate < today) {
+                    throw new Error(`Delivery date must be in the future for bug ID: ${id}`);
+                }
+                
+                return {
+                    bugId: parseInt(id.toString()), // Ensure it's a number
+                    quotationCost: Math.round(parseFloat(data.cost) * 100) / 100, // Round to 2 decimal places
+                    estimatedDuration: data.duration.trim(),
+                    description: data.description.trim(),
+                    deliveryDate: deliveryDate.toISOString()
+                };
+            });
+
+            const bulkQuotationRequest: BulkBugQuotationRequest = {
+                selectedBugs,
+                clientId: parseInt(firstBug.clientId.toString()), // Ensure it's a number
+                projectId: parseInt(firstBug.projectId.toString()), // Ensure it's a number
+                additionalNotes: additionalNotes.trim() || ""
+            };
+
+            console.log('Sending bulk bug quotation request:', JSON.stringify(bulkQuotationRequest, null, 2));
+            console.log('First bug data:', firstBug);
+            console.log('Selected IDs:', selectedIds);
+
+            // Try different approach based on number of bugs
+            if (selectedBugs.length === 1) {
+                // Use single quotation endpoint for single bug
+                console.log('Using single bug quotation endpoint');
+                await bugService.sendQuotation(selectedBugs[0]);
+            } else {
+                // Use bulk quotation endpoint for multiple bugs
+                console.log('Using bulk bug quotation endpoint');
+                await bugService.sendBulkQuotation(bulkQuotationRequest);
+            }
+            
+            // Show success message (you can implement a toast notification here)
+            alert('Bug quotation sent successfully!');
+            
+            closeQuotationModal();
+            setSelectedIds([]);
+            
+        } catch (error) {
+            console.error('Error sending bug quotation:', error);
+            alert(`Failed to send bug quotation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setIsSendingQuotation(false);
+        }
     };
 
     return (
@@ -342,47 +472,195 @@ export default function CompanyBugsPage() {
                                 disabled={selectedIds.length === 0}
                                 onClick={openQuotationModal}
                             >
-                                Generate Quotation
+                                Generate Quotation ({selectedIds.length})
                             </button>
                         </div>
 
-                        {/* Quotation Modal */}
+                        {/* Enhanced Quotation Modal */}
                         {isQuotationModalOpen && (
                             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                                <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
-                                    <h2 className="text-xl text-black font-semibold mb-4">Enter Quotation Cost</h2>
-                                    <form onSubmit={e => { e.preventDefault(); handleSendQuotation(); }}>
-                                        <div className="space-y-4">
-                                            {filteredBugs.filter(r => selectedIds.includes(r.bugId)).map(r => (
-                                                <div key={r.bugId}>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{r.bugTitle}</label>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
-                                                        className="w-full border text-black border-gray-300 rounded-lg px-3 py-2"
-                                                        value={quotationCosts[r.bugId] || ''}
-                                                        onChange={e => handleCostChange(r.bugId, e.target.value)}
-                                                        required
-                                                    />
+                                <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                                    {/* Modal Header */}
+                                    <div className="flex items-center justify-between p-6 border-b bg-gray-50">
+                                        <div>
+                                            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                                                <DollarSign className="h-6 w-6 text-[#2b4b93]" />
+                                                Generate Bug Quotation
+                                            </h2>
+                                            <p className="text-sm text-gray-600 mt-1">
+                                                Enter quotation details for {selectedIds.length} selected bug{selectedIds.length !== 1 ? 's' : ''}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={closeQuotationModal}
+                                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                                            disabled={isSendingQuotation}
+                                        >
+                                            <X className="h-6 w-6" />
+                                        </button>
+                                    </div>
+
+                                    {/* Modal Body */}
+                                    <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                                        <form onSubmit={(e) => { e.preventDefault(); handleSendQuotation(); }} className="space-y-6">
+                                            {/* Bugs Section */}
+                                            <div className="space-y-4">
+                                                <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                                                    <FileText className="h-5 w-5" />
+                                                    Bug Details
+                                                </h3>
+                                                
+                                                {filteredBugs
+                                                    .filter(r => selectedIds.includes(r.bugId))
+                                                    .map((bug, index) => (
+                                                    <div key={bug.bugId} className="bg-gray-50 rounded-lg p-4 border">
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <div>
+                                                                <h4 className="font-medium text-gray-900">
+                                                                    {index + 1}. {bug.bugTitle}
+                                                                </h4>
+                                                                <div className="flex gap-2 mt-1">
+                                                                    <span className="text-xs text-gray-600">Client: {bug.clientName}</span>
+                                                                    <span className="text-xs text-gray-600">•</span>
+                                                                    <span className="text-xs text-gray-600">Project: {bug.projectName}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <SeverityBadge severity={bug.severity || 'Medium'} />
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            {/* Cost */}
+                                                            <div>
+                                                                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                                                    <DollarSign className="h-4 w-4" />
+                                                                    Quotation Cost *
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="0.01"
+                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93]"
+                                                                    placeholder="Enter cost"
+                                                                    value={quotationData[bug.bugId]?.cost || ''}
+                                                                    onChange={(e) => handleQuotationFieldChange(bug.bugId, 'cost', e.target.value)}
+                                                                    required
+                                                                    disabled={isSendingQuotation}
+                                                                />
+                                                            </div>
+
+                                                            {/* Estimated Duration */}
+                                                            <div>
+                                                                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                                                    <Clock className="h-4 w-4" />
+                                                                    Estimated Duration *
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93]"
+                                                                    placeholder="e.g., 2 weeks, 1 month"
+                                                                    value={quotationData[bug.bugId]?.duration || ''}
+                                                                    onChange={(e) => handleQuotationFieldChange(bug.bugId, 'duration', e.target.value)}
+                                                                    required
+                                                                    disabled={isSendingQuotation}
+                                                                />
+                                                            </div>
+
+                                                            {/* Delivery Date */}
+                                                            <div>
+                                                                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                                                    <Calendar className="h-4 w-4" />
+                                                                    Expected Delivery Date *
+                                                                </label>
+                                                                <input
+                                                                    type="date"
+                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93]"
+                                                                    value={quotationData[bug.bugId]?.deliveryDate || ''}
+                                                                    onChange={(e) => handleQuotationFieldChange(bug.bugId, 'deliveryDate', e.target.value)}
+                                                                    required
+                                                                    disabled={isSendingQuotation}
+                                                                    min={new Date().toISOString().split('T')[0]}
+                                                                />
+                                                            </div>
+
+                                                            {/* Description */}
+                                                            <div>
+                                                                <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                                                                    <FileText className="h-4 w-4" />
+                                                                    Description *
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93]"
+                                                                    placeholder="Brief description of the fix"
+                                                                    value={quotationData[bug.bugId]?.description || ''}
+                                                                    onChange={(e) => handleQuotationFieldChange(bug.bugId, 'description', e.target.value)}
+                                                                    required
+                                                                    disabled={isSendingQuotation}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Additional Notes */}
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                                    <MessageSquare className="h-4 w-4" />
+                                                    Additional Notes
+                                                </label>
+                                                <textarea
+                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93]"
+                                                    rows={3}
+                                                    placeholder="Any additional information or terms..."
+                                                    value={additionalNotes}
+                                                    onChange={(e) => setAdditionalNotes(e.target.value)}
+                                                    disabled={isSendingQuotation}
+                                                />
+                                            </div>
+
+                                            {/* Total Cost Summary */}
+                                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-lg font-medium text-gray-900">Total Quotation Cost:</span>
+                                                    <span className="text-2xl font-bold text-[#2b4b93]">
+                                                        ${Object.values(quotationData)
+                                                            .map(data => parseFloat(data.cost) || 0)
+                                                            .reduce((acc, curr) => acc + curr, 0)
+                                                            .toFixed(2)}
+                                                    </span>
                                                 </div>
-                                            ))}
-                                        </div>
-                                        {/* Total Cost Calculation */}
-                                        <div className="mt-6 text-right">
-                                            <span className="text-lg text-black">Total Cost: </span>
-                                            <span className="text-lg font-bold text-black">
-                                                {Object.values(quotationCosts)
-                                                    .map(val => parseFloat(val) || 0)
-                                                    .reduce((acc, curr) => acc + curr, 0)
-                                                    .toFixed(2)}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-end gap-3 mt-6">
-                                            <button type="button" className="bg-gray-500 px-4 py-2 rounded-lg" onClick={closeQuotationModal}>Cancel</button>
-                                            <button type="submit" className="bg-[#2b4b93] text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700">Send Quotation</button>
-                                        </div>
-                                    </form>
+                                            </div>
+
+                                            {/* Modal Footer */}
+                                            <div className="flex justify-end gap-3 pt-4 border-t">
+                                                <button 
+                                                    type="button" 
+                                                    className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                                                    onClick={closeQuotationModal}
+                                                    disabled={isSendingQuotation}
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button 
+                                                    type="submit" 
+                                                    className="bg-[#2b4b93] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                                                    disabled={isSendingQuotation}
+                                                >
+                                                    {isSendingQuotation ? (
+                                                        <>
+                                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                            Sending...
+                                                        </>
+                                                    ) : (
+                                                        'Send Quotation'
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         )}

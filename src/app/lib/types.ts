@@ -186,3 +186,19 @@ export interface BulkQuotationRequest {
   projectId: number;
   additionalNotes: string;
 }
+
+// Bug quotation related interfaces
+export interface BugQuotationRequest {
+  bugId: number;
+  quotationCost: number;
+  estimatedDuration: string;
+  description: string;
+  deliveryDate: string;
+}
+
+export interface BulkBugQuotationRequest {
+  selectedBugs: BugQuotationRequest[];
+  clientId: number;
+  projectId: number;
+  additionalNotes: string;
+}

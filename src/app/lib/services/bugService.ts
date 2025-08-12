@@ -1,6 +1,6 @@
 // src/app/services/bugService.ts
 import api from './api';
-import { ApiResponse, Bug, BugListItem } from '@/app/lib/types';
+import { ApiResponse, Bug, BugListItem, BugQuotationRequest, BulkBugQuotationRequest } from '@/app/lib/types';
 import { authService } from './api';
 
 export const bugService = {
@@ -215,4 +215,41 @@ export const bugService = {
       throw error;
     }
   },
+
+  // Send single bug quotation
+  sendQuotation: async (quotationData: BugQuotationRequest): Promise<boolean> => {
+    try {
+      const response = await api.post<ApiResponse<boolean>>('/Bug/send-quotation', quotationData);
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to send bug quotation');
+      }
+
+      return response.data.data;
+    } catch (error) {
+      console.error('Error sending bug quotation:', error);
+      throw error;
+    }
+  },
+
+  // Send bulk bug quotation
+  sendBulkQuotation: async (quotationData: BulkBugQuotationRequest): Promise<boolean> => {
+    try {
+      console.log('Bug Service - Sending bulk quotation with data:', JSON.stringify(quotationData, null, 2));
+      const response = await api.post<ApiResponse<boolean>>('/Bug/send-bulk-quotation', quotationData);
+      console.log('Bug Service - Response:', response.data);
+      
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to send bulk bug quotation');
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error sending bulk bug quotation:', error);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+      throw error;
+    }
+  }
 };
