@@ -8,6 +8,7 @@ import { bugService } from '@/app/lib/services/bugService';
 import { Bug, BugListItem, BugQuotationRequest, BulkBugQuotationRequest } from '../../lib/types';
 import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import FeedbackPopup from '@/app/components/FeedbackPopup';
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
     const colorMap: Record<string, string> = {
@@ -173,6 +174,19 @@ export default function CompanyBugsPage() {
         deliveryDate: string;
     }>>({});
     const [additionalNotes, setAdditionalNotes] = useState("");
+    
+    // Feedback popup state
+    const [feedbackPopup, setFeedbackPopup] = useState<{
+        isOpen: boolean;
+        type: 'success' | 'error' | 'warning' | 'info';
+        title: string;
+        message: string;
+    }>({
+        isOpen: false,
+        type: 'info',
+        title: '',
+        message: ''
+    });
 
     const { data: bugs = [], error, isLoading, refetch } = useQuery<BugListItem[], Error>({
         queryKey: ['bugs'],
@@ -183,6 +197,20 @@ export default function CompanyBugsPage() {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchText]);
+
+    // Helper functions for feedback popup
+    const showFeedback = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
+        setFeedbackPopup({
+            isOpen: true,
+            type,
+            title,
+            message
+        });
+    };
+
+    const closeFeedback = () => {
+        setFeedbackPopup(prev => ({ ...prev, isOpen: false }));
+    };
 
     // Sort bugs so 'new' ones are at the top
     const sortedBugs = [...bugs].sort((a, b) => {
@@ -260,9 +288,21 @@ export default function CompanyBugsPage() {
             refetch();
             setDeleteModalOpen(false);
             setBugToDelete(null);
+            
+            // Show success message
+            showFeedback(
+                'success',
+                'Bug Deleted Successfully!',
+                `The bug "${bugToDelete.bugTitle}" has been permanently deleted.`
+            );
         } catch (error) {
             console.error('Error deleting bug:', error);
-            // You might want to show an error toast here
+            // Show error message
+            showFeedback(
+                'error',
+                'Failed to Delete Bug',
+                error instanceof Error ? error.message : 'An unexpected error occurred while deleting the bug. Please try again.'
+            );
         } finally {
             setIsDeleting(false);
         }
@@ -438,15 +478,24 @@ export default function CompanyBugsPage() {
                 await bugService.sendBulkQuotation(bulkQuotationRequest);
             }
             
-            // Show success message (you can implement a toast notification here)
-            alert('Bug quotation sent successfully!');
+            // Show success message
+            showFeedback(
+                'success', 
+                'Bug Quotation Sent Successfully!', 
+                `Your quotation for ${selectedIds.length} bug${selectedIds.length !== 1 ? 's' : ''} has been sent to the client via email.`
+            );
             
             closeQuotationModal();
             setSelectedIds([]);
             
         } catch (error) {
             console.error('Error sending bug quotation:', error);
-            alert(`Failed to send bug quotation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            // Show error message
+            showFeedback(
+                'error', 
+                'Failed to Send Bug Quotation', 
+                error instanceof Error ? error.message : 'An unexpected error occurred while sending the bug quotation. Please try again.'
+            );
         } finally {
             setIsSendingQuotation(false);
         }
@@ -844,6 +893,16 @@ export default function CompanyBugsPage() {
                 confirmButtonText="Delete Bug"
                 cancelButtonText="Cancel"
             />
+
+            {/* Feedback Popup */}
+            <FeedbackPopup
+                isOpen={feedbackPopup.isOpen}
+                onClose={closeFeedback}
+                type={feedbackPopup.type}
+                title={feedbackPopup.title}
+            >
+                {feedbackPopup.message}
+            </FeedbackPopup>
         </div>
     );
 }

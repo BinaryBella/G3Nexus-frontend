@@ -33,21 +33,21 @@ const FeedbackPopup = ({
   if (type === 'success') {
     titleText = title || 'Success';
     iconElement = (
-      <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <svg className="w-5 h-5 text-[#2b4b93]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
       </svg>
     );
-    textColor = 'text-green-600';
-    buttonColor = 'bg-green-600 hover:bg-green-700';
+    textColor = 'text-[#2b4b93]';
+    buttonColor = 'bg-[#2b4b93] hover:bg-blue-700';
   } else if (type === 'error') {
     titleText = title || 'Error';
     iconElement = (
-      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <svg className="w-5 h-5 text-[#2b4b93]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
       </svg>
     );
-    textColor = 'text-red-600';
-    buttonColor = 'bg-red-600 hover:bg-red-700';
+    textColor = 'text-[#2b4b93]';
+    buttonColor = 'bg-[#2b4b93] hover:bg-blue-700';
   } else if (type === 'warning') {
     titleText = title || 'Warning';
     iconElement = (
@@ -109,7 +109,7 @@ const FeedbackPopup = ({
         <div className="flex justify-end space-x-3">
           <button
             onClick={handleConfirm}
-            className={`px-4 py-2 ${buttonColor} text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${buttonColor.split(' ')[0].replace('bg-', 'ring-')}`}
+            className={`px-4 py-2 ${buttonColor} text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2b4b93]`}
           >
             {confirmButtonText}
           </button>

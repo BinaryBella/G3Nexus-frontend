@@ -8,6 +8,7 @@ import { requirementService } from '@/app/lib/services/requirementService';
 import { Requirement, RequirementListItem, QuotationRequest, BulkQuotationRequest } from '../../lib/types';
 import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import FeedbackPopup from '@/app/components/FeedbackPopup';
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
     const colorMap: Record<string, string> = {
@@ -181,6 +182,19 @@ export default function CompanyRequirementsPage() {
         deliveryDate: string;
     }>>({});
     const [additionalNotes, setAdditionalNotes] = useState("");
+    
+    // Feedback popup state
+    const [feedbackPopup, setFeedbackPopup] = useState<{
+        isOpen: boolean;
+        type: 'success' | 'error' | 'warning' | 'info';
+        title: string;
+        message: string;
+    }>({
+        isOpen: false,
+        type: 'info',
+        title: '',
+        message: ''
+    });
 
     const { data: requirements = [], error, isLoading, refetch } = useQuery<RequirementListItem[], Error>({
         queryKey: ['requirements'],
@@ -191,6 +205,20 @@ export default function CompanyRequirementsPage() {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchText]);
+
+    // Helper functions for feedback popup
+    const showFeedback = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string) => {
+        setFeedbackPopup({
+            isOpen: true,
+            type,
+            title,
+            message
+        });
+    };
+
+    const closeFeedback = () => {
+        setFeedbackPopup(prev => ({ ...prev, isOpen: false }));
+    };
 
     // Sort requirements so 'new' ones are at the top
     const sortedRequirements = [...requirements].sort((a, b) => {
@@ -268,9 +296,21 @@ export default function CompanyRequirementsPage() {
             refetch();
             setDeleteModalOpen(false);
             setRequirementToDelete(null);
+            
+            // Show success message
+            showFeedback(
+                'success',
+                'Requirement Deleted Successfully!',
+                `The requirement "${requirementToDelete.requirementTitle}" has been permanently deleted.`
+            );
         } catch (error) {
             console.error('Error deleting requirement:', error);
-            // You might want to show an error toast here
+            // Show error message
+            showFeedback(
+                'error',
+                'Failed to Delete Requirement',
+                error instanceof Error ? error.message : 'An unexpected error occurred while deleting the requirement. Please try again.'
+            );
         } finally {
             setIsDeleting(false);
         }
@@ -393,15 +433,24 @@ export default function CompanyRequirementsPage() {
 
             await requirementService.sendBulkQuotation(bulkQuotationRequest);
             
-            // Show success message (you can implement a toast notification here)
-            alert('Quotation sent successfully!');
+            // Show success message
+            showFeedback(
+                'success', 
+                'Quotation Sent Successfully!', 
+                `Your quotation for ${selectedIds.length} requirement${selectedIds.length !== 1 ? 's' : ''} has been sent to the client via email.`
+            );
             
             closeQuotationModal();
             setSelectedIds([]);
             
         } catch (error) {
             console.error('Error sending quotation:', error);
-            alert('Failed to send quotation. Please try again.');
+            // Show error message
+            showFeedback(
+                'error', 
+                'Failed to Send Quotation', 
+                error instanceof Error ? error.message : 'An unexpected error occurred while sending the quotation. Please try again.'
+            );
         } finally {
             setIsSendingQuotation(false);
         }
@@ -799,6 +848,16 @@ export default function CompanyRequirementsPage() {
                 confirmButtonText="Delete Requirement"
                 cancelButtonText="Cancel"
             />
+
+            {/* Feedback Popup */}
+            <FeedbackPopup
+                isOpen={feedbackPopup.isOpen}
+                onClose={closeFeedback}
+                type={feedbackPopup.type}
+                title={feedbackPopup.title}
+            >
+                {feedbackPopup.message}
+            </FeedbackPopup>
         </div>
     );
 }
