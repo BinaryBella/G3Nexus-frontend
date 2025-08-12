@@ -131,10 +131,10 @@ export const bugService = {
   },
   
   // Update bug
-  updateBug: async (id: number, bugData: Partial<Omit<Bug, 'bugId'>>): Promise<Bug> => {
+  updateBug: async (bugData: Bug): Promise<Bug> => {
     try {
-      const response = await api.put<ApiResponse<Bug>>(`/Bug/${id}`, bugData);
-      
+      const response = await api.put<ApiResponse<Bug>>(`/Bug/${bugData.bugId}`, bugData);
+
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update bug');
       }
