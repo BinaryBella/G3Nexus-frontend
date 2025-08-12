@@ -173,7 +173,7 @@ const EmployeesPage = () => {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                             <Users className="h-8 w-8 text-[#3450A3]" />
-                            Employee Management
+                            Employees
                         </h1>
                         <p className="text-gray-600 mt-2">
                             {canManageEmployees() ? 'Manage and track your employees' : 'View employee information (read-only access)'}

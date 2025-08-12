@@ -137,7 +137,7 @@ export default function CompanyProjectsPage() {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                             <FileText className="h-8 w-8 text-[#3450A3]" />
-                            Project Management
+                            Projects
                         </h1>
                         <p className="text-gray-600 mt-2">
                             {canManageProjects() ? 'Manage and track your projects' : 'View project information (read-only access)'}
