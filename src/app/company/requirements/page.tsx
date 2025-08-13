@@ -9,6 +9,7 @@ import { Requirement, RequirementListItem, QuotationRequest, BulkQuotationReques
 import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import FeedbackPopup from '@/app/components/FeedbackPopup';
+import { bugService } from '@/app/lib/services/bugService';
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
     const colorMap: Record<string, string> = {
@@ -257,28 +258,33 @@ export default function CompanyRequirementsPage() {
         setCurrentPage(page);
     };
 
-    const handleViewMore = async (requirementId: number) => {
-        try {
-            const requirement = await requirementService.getRequirementById(requirementId);
-            requirement.isNew = false; // Mark as viewed
+    const markRequirementAsRead = (requirement: Requirement, requirementId: number) => {
+            requirement!.isNew = false; // Mark as viewed
             paginatedRequirements.forEach(req => {
                 if (req.requirementId === requirementId) {
                     req.isNew = false;
                 }
             });
-
+    
             filteredRequirements.forEach(req => {
                 if (req.requirementId === requirementId) {
                     req.isNew = false;
                 }
             });
-
+    
             sortedRequirements.forEach(req => {
                 if (req.requirementId === requirementId) {
                     req.isNew = false;
                 }
             });
-            setSelectedRequirement(requirement);
+            return requirement;
+        }
+
+    const handleViewMore = async (requirementId: number) => {
+        try {
+            const requirement = await requirementService.getRequirementById(requirementId);
+            const markedRequirement = markRequirementAsRead(requirement!, requirementId);
+            setSelectedRequirement(markedRequirement);
             setIsModalOpen(true);
         } catch (error) {
             console.error('Error fetching requirement details:', error);
@@ -305,7 +311,6 @@ export default function CompanyRequirementsPage() {
             refetch();
             setDeleteModalOpen(false);
             setRequirementToDelete(null);
-            
             // Show success message
             showFeedback(
                 'success',
@@ -756,7 +761,12 @@ export default function CompanyRequirementsPage() {
                     setRetryCount(0);
                     setFallbackMode(false);
                     setIndividualSendProgress({});
-                    
+
+                    selectedRequirements.forEach(async requirementQ => {
+                        const requirement = await requirementService.getRequirementById(requirementQ.requirementId);
+                        markRequirementAsRead(requirement!, requirementQ.requirementId);
+                    });
+            
                 } else if (successCount > 0) {
                     showFeedback(
                         'warning', 

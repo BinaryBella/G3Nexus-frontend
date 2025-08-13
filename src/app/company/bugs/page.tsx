@@ -240,28 +240,33 @@ export default function CompanyBugsPage() {
         setCurrentPage(page);
     };
 
+    const markBugAsRead = (bug: Bug, bugId: number) => {
+        bug!.isNew = false; // Mark as viewed
+        paginatedBugs.forEach(req => {
+            if (req.bugId === bugId) {
+                req.isNew = false;
+            }
+        });
+
+        filteredBugs.forEach(req => {
+            if (req.bugId === bugId) {
+                req.isNew = false;
+            }
+        });
+
+        sortedBugs.forEach(req => {
+            if (req.bugId === bugId) {
+                req.isNew = false;
+            }
+        });
+        return bug;
+    }
+
     const handleViewMore = async (bugId: number) => {
         try {
             const bug = await bugService.getBugById(bugId);
-            bug!.isNew = false; // Mark as viewed
-            paginatedBugs.forEach(req => {
-                if (req.bugId === bugId) {
-                    req.isNew = false;
-                }
-            });
-
-            filteredBugs.forEach(req => {
-                if (req.bugId === bugId) {
-                    req.isNew = false;
-                }
-            });
-
-            sortedBugs.forEach(req => {
-                if (req.bugId === bugId) {
-                    req.isNew = false;
-                }
-            });
-            setSelectedBug(bug);
+            const markedBug = markBugAsRead(bug!, bugId)
+            setSelectedBug(markedBug);
             setIsModalOpen(true);
         } catch (error) {
             console.error('Error fetching bug details:', error);
@@ -477,6 +482,11 @@ export default function CompanyBugsPage() {
                 console.log('Using bulk bug quotation endpoint');
                 await bugService.sendBulkQuotation(bulkQuotationRequest);
             }
+
+            selectedBugs.forEach(async bugQ => {
+                const bug = await bugService.getBugById(bugQ.bugId);
+                markBugAsRead(bug!, bugQ.bugId);
+            })
             
             // Show success message
             showFeedback(
@@ -835,7 +845,7 @@ export default function CompanyBugsPage() {
                                                         <Eye className="h-4 w-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => router.push(`/company/bugs/edit-bug/${req.bugId}`)}
+                                                        onClick={() => router.push(`/company/bugs/edit-bug-report/${req.bugId}`)}
                                                         className="text-green-600 hover:text-green-800 text-sm font-medium"
                                                         title="Edit Bug"
                                                     >
