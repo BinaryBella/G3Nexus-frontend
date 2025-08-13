@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { DollarSign, CreditCard, TrendingUp, Calendar, Receipt, FileText, Plus, ArrowUpRight, ArrowDownRight, Eye, Search, Filter, Download, ExternalLink } from 'lucide-react';
+import { DollarSign, CreditCard, TrendingUp, Calendar, Receipt, FileText, Plus, ArrowUpRight, ArrowDownRight, Eye, Search, Filter, Download, ExternalLink, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
 import { projectService, Project } from '@/app/lib/services/projectService';
@@ -11,6 +11,7 @@ import { companyService } from '@/app/lib/services/companyService';
 import { Payment, Company } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
+import Pagination from '@/app/components/Pagination';
 
 // Enhanced payment type with related data
 interface EnhancedPayment extends Payment {
@@ -19,177 +20,227 @@ interface EnhancedPayment extends Payment {
     companyName?: string;
 }
 
-const QuickStatsCard = ({ title, value, icon: Icon, color, trend }: { 
-    title: string, 
-    value: string | number, 
-    icon: any, 
-    color: string,
-    trend?: { value: string, isPositive: boolean }
-}) => {
+const PaymentTypeBadge = ({ type }: { type: string }) => {
+    const colorMap: Record<string, string> = {
+        'Initial Payment': "bg-blue-100 text-blue-800 border-blue-200",
+        'Milestone Payment': "bg-green-100 text-green-800 border-green-200",
+        'Final Payment': "bg-purple-100 text-purple-800 border-purple-200",
+        'Partial Payment': "bg-yellow-100 text-yellow-800 border-yellow-200"
+    };
+
+    const colorClass = colorMap[type] || "bg-gray-100 text-gray-800 border-gray-200";
+
     return (
-        <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-medium text-gray-600">{title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{value}</p>
-                </div>
-                <div className={`p-2 rounded-lg ${color}`}>
-                    <Icon className="h-8 w-8 text-white" />
-                </div>
-            </div>
-            {trend && (
-                <div className={`flex items-center text-sm mt-2 ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                    {trend.isPositive ? (
-                        <ArrowUpRight className="h-4 w-4 mr-1" />
-                    ) : (
-                        <ArrowDownRight className="h-4 w-4 mr-1" />
-                    )}
-                    {trend.value}
-                </div>
-            )}
-        </div>
+        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${colorClass}`}>
+            {type}
+        </span>
     );
 };
 
-const PaymentAttachmentModal = ({ attachment, isOpen, onClose }: { 
-    attachment: string, 
-    isOpen: boolean, 
-    onClose: () => void 
+// Payment Details Modal Component (matching Bug modal structure)
+const PaymentModal = ({ payment, isOpen, onClose }: { 
+    payment: EnhancedPayment | null; 
+    isOpen: boolean; 
+    onClose: () => void; 
 }) => {
-    if (!isOpen) return null;
+    if (!isOpen || !payment) return null;
 
-    const attachmentUrl = attachment ? `/uploads/${attachment}` : '';
-    const isImage = attachment && (attachment.includes('.jpg') || attachment.includes('.jpeg') || attachment.includes('.png'));
-    const isPdf = attachment && attachment.includes('.pdf');
+    const attachmentUrl = payment.attachment ? `/uploads/${payment.attachment}` : '';
+    const isImage = payment.attachment && (payment.attachment.includes('.jpg') || payment.attachment.includes('.jpeg') || payment.attachment.includes('.png'));
+    const isPdf = payment.attachment && payment.attachment.includes('.pdf');
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl max-h-[90vh] overflow-hidden">
-                <div className="flex justify-between items-center p-4 border-b">
-                    <h3 className="text-lg font-semibold">Payment Attachment</h3>
-                    <button 
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-6 border-b">
+                    <div className="flex flex-col">
+                        <h2 className="text-xl font-semibold text-gray-900">Payment Details</h2>
+                        <p className="text-sm text-gray-600">Complete payment information</p>
+                    </div>
+                    <button
                         onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700 text-2xl"
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                        ×
+                        <X className="h-6 w-6" />
                     </button>
                 </div>
-                <div className="p-4">
-                    {!attachment ? (
-                        <div className="text-center py-8">
-                            <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500">No attachment available</p>
+
+                {/* Modal Body */}
+                <div className="p-6 space-y-6">
+                    {/* Payment Description */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Payment Description
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <p className="text-gray-900 font-medium">
+                                {payment.paymentDescription || 'No description provided'}
+                            </p>
                         </div>
-                    ) : isImage ? (
-                        <div className="text-center">
-                            <img 
-                                src={attachmentUrl} 
-                                alt="Payment attachment" 
-                                className="max-w-full max-h-[60vh] object-contain mx-auto"
-                                onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'block';
-                                }}
-                            />
-                            <div style={{ display: 'none' }} className="text-center py-8">
-                                <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                                <p className="text-gray-500">Unable to load image</p>
+                    </div>
+
+                    {/* Payment Details Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Payment Type
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <PaymentTypeBadge type={payment.paymentType || 'Payment'} />
                             </div>
                         </div>
-                    ) : isPdf ? (
-                        <div className="text-center py-8">
-                            <FileText className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                            <p className="text-gray-700 mb-4">PDF Document</p>
-                            <a 
-                                href={attachmentUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                Open PDF
-                            </a>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Amount
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <span className="text-lg font-semibold text-green-600">
+                                    ${parseFloat(payment.paymentAmount || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                </span>
+                            </div>
                         </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <FileText className="h-16 w-16 text-gray-500 mx-auto mb-4" />
-                            <p className="text-gray-700 mb-4">File: {attachment}</p>
-                            <a 
-                                href={attachmentUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                                <Download className="h-4 w-4 mr-2" />
-                                Download File
-                            </a>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Payment Date
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <p className="text-gray-900">
+                                    {new Date(payment.paymentDate).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
+                                </p>
+                            </div>
                         </div>
-                    )}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Status
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                                    payment.isActive
+                                        ? 'bg-green-100 text-green-800 border-green-200'
+                                        : 'bg-gray-100 text-gray-800 border-gray-200'
+                                }`}>
+                                    {payment.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Project and Client Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Project
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <p className="text-gray-900">
+                                    {payment.projectName || `Project #${payment.projectId}`}
+                                </p>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Client
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <p className="text-gray-900">
+                                    {payment.clientName || `Client #${payment.clientId}`}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Company Info */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Company
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <p className="text-gray-900">
+                                {payment.companyName || 'N/A'}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Attachment Section */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Attachment
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            {payment.attachment ? (
+                                <div>
+                                    {isImage ? (
+                                        <div className="text-center mb-4">
+                                            <img 
+                                                src={attachmentUrl} 
+                                                alt="Payment attachment" 
+                                                className="max-w-full max-h-64 object-contain mx-auto rounded-lg border"
+                                                onError={(e) => {
+                                                    e.currentTarget.style.display = 'none';
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between bg-white rounded-lg p-3 border">
+                                            <div className="flex items-center space-x-3">
+                                                <FileText className="h-8 w-8 text-blue-600" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        {payment.attachment.split('/').pop() || 'Attachment'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                        {isPdf ? 'PDF Document' : 'Click to download'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <a
+                                                href={attachmentUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:text-blue-800 transition-colors"
+                                            >
+                                                {isPdf ? <ExternalLink className="h-5 w-5" /> : <Download className="h-5 w-5" />}
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                                    <p className="text-gray-500 text-sm">No attachment available</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                    <button
+                        onClick={onClose}
+                        className="bg-[#2b4b93] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                    >
+                        Close
+                    </button>
                 </div>
             </div>
         </div>
-    );
-};
-
-const PaymentTableRow = ({ payment, onViewAttachment }: { 
-    payment: EnhancedPayment, 
-    onViewAttachment: (attachment: string) => void 
-}) => {
-    return (
-        <tr className="hover:bg-gray-50">
-            <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">
-                    {payment.projectName || `Project #${payment.projectId}`}
-                </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                    {payment.clientName || `Client #${payment.clientId}`}
-                </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                    {payment.companyName || 'N/A'}
-                </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {payment.paymentType}
-                </span>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-semibold text-green-600">
-                    ${parseFloat(payment.paymentAmount || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                    {new Date(payment.paymentDate).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                    })}
-                </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <button
-                    onClick={() => onViewAttachment(payment.attachment)}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View More
-                </button>
-            </td>
-        </tr>
     );
 };
 
 export default function CompanyFinancialDashboard() {
     const router = useRouter();
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchText, setSearchText] = useState('');
     const [selectedPaymentType, setSelectedPaymentType] = useState('');
-    const [selectedAttachment, setSelectedAttachment] = useState<string>('');
-    const [isAttachmentModalOpen, setIsAttachmentModalOpen] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [selectedPayment, setSelectedPayment] = useState<EnhancedPayment | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const itemsPerPage = 6;
 
     // Fetch all required data
     const { data: payments = [], isLoading: paymentsLoading } = useQuery<Payment[], Error>({
@@ -230,20 +281,57 @@ export default function CompanyFinancialDashboard() {
         });
     }, [payments, projects, clients, companies]);
 
+    // Reset to first page when search text changes
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchText]);
+
     // Filter payments based on search and filters
     const filteredPayments = useMemo(() => {
         return enhancedPayments.filter(payment => {
-            const matchesSearch = searchTerm === '' || 
-                payment.projectName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                payment.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                payment.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                payment.paymentDescription.toLowerCase().includes(searchTerm.toLowerCase());
+            if (searchText.trim() === '') {
+                const matchesType = selectedPaymentType === '' || payment.paymentType === selectedPaymentType;
+                return matchesType;
+            }
+
+            // Helper function to check if search text matches beginning of any word
+            const matchesWordBeginning = (text: string) => {
+                if (!text) return false;
+                const words = text.toLowerCase().split(/\s+/);
+                const searchLower = searchText.toLowerCase();
+                return words.some(word => word.startsWith(searchLower));
+            };
+
+            const matchesSearch = matchesWordBeginning(payment.projectName || '') || 
+                matchesWordBeginning(payment.clientName || '') ||
+                matchesWordBeginning(payment.companyName || '') ||
+                matchesWordBeginning(payment.paymentDescription) ||
+                matchesWordBeginning(payment.paymentType);
 
             const matchesType = selectedPaymentType === '' || payment.paymentType === selectedPaymentType;
 
             return matchesSearch && matchesType;
         });
-    }, [enhancedPayments, searchTerm, selectedPaymentType]);
+    }, [enhancedPayments, searchText, selectedPaymentType]);
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedPayments = filteredPayments.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const handleViewMore = (payment: EnhancedPayment) => {
+        setSelectedPayment(payment);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedPayment(null);
+    };
 
     // Calculate financial metrics
     const currentDate = new Date();
@@ -273,18 +361,21 @@ export default function CompanyFinancialDashboard() {
     // Get unique payment types for filter
     const paymentTypes = Array.from(new Set(payments.map(p => p.paymentType)));
 
-    const handleViewAttachment = (attachment: string) => {
-        setSelectedAttachment(attachment);
-        setIsAttachmentModalOpen(true);
+    const stats = {
+        totalRevenue,
+        thisMonthRevenue,
+        revenueGrowth,
+        activePayments,
+        totalTransactions: payments.length
     };
 
     if (isLoading) {
         return (
             <ProtectedRoute allowedRoles={[COMPANY_ADMIN, COMPANY_DEVELOPER]}>
-                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="flex justify-center items-center min-h-[400px]">
                     <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">Loading financial data...</p>
+                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                        <p className="mt-2 text-gray-600">Loading financial data...</p>
                     </div>
                 </div>
             </ProtectedRoute>
@@ -306,140 +397,181 @@ export default function CompanyFinancialDashboard() {
                         </div>
                     </div>
 
-                    {/* Quick Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <QuickStatsCard
-                            title="Total Revenue"
-                            value={`$${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
-                            icon={DollarSign}
-                            color="bg-green-500"
-                        />
-                        <QuickStatsCard
-                            title="This Month"
-                            value={`$${thisMonthRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
-                            icon={TrendingUp}
-                            color="bg-blue-500"
-                            trend={{
-                                value: `${Math.abs(revenueGrowth).toFixed(1)}%`,
-                                isPositive: revenueGrowth >= 0
-                            }}
-                        />
-                        <QuickStatsCard
-                            title="Active Payments"
-                            value={activePayments}
-                            icon={CreditCard}
-                            color="bg-purple-500"
-                        />
-                        <QuickStatsCard
-                            title="Total Transactions"
-                            value={payments.length}
-                            icon={Receipt}
-                            color="bg-gray-500"
-                        />
-                    </div>
-                </div>
-
-                {/* Payment Table */}
-                <div className="bg-white rounded-lg shadow-sm border">
-                    {/* Table Header with Search and Filters */}
-                    <div className="p-6 border-b border-gray-200">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <h2 className="text-xl font-semibold text-gray-900">Payment Records</h2>
-                                <p className="text-sm text-gray-600 mt-1">
-                                    Showing {filteredPayments.length} of {payments.length} payments
-                                </p>
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div className="bg-white rounded-lg shadow-sm border p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                                    <p className="text-2xl font-bold text-gray-900">
+                                        ${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                    </p>
+                                </div>
+                                <DollarSign className="h-8 w-8 text-gray-400" />
                             </div>
-                            
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                {/* Search */}
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search payments..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] w-full sm:w-64"
-                                    />
+                        </div>
+                        <div className="bg-white rounded-lg shadow-sm border p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">This Month</p>
+                                    <p className="text-2xl font-bold text-green-600">
+                                        ${stats.thisMonthRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                    </p>
                                 </div>
-
-                                {/* Payment Type Filter */}
-                                <div className="relative">
-                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                                    <select
-                                        value={selectedPaymentType}
-                                        onChange={(e) => setSelectedPaymentType(e.target.value)}
-                                        className="pl-10 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] appearance-none bg-white"
-                                    >
-                                        <option value="">All Types</option>
-                                        {paymentTypes.map(type => (
-                                            <option key={type} value={type}>{type}</option>
-                                        ))}
-                                    </select>
+                                <TrendingUp className="h-8 w-8 text-green-400" />
+                            </div>
+                            <div className={`flex items-center text-sm mt-2 ${
+                                stats.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                                {stats.revenueGrowth >= 0 ? (
+                                    <ArrowUpRight className="h-4 w-4 mr-1" />
+                                ) : (
+                                    <ArrowDownRight className="h-4 w-4 mr-1" />
+                                )}
+                                {Math.abs(stats.revenueGrowth).toFixed(1)}%
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-lg shadow-sm border p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Active Payments</p>
+                                    <p className="text-2xl font-bold text-blue-600">{stats.activePayments}</p>
                                 </div>
+                                <CreditCard className="h-8 w-8 text-blue-400" />
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-lg shadow-sm border p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Total Transactions</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.totalTransactions}</p>
+                                </div>
+                                <Receipt className="h-8 w-8 text-gray-400" />
                             </div>
                         </div>
                     </div>
 
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Project Name
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Client Name
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Company Name
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Payment Type
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Amount
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Date
-                                    </th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Action
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredPayments.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="px-6 py-12 text-center">
-                                            <div className="text-gray-500">
-                                                <Receipt className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                                                <p className="text-lg font-medium">No payments found</p>
-                                                <p className="text-sm">Try adjusting your search or filter criteria.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    filteredPayments.map((payment) => (
-                                        <PaymentTableRow
-                                            key={payment.paymentId}
-                                            payment={payment}
-                                            onViewAttachment={handleViewAttachment}
-                                        />
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                    {/* Search and Filter */}
+                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                            <input
+                                type="text"
+                                placeholder="Search payments by project, client, company, or description..."
+                                className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
+                            />
+                        </div>
+                        <div className="relative">
+                            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                            <select
+                                value={selectedPaymentType}
+                                onChange={(e) => setSelectedPaymentType(e.target.value)}
+                                className="text-black pl-10 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] appearance-none bg-white w-full sm:w-48"
+                            >
+                                <option value="">All Types</option>
+                                {paymentTypes.map(type => (
+                                    <option key={type} value={type}>{type}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                {/* Payment Attachment Modal */}
-                <PaymentAttachmentModal
-                    attachment={selectedAttachment}
-                    isOpen={isAttachmentModalOpen}
-                    onClose={() => setIsAttachmentModalOpen(false)}
+                {/* Payment Table */}
+                <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                    {filteredPayments.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No payments found</h3>
+                            <p className="text-gray-600">
+                                {searchText ? 'Try adjusting your search criteria.' : 'No payment records available.'}
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50 border-b">
+                                        <tr>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Type</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {paginatedPayments.map((payment) => (
+                                            <tr key={payment.paymentId} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4">
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-900">
+                                                            {payment.projectName || `Project #${payment.projectId}`}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {payment.companyName || 'N/A'}
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-900">
+                                                    {payment.clientName || `Client #${payment.clientId}`}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <PaymentTypeBadge type={payment.paymentType || 'Payment'} />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="text-sm font-semibold text-green-600">
+                                                        ${parseFloat(payment.paymentAmount || '0').toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-gray-900">
+                                                    {new Date(payment.paymentDate).toLocaleDateString('en-US', {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    })}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex space-x-2">
+                                                        <button
+                                                            onClick={() => handleViewMore(payment)}
+                                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                                                            title="View More Details"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* Pagination */}
+                {filteredPayments.length > 0 && (
+                    <div className="bg-white rounded-lg shadow-sm border mt-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                            totalItems={filteredPayments.length}
+                            itemsPerPage={itemsPerPage}
+                        />
+                    </div>
+                )}
+
+                {/* Payment Modal */}
+                <PaymentModal
+                    payment={selectedPayment}
+                    isOpen={isModalOpen}
+                    onClose={handleCloseModal}
                 />
             </div>
         </ProtectedRoute>
