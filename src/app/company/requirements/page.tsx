@@ -173,6 +173,14 @@ export default function CompanyRequirementsPage() {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
     const [isSendingQuotation, setIsSendingQuotation] = useState(false);
+    const [submitAttempts, setSubmitAttempts] = useState(0);
+    const [lastError, setLastError] = useState<string | null>(null);
+    const [isRetrying, setIsRetrying] = useState(false);
+    const [fallbackMode, setFallbackMode] = useState(false);
+    const [individualSendProgress, setIndividualSendProgress] = useState<{[key: number]: 'pending' | 'sending' | 'success' | 'error'}>({});
+    const [retryCount, setRetryCount] = useState(0);
+    const [quotationStatus, setQuotationStatus] = useState<{[key: number]: 'available' | 'quoted' | 'unavailable'}>({});
+    const [statusCheckInProgress, setStatusCheckInProgress] = useState(false);
     
     // Enhanced quotation form state
     const [quotationData, setQuotationData] = useState<Record<number, {
@@ -182,6 +190,7 @@ export default function CompanyRequirementsPage() {
         deliveryDate: string;
     }>>({});
     const [additionalNotes, setAdditionalNotes] = useState("");
+    const [validationErrors, setValidationErrors] = useState<Record<number, Record<string, string>>>({});
     
     // Feedback popup state
     const [feedbackPopup, setFeedbackPopup] = useState<{
@@ -360,8 +369,45 @@ export default function CompanyRequirementsPage() {
         setSelectedIds(allSelected ? selectedIds.filter(id => !currentPageIds.includes(id)) : [...selectedIds, ...currentPageIds.filter(id => !selectedIds.includes(id))]);
     };
 
+    // Function to check quotation status for selected requirements
+    const checkQuotationStatus = async (requirementIds: number[]) => {
+        setStatusCheckInProgress(true);
+        try {
+            // Check if requirements are already quoted or unavailable
+            const statusMap: {[key: number]: 'available' | 'quoted' | 'unavailable'} = {};
+            
+            for (const id of requirementIds) {
+                const requirement = filteredRequirements.find(r => r.requirementId === id);
+                if (!requirement) {
+                    statusMap[id] = 'unavailable';
+                } else {
+                    // In a real implementation, you would check if this requirement already has a quotation
+                    // For now, we'll assume all found requirements are available
+                    statusMap[id] = 'available';
+                }
+            }
+            
+            setQuotationStatus(statusMap);
+            return statusMap;
+        } catch (error) {
+            console.error('Error checking quotation status:', error);
+            // Set all as unavailable on error
+            const statusMap: {[key: number]: 'available' | 'quoted' | 'unavailable'} = {};
+            requirementIds.forEach((id: number) => {
+                statusMap[id] = 'unavailable';
+            });
+            setQuotationStatus(statusMap);
+            return statusMap;
+        } finally {
+            setStatusCheckInProgress(false);
+        }
+    };
+
     // Quotation modal handlers
-    const openQuotationModal = () => {
+    const openQuotationModal = async () => {
+        // First check the status of selected requirements
+        await checkQuotationStatus(selectedIds);
+        
         // Initialize quotation data for selected requirements
         const initialData: Record<number, {
             cost: string;
@@ -370,7 +416,7 @@ export default function CompanyRequirementsPage() {
             deliveryDate: string;
         }> = {};
         
-        selectedIds.forEach(id => {
+        selectedIds.forEach((id: number) => {
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 7); // Default to 1 week from now
             initialData[id] = {
@@ -383,13 +429,36 @@ export default function CompanyRequirementsPage() {
         
         setQuotationData(initialData);
         setAdditionalNotes('');
+        setLastError(null);
+        setSubmitAttempts(0);
+        setIsRetrying(false);
         setIsQuotationModalOpen(true);
+    };
+
+    // Function to remove problematic requirements from selection
+    const removeProblematicRequirements = () => {
+        const validIds = selectedIds.filter(id => quotationStatus[id] === 'available');
+        setSelectedIds(validIds);
+        
+        const removedCount = selectedIds.length - validIds.length;
+        showFeedback(
+            'success',
+            'Requirements Cleaned',
+            `Removed ${removedCount} problematic requirement${removedCount !== 1 ? 's' : ''} from selection. ${validIds.length} requirement${validIds.length !== 1 ? 's' : ''} remaining.`
+        );
     };
 
     const closeQuotationModal = () => {
         setIsQuotationModalOpen(false);
         setQuotationData({});
         setAdditionalNotes('');
+        setValidationErrors({});
+        setLastError(null);
+        setSubmitAttempts(0);
+        setIsRetrying(false);
+        setFallbackMode(false);
+        setIndividualSendProgress({});
+        setRetryCount(0);
     };
 
     const handleQuotationFieldChange = (requirementId: number, field: string, value: string) => {
@@ -400,11 +469,82 @@ export default function CompanyRequirementsPage() {
                 [field]: value
             }
         }));
+
+        // Clear validation error for this field
+        setValidationErrors(prev => ({
+            ...prev,
+            [requirementId]: {
+                ...prev[requirementId],
+                [field]: ''
+            }
+        }));
+
+        // Real-time validation
+        if (field === 'cost' && value && (isNaN(parseFloat(value)) || parseFloat(value) <= 0)) {
+            setValidationErrors(prev => ({
+                ...prev,
+                [requirementId]: {
+                    ...prev[requirementId],
+                    [field]: 'Cost must be a positive number'
+                }
+            }));
+        }
     };
 
-    const handleSendQuotation = async () => {
+    // Helper function to copy quotation data to other requirements
+    const copyQuotationData = (sourceId: number, field: keyof typeof quotationData[number]) => {
+        const sourceValue = quotationData[sourceId]?.[field];
+        if (!sourceValue) return;
+
+        const updatedData = { ...quotationData };
+        selectedIds.forEach((id: number) => {
+            if (id !== sourceId) {
+                updatedData[id] = {
+                    ...updatedData[id],
+                    [field]: sourceValue
+                };
+            }
+        });
+        setQuotationData(updatedData);
+    };
+
+    const handleSendQuotation = async (retryAttempt = 0) => {
         try {
             setIsSendingQuotation(true);
+            setIsRetrying(retryAttempt > 0);
+            setLastError(null);
+            setRetryCount(retryAttempt);
+            
+            // Validate all required fields
+            const missingFields: string[] = [];
+            selectedIds.forEach((id: number) => {
+                const data = quotationData[id];
+                if (!data?.cost || parseFloat(data.cost) <= 0) {
+                    const requirement = filteredRequirements.find(r => r.requirementId === id);
+                    missingFields.push(`${requirement?.requirementTitle}: Cost`);
+                }
+                if (!data?.duration?.trim()) {
+                    const requirement = filteredRequirements.find(r => r.requirementId === id);
+                    missingFields.push(`${requirement?.requirementTitle}: Duration`);
+                }
+                if (!data?.description?.trim()) {
+                    const requirement = filteredRequirements.find(r => r.requirementId === id);
+                    missingFields.push(`${requirement?.requirementTitle}: Description`);
+                }
+                if (!data?.deliveryDate) {
+                    const requirement = filteredRequirements.find(r => r.requirementId === id);
+                    missingFields.push(`${requirement?.requirementTitle}: Delivery Date`);
+                }
+            });
+
+            if (missingFields.length > 0) {
+                showFeedback(
+                    'warning',
+                    'Missing Required Fields',
+                    `Please fill in all required fields:\n${missingFields.slice(0, 3).join('\n')}${missingFields.length > 3 ? `\n... and ${missingFields.length - 3} more` : ''}`
+                );
+                return;
+            }
             
             // Get the first selected requirement to determine client and project
             const firstRequirement = filteredRequirements.find(r => selectedIds.includes(r.requirementId));
@@ -431,28 +571,237 @@ export default function CompanyRequirementsPage() {
                 additionalNotes
             };
 
-            await requirementService.sendBulkQuotation(bulkQuotationRequest);
+            console.log('Sending bulk quotation:', JSON.stringify(bulkQuotationRequest, null, 2));
             
-            // Show success message
-            showFeedback(
-                'success', 
-                'Quotation Sent Successfully!', 
-                `Your quotation for ${selectedIds.length} requirement${selectedIds.length !== 1 ? 's' : ''} has been sent to the client via email.`
-            );
+            // Try bulk operation first, unless we're already in fallback mode
+            if (!fallbackMode) {
+                try {
+                    await requirementService.sendBulkQuotation(bulkQuotationRequest);
+                    
+                    // Show success message
+                    showFeedback(
+                        'success', 
+                        'Quotation Sent Successfully!', 
+                        `Your quotation for ${selectedIds.length} requirement${selectedIds.length !== 1 ? 's' : ''} has been sent to the client via email. Total value: $${Object.values(quotationData).map(data => parseFloat(data.cost) || 0).reduce((acc, curr) => acc + curr, 0).toFixed(2)}`
+                    );
+                    
+                    closeQuotationModal();
+                    setSelectedIds([]);
+                    setSubmitAttempts(0);
+                    setRetryCount(0);
+                    setFallbackMode(false);
+                    return;
+                    
+                } catch (bulkError: any) {
+                    const errorMessage = bulkError?.response?.data?.message || bulkError?.message || 'Unknown error';
+                    const isTransactionError = errorMessage.includes('SqlServerRetryingExecutionStrategy') || 
+                                             errorMessage.includes('execution strategy') ||
+                                             errorMessage.includes('user-initiated transactions');
+                    
+                    const isRequirementError = errorMessage.includes('Requirements not found or already quoted') ||
+                                             errorMessage.includes('already quoted') ||
+                                             errorMessage.includes('not found');
+                    
+                    // Handle requirement-specific errors
+                    if (isRequirementError) {
+                        // Extract requirement IDs from error message
+                        const matches = errorMessage.match(/(\d+)/g);
+                        const errorRequirementIds = matches ? matches.map(Number) : [];
+                        
+                        if (errorRequirementIds.length > 0) {
+                            // Update status for error requirements
+                            const updatedStatus = {...quotationStatus};
+                            errorRequirementIds.forEach((id: number) => {
+                                updatedStatus[id] = errorMessage.includes('already quoted') ? 'quoted' : 'unavailable';
+                            });
+                            setQuotationStatus(updatedStatus);
+                            
+                            const quotedIds = errorRequirementIds.filter((id: number) => updatedStatus[id] === 'quoted');
+                            const unavailableIds = errorRequirementIds.filter((id: number) => updatedStatus[id] === 'unavailable');
+                            
+                            let detailMessage = '';
+                            if (quotedIds.length > 0) {
+                                const quotedTitles = quotedIds.map((id: number) => {
+                                    const req = filteredRequirements.find(r => r.requirementId === id);
+                                    return req ? req.requirementTitle : `ID ${id}`;
+                                });
+                                detailMessage += `Already quoted: ${quotedTitles.join(', ')}\n`;
+                            }
+                            if (unavailableIds.length > 0) {
+                                const unavailableTitles = unavailableIds.map((id: number) => {
+                                    const req = filteredRequirements.find(r => r.requirementId === id);
+                                    return req ? req.requirementTitle : `ID ${id}`;
+                                });
+                                detailMessage += `Not found: ${unavailableTitles.join(', ')}`;
+                            }
+                            
+                            showFeedback(
+                                'warning',
+                                'Some Requirements Cannot Be Quoted',
+                                `${detailMessage}\n\nPlease remove these requirements from your selection and try again.`
+                            );
+                            
+                            // Remove problematic requirements from selection
+                            const validIds = selectedIds.filter(id => !errorRequirementIds.includes(id));
+                            setSelectedIds(validIds);
+                            
+                            return; // Don't proceed with fallback for this type of error
+                        }
+                    }
+                    
+                    // If it's a transaction error, try fallback mode
+                    if (isTransactionError) {
+                        console.log('Database transaction error detected, switching to fallback mode...');
+                        setFallbackMode(true);
+                        
+                        showFeedback(
+                            'warning',
+                            'Switching to Individual Send Mode',
+                            'Database transaction issue detected. Attempting to send quotations individually...'
+                        );
+                        
+                        // Continue to fallback mode below
+                    } else {
+                        // For non-transaction errors, retry the bulk operation
+                        if (retryAttempt < 2) {
+                            showFeedback(
+                                'warning', 
+                                `Retry Attempt ${retryAttempt + 1}`, 
+                                'Retrying bulk quotation...'
+                            );
+                            
+                            setTimeout(() => {
+                                handleSendQuotation(retryAttempt + 1);
+                            }, 1000 + (retryAttempt * 500));
+                            return;
+                        } else {
+                            throw bulkError; // Re-throw if max retries reached
+                        }
+                    }
+                }
+            }
             
-            closeQuotationModal();
-            setSelectedIds([]);
+            // Fallback mode: Send quotations individually
+            if (fallbackMode || retryAttempt > 0) {
+                console.log('Sending quotations individually...');
+                
+                // Initialize progress tracking
+                const progress: {[key: number]: 'pending' | 'sending' | 'success' | 'error'} = {};
+                selectedIds.forEach((id: number) => {
+                    progress[id] = 'pending';
+                });
+                setIndividualSendProgress(progress);
+                
+                let successCount = 0;
+                let failureCount = 0;
+                const errors: string[] = [];
+                
+                // Send each quotation individually
+                for (const requirement of selectedRequirements) {
+                    try {
+                        // Update progress
+                        setIndividualSendProgress(prev => ({
+                            ...prev,
+                            [requirement.requirementId]: 'sending'
+                        }));
+                        
+                        // Send individual quotation
+                        const individualRequest: BulkQuotationRequest = {
+                            selectedRequirements: [requirement],
+                            clientId: firstRequirement.clientId,
+                            projectId: firstRequirement.projectId,
+                            additionalNotes: `${additionalNotes}\n\n[Note: This quotation was sent individually due to a system issue]`
+                        };
+                        
+                        await requirementService.sendBulkQuotation(individualRequest);
+                        
+                        // Update progress
+                        setIndividualSendProgress(prev => ({
+                            ...prev,
+                            [requirement.requirementId]: 'success'
+                        }));
+                        
+                        successCount++;
+                        
+                        // Small delay between sends to avoid overwhelming the server
+                        if (selectedRequirements.length > 1) {
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        }
+                        
+                    } catch (individualError: any) {
+                        console.error(`Failed to send quotation for requirement ${requirement.requirementId}:`, individualError);
+                        
+                        setIndividualSendProgress(prev => ({
+                            ...prev,
+                            [requirement.requirementId]: 'error'
+                        }));
+                        
+                        failureCount++;
+                        const reqTitle = filteredRequirements.find(r => r.requirementId === requirement.requirementId)?.requirementTitle || `ID ${requirement.requirementId}`;
+                        errors.push(`${reqTitle}: ${individualError?.response?.data?.message || individualError?.message || 'Unknown error'}`);
+                    }
+                }
+                
+                // Show final results
+                if (successCount === selectedIds.length) {
+                    showFeedback(
+                        'success', 
+                        'All Quotations Sent Successfully!', 
+                        `All ${successCount} quotations were sent individually to the client via email. Total value: $${Object.values(quotationData).map(data => parseFloat(data.cost) || 0).reduce((acc, curr) => acc + curr, 0).toFixed(2)}`
+                    );
+                    
+                    closeQuotationModal();
+                    setSelectedIds([]);
+                    setSubmitAttempts(0);
+                    setRetryCount(0);
+                    setFallbackMode(false);
+                    setIndividualSendProgress({});
+                    
+                } else if (successCount > 0) {
+                    showFeedback(
+                        'warning', 
+                        'Partial Success', 
+                        `${successCount} of ${selectedIds.length} quotations were sent successfully. ${failureCount} failed.\n\nFailed items:\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? `\n... and ${errors.length - 3} more` : ''}`
+                    );
+                } else {
+                    showFeedback(
+                        'error', 
+                        'All Quotations Failed', 
+                        `None of the quotations could be sent.\n\nErrors:\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? `\n... and ${errors.length - 3} more` : ''}`
+                    );
+                }
+                
+                return;
+            }
             
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error sending quotation:', error);
-            // Show error message
+            
+            const errorMessage = error?.response?.data?.message || error?.message || 'Unknown error';
+            setLastError(errorMessage);
+            setSubmitAttempts(retryAttempt + 1);
+            
+            // Show appropriate error message
+            let userFriendlyMessage = 'An unexpected error occurred while sending the quotation.';
+            
+            if (errorMessage.includes('SqlServerRetryingExecutionStrategy') || 
+                errorMessage.includes('execution strategy') ||
+                errorMessage.includes('user-initiated transactions')) {
+                userFriendlyMessage = 'Database transaction issue detected. This is typically a temporary server-side issue.';
+            } else if (errorMessage.includes('network') || errorMessage.includes('connection')) {
+                userFriendlyMessage = 'Network connection issue. Please check your internet connection and try again.';
+            } else if (errorMessage.includes('validation')) {
+                userFriendlyMessage = 'Data validation failed. Please check your input and try again.';
+            }
+            
             showFeedback(
                 'error', 
-                'Failed to Send Quotation', 
-                error instanceof Error ? error.message : 'An unexpected error occurred while sending the quotation. Please try again.'
+                `Failed to Send Quotation${retryAttempt > 0 ? ` (After ${retryAttempt + 1} attempts)` : ''}`, 
+                `${userFriendlyMessage}\n\nTechnical details: ${errorMessage.length > 100 ? errorMessage.substring(0, 100) + '...' : errorMessage}`
             );
         } finally {
             setIsSendingQuotation(false);
+            setIsRetrying(false);
         }
     };
 
@@ -468,17 +817,6 @@ export default function CompanyRequirementsPage() {
                         </h1>
                         <p className="text-gray-600 mt-2">Manage project requirements and specifications</p>
                     </div>
-
-                        {/* Generate Quotation Button */}
-                        <div className="flex justify-end mt-4">
-                            <button
-                                className={`bg-[#2b4b93] text-white px-6 py-2 rounded-lg font-medium transition-colors ${selectedIds.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-                                disabled={selectedIds.length === 0}
-                                onClick={openQuotationModal}
-                            >
-                                Generate Quotation ({selectedIds.length})
-                            </button>
-                        </div>
 
                         {/* Enhanced Quotation Modal */}
                         {isQuotationModalOpen && (
@@ -506,6 +844,43 @@ export default function CompanyRequirementsPage() {
 
                                     {/* Modal Body */}
                                     <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                                        {/* Warning for problematic requirements */}
+                                        {Object.values(quotationStatus).some(status => status !== 'available') && (
+                                            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="flex-shrink-0">
+                                                        <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 17.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h4 className="text-sm font-medium text-yellow-800">Requirements Status Issues Detected</h4>
+                                                        <div className="text-sm text-yellow-700 mt-1">
+                                                            {Object.entries(quotationStatus).some(([_, status]) => status === 'quoted') && (
+                                                                <p className="mb-1">• Some requirements are already quoted and cannot be quoted again</p>
+                                                            )}
+                                                            {Object.entries(quotationStatus).some(([_, status]) => status === 'unavailable') && (
+                                                                <p className="mb-1">• Some requirements were not found in the system</p>
+                                                            )}
+                                                            <p className="font-medium">Please remove problematic requirements from your selection before proceeding.</p>
+                                                        </div>
+                                                        <div className="mt-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={removeProblematicRequirements}
+                                                                className="inline-flex items-center px-3 py-2 border border-yellow-300 rounded-md text-sm font-medium text-yellow-800 bg-yellow-100 hover:bg-yellow-200 transition-colors"
+                                                            >
+                                                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                                Remove Problematic Requirements
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <form onSubmit={(e) => { e.preventDefault(); handleSendQuotation(); }} className="space-y-6">
                                             {/* Requirements Section */}
                                             <div className="space-y-4">
@@ -529,12 +904,33 @@ export default function CompanyRequirementsPage() {
                                                                     <span className="text-xs text-gray-600">Project: {requirement.projectName}</span>
                                                                 </div>
                                                             </div>
-                                                            <div className="text-right">
+                                                            <div className="text-right flex flex-col gap-2">
                                                                 <PriorityBadge priority={requirement.priority || 'Medium'} />
+                                                                {/* Status indicator */}
+                                                                {statusCheckInProgress ? (
+                                                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                        <div className="animate-spin h-3 w-3 border border-blue-600 rounded-full border-t-transparent mr-1"></div>
+                                                                        Checking...
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                                                        quotationStatus[requirement.requirementId] === 'quoted' 
+                                                                            ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' 
+                                                                            : quotationStatus[requirement.requirementId] === 'unavailable'
+                                                                            ? 'bg-red-100 text-red-800 border border-red-200'
+                                                                            : 'bg-green-100 text-green-800 border border-green-200'
+                                                                    }`}>
+                                                                        {quotationStatus[requirement.requirementId] === 'quoted' 
+                                                                            ? '⚠️ Already Quoted' 
+                                                                            : quotationStatus[requirement.requirementId] === 'unavailable'
+                                                                            ? '❌ Not Found'
+                                                                            : '✅ Available'}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${quotationStatus[requirement.requirementId] !== 'available' ? 'opacity-50' : ''}`}>
                                                             {/* Cost */}
                                                             <div>
                                                                 <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
@@ -545,12 +941,12 @@ export default function CompanyRequirementsPage() {
                                                                     type="number"
                                                                     min="0"
                                                                     step="0.01"
-                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93]"
+                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93] disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                                     placeholder="Enter cost"
                                                                     value={quotationData[requirement.requirementId]?.cost || ''}
                                                                     onChange={(e) => handleQuotationFieldChange(requirement.requirementId, 'cost', e.target.value)}
                                                                     required
-                                                                    disabled={isSendingQuotation}
+                                                                    disabled={isSendingQuotation || quotationStatus[requirement.requirementId] !== 'available'}
                                                                 />
                                                             </div>
 
@@ -562,12 +958,12 @@ export default function CompanyRequirementsPage() {
                                                                 </label>
                                                                 <input
                                                                     type="text"
-                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93]"
+                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93] disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                                     placeholder="e.g., 2 weeks, 1 month"
                                                                     value={quotationData[requirement.requirementId]?.duration || ''}
                                                                     onChange={(e) => handleQuotationFieldChange(requirement.requirementId, 'duration', e.target.value)}
                                                                     required
-                                                                    disabled={isSendingQuotation}
+                                                                    disabled={isSendingQuotation || quotationStatus[requirement.requirementId] !== 'available'}
                                                                 />
                                                             </div>
 
@@ -579,11 +975,11 @@ export default function CompanyRequirementsPage() {
                                                                 </label>
                                                                 <input
                                                                     type="date"
-                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93]"
+                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93] disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                                     value={quotationData[requirement.requirementId]?.deliveryDate || ''}
                                                                     onChange={(e) => handleQuotationFieldChange(requirement.requirementId, 'deliveryDate', e.target.value)}
                                                                     required
-                                                                    disabled={isSendingQuotation}
+                                                                    disabled={isSendingQuotation || quotationStatus[requirement.requirementId] !== 'available'}
                                                                     min={new Date().toISOString().split('T')[0]}
                                                                 />
                                                             </div>
@@ -596,12 +992,12 @@ export default function CompanyRequirementsPage() {
                                                                 </label>
                                                                 <input
                                                                     type="text"
-                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93]"
+                                                                    className="w-full border text-gray-900 border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#2b4b93] focus:border-[#2b4b93] disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                                     placeholder="Brief description of the work"
                                                                     value={quotationData[requirement.requirementId]?.description || ''}
                                                                     onChange={(e) => handleQuotationFieldChange(requirement.requirementId, 'description', e.target.value)}
                                                                     required
-                                                                    disabled={isSendingQuotation}
+                                                                    disabled={isSendingQuotation || quotationStatus[requirement.requirementId] !== 'available'}
                                                                 />
                                                             </div>
                                                         </div>
@@ -638,6 +1034,95 @@ export default function CompanyRequirementsPage() {
                                                 </div>
                                             </div>
 
+                                            {/* Error Display */}
+                                            {lastError && (
+                                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                                        <div className="flex-1">
+                                                            <h4 className="text-sm font-medium text-red-800 mb-1">
+                                                                Submission Failed {submitAttempts > 0 && `(After ${submitAttempts} attempt${submitAttempts !== 1 ? 's' : ''})`}
+                                                            </h4>
+                                                            <div className="text-sm text-red-700">
+                                                                {lastError.includes('SqlServerRetryingExecutionStrategy') ? (
+                                                                    <div>
+                                                                        <p className="mb-2">Database transaction conflict detected. This usually resolves automatically.</p>
+                                                                        <p className="text-xs bg-red-100 p-2 rounded border font-mono">
+                                                                            Technical: {lastError.length > 150 ? lastError.substring(0, 150) + '...' : lastError}
+                                                                        </p>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p>{lastError}</p>
+                                                                )}
+                                                            </div>
+                                                            {submitAttempts < 3 && lastError.includes('SqlServerRetryingExecutionStrategy') && (
+                                                                <p className="text-xs text-red-600 mt-2">
+                                                                    💡 Tip: This error usually resolves with a retry. Click "Retry" or "Send Quotation" again.
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setLastError(null)}
+                                                            className="text-red-400 hover:text-red-600"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Progress indicator for individual sends */}
+                                            {fallbackMode && Object.keys(individualSendProgress).length > 0 && (
+                                                <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                                                    <h4 className="text-sm font-medium text-blue-900 mb-3">Individual Send Progress:</h4>
+                                                    <div className="space-y-2">
+                                                        {selectedIds.map(id => {
+                                                            const requirement = filteredRequirements.find(r => r.requirementId === id);
+                                                            const status = individualSendProgress[id] || 'pending';
+                                                            const statusConfig = {
+                                                                pending: { color: 'text-gray-600', icon: '⏳', bgColor: 'bg-gray-100' },
+                                                                sending: { color: 'text-blue-600', icon: '📤', bgColor: 'bg-blue-100' },
+                                                                success: { color: 'text-green-600', icon: '✅', bgColor: 'bg-green-100' },
+                                                                error: { color: 'text-red-600', icon: '❌', bgColor: 'bg-red-100' }
+                                                            };
+                                                            
+                                                            return (
+                                                                <div key={id} className={`flex items-center justify-between p-2 rounded ${statusConfig[status].bgColor}`}>
+                                                                    <span className="text-sm font-medium">
+                                                                        {requirement?.requirementTitle || `Requirement ${id}`}
+                                                                    </span>
+                                                                    <span className={`text-sm font-medium flex items-center gap-1 ${statusConfig[status].color}`}>
+                                                                        <span>{statusConfig[status].icon}</span>
+                                                                        <span className="capitalize">{status}</span>
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Error display */}
+                                            {lastError && (
+                                                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="flex-shrink-0">
+                                                            <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <h4 className="text-sm font-medium text-red-800">Last Error:</h4>
+                                                            <p className="text-sm text-red-700 mt-1">{lastError}</p>
+                                                            {retryCount > 0 && (
+                                                                <p className="text-xs text-red-600 mt-1">After {retryCount} retry attempts</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Modal Footer */}
                                             <div className="flex justify-end gap-3 pt-4 border-t">
                                                 <button 
@@ -648,18 +1133,68 @@ export default function CompanyRequirementsPage() {
                                                 >
                                                     Cancel
                                                 </button>
+                                                
+                                                {/* Try Individual Send button for transaction errors */}
+                                                {lastError && !isSendingQuotation && !fallbackMode && 
+                                                 (lastError.includes('SqlServerRetryingExecutionStrategy') || 
+                                                  lastError.includes('execution strategy') ||
+                                                  lastError.includes('user-initiated transactions')) && (
+                                                    <button 
+                                                        type="button"
+                                                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                                        onClick={() => {
+                                                            setFallbackMode(true);
+                                                            setLastError(null);
+                                                            handleSendQuotation(0);
+                                                        }}
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                        </svg>
+                                                        Try Individual Send
+                                                    </button>
+                                                )}
+                                                
+                                                {/* Regular retry button for other errors */}
+                                                {lastError && !isSendingQuotation && submitAttempts > 0 && !fallbackMode &&
+                                                 !(lastError.includes('SqlServerRetryingExecutionStrategy') || 
+                                                   lastError.includes('execution strategy') ||
+                                                   lastError.includes('user-initiated transactions')) && (
+                                                    <button 
+                                                        type="button"
+                                                        className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                                        onClick={() => handleSendQuotation(0)}
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                        </svg>
+                                                        Retry
+                                                    </button>
+                                                )}
+                                                
                                                 <button 
                                                     type="submit" 
                                                     className="bg-[#2b4b93] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-                                                    disabled={isSendingQuotation}
+                                                    disabled={isSendingQuotation || Object.values(quotationStatus).some(status => status !== 'available')}
+                                                    title={Object.values(quotationStatus).some(status => status !== 'available') ? 'Please remove problematic requirements before sending' : ''}
                                                 >
                                                     {isSendingQuotation ? (
                                                         <>
                                                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                            Sending...
+                                                            {isRetrying ? `Retrying... (Attempt ${submitAttempts + 1})` : 'Sending...'}
+                                                        </>
+                                                    ) : Object.values(quotationStatus).some(status => status !== 'available') ? (
+                                                        <>
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 17.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                            </svg>
+                                                            Cannot Send - Issues Detected
                                                         </>
                                                     ) : (
-                                                        'Send Quotation'
+                                                        <>
+                                                            <DollarSign className="w-4 h-4" />
+                                                            Send Quotation
+                                                        </>
                                                     )}
                                                 </button>
                                             </div>
@@ -753,7 +1288,11 @@ export default function CompanyRequirementsPage() {
                                     {paginatedRequirements.map((req) => (
                                         <tr
                                             key={req.requirementId}
-                                            className={`hover:bg-gray-50 ${req.isNew ? 'bg-blue-50 animate-highlight' : ''}`}
+                                            className={`transition-all duration-200 ${
+                                                selectedIds.includes(req.requirementId) 
+                                                    ? 'bg-blue-50 border-l-4 border-l-blue-500 shadow-sm' 
+                                                    : 'hover:bg-gray-50'
+                                            } ${req.isNew ? 'bg-yellow-50 animate-highlight' : ''}`}
                                             style={req.isNew ? { transition: 'background-color 0.5s' } : {}}
                                         >
                                             <td className="px-4 py-4">
