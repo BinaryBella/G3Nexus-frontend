@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { CreditCard, DollarSign, Calendar, FileText, TrendingUp, Search, AlertTriangle, CheckCircle, Eye, X, ArrowLeft } from 'lucide-react';
+import { CreditCard, DollarSign, Calendar, FileText, TrendingUp, Search, AlertTriangle, CheckCircle, Eye, X, ArrowLeft, Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
 import { Payment } from '@/app/lib/types';
@@ -113,7 +113,7 @@ const AttachmentModal = ({ isOpen, onClose, payment }: {
 
 const ClientPaymentsPage: React.FC = () => {
     const [searchText, setSearchText] = useState("");
-const router = useRouter();
+    const router = useRouter();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
     const { user } = useAuth();
@@ -183,13 +183,6 @@ const router = useRouter();
             <div className="min-h-screen bg-gray-50 p-6">
                 {/* Header */}
                 <div className="mb-8">
-                    <button
-                        onClick={() => router.push('/company/payments')}
-                        className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
-                    >
-                        <ArrowLeft className="h-5 w-5 mr-2" />
-                        Back to Payments
-                    </button>
                     <div className="flex justify-between items-center mb-6">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
@@ -198,6 +191,12 @@ const router = useRouter();
                             </h1>
                             <p className="text-gray-600 mt-2">View your project payment history and details</p>
                         </div>
+                        <button
+                            onClick={() => router.push('/client/payments/add-payment')}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#3450A3] text-white rounded-lg hover:bg-[#2A4082] transition-colors"
+                        >
+                            Make Payment
+                        </button>
                     </div>
 
                     {/* Stats Cards */}
