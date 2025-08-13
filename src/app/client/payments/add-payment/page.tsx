@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
 import { projectService } from '@/app/lib/services/projectService';
 import { fileService } from '@/app/lib/services/fileService';
+import { authService } from '@/app/lib/services';
 import { Payment } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { CLIENT_ADMIN, CLIENT_USER, ADVANCE_PAYMENT, BUG_PAYMENT, REQUIREMENT_PAYMENT, FINAL_PAYMENT } from '@/app/lib/constants';
@@ -168,8 +169,35 @@ const AddPaymentPage: React.FC = () => {
         setIsSubmitting(true);
 
         try {
+            // Get clientId from authenticated user
+            console.log('Current user:', user);
+            let clientId = user?.clientId;
+            
+            // If clientId is not available from user context, try to fetch it
+            if (!clientId) {
+                console.log('ClientId not in user context, fetching from auth service...');
+                try {
+                    const fetchedClientId = await authService.getClientId();
+                    console.log('ClientId from auth service:', fetchedClientId);
+                    if (fetchedClientId) {
+                        clientId = fetchedClientId;
+                    }
+                } catch (error) {
+                    console.error('Error fetching clientId from auth service:', error);
+                }
+            }
+            
+            if (!clientId) {
+                console.error('ClientId not found. User object:', user);
+                setErrors({ submit: 'Unable to determine client ID. Please try logging in again or contact support.' });
+                return;
+            }
+
+            console.log('Creating payment with clientId:', clientId);
+
             const paymentData: Omit<Payment, 'paymentId'> = {
                 projectId: parseInt(formData.projectId),
+                clientId: clientId,
                 paymentAmount: formData.paymentAmount,
                 paymentType: formData.paymentType,
                 paymentDescription: formData.paymentDescription,
@@ -177,6 +205,8 @@ const AddPaymentPage: React.FC = () => {
                 attachment: '', // Will be set by the mutation function
                 isActive: true
             };
+
+            console.log('Payment data to be sent:', paymentData);
 
             await createPaymentMutation.mutateAsync({
                 paymentData,

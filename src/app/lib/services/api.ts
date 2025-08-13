@@ -154,10 +154,14 @@ const getUserFromToken = (accessToken: string): AuthUser | null => {
 
     const userId = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
 
+    // Extract clientId from JWT payload
+    const clientId = payload.clientId || payload['ClientId'] || payload['client_id'];
+
     console.log('Extracted user data:', {
         email: userEmail,
         role: role,
         id: userId,
+        clientId: clientId,
         payload: payload
     });
 
@@ -165,7 +169,8 @@ const getUserFromToken = (accessToken: string): AuthUser | null => {
         email: userEmail,
         role: role,
         isActive: true,
-        userId: parseInt(userId)
+        userId: parseInt(userId),
+        clientId: clientId ? parseInt(clientId) : undefined
     };
     
     console.log('Final user data object:', userData);
@@ -201,12 +206,26 @@ export const authService = {
 
         const user = getUserFromToken(accessToken);
         const isClient = authService.isClient();
-        if (isClient) {
-            debugger;
-            var clientData = await profileService.getClientById(user!.userId);
-            const companyId = clientData.data.companyId;
-            const companyData = await companyService.getCompanyById(companyId);
-            user!.organizationName = companyData.companyName
+        if (isClient && user) {
+            try {
+                console.log('Fetching client data for userId:', user.userId);
+                var clientData = await profileService.getClientById(user.userId);
+                console.log('Client data received:', clientData);
+                
+                if (clientData && clientData.data) {
+                    const companyId = clientData.data.companyId;
+                    const companyData = await companyService.getCompanyById(companyId);
+                    user.organizationName = companyData.companyName;
+                    // Set the clientId from the profile data
+                    user.clientId = clientData.data.id;
+                    console.log('Set clientId to:', user.clientId);
+                } else {
+                    console.warn('No client data found for userId:', user.userId);
+                }
+            } catch (error) {
+                console.error('Error fetching client profile:', error);
+                // Don't throw here, let the user continue but without client data
+            }
         }
         if (!user) {
             throw new Error('Invalid access token');
@@ -319,6 +338,57 @@ export const authService = {
             return response.data;
         } catch (error) {
             throw error;
+        }
+    },
+
+    // Get client ID for the current authenticated user
+    getClientId: async (): Promise<number | null> => {
+        try {
+            const { accessToken } = authService.getTokens();
+            if (!accessToken) {
+                throw new Error('No access token found');
+            }
+
+            const user = getUserFromToken(accessToken);
+            if (!user || !authService.isClient()) {
+                return null;
+            }
+
+            // Try to get clientId from JWT first
+            if (user.clientId) {
+                console.log('ClientId found in JWT:', user.clientId);
+                return user.clientId;
+            }
+
+            // Fallback: Try to get client by userId
+            try {
+                console.log('Fetching client data by userId:', user.userId);
+                const clientData = await profileService.getClientById(user.userId);
+                if (clientData && clientData.data && clientData.data.id) {
+                    console.log('ClientId found via profile service:', clientData.data.id);
+                    return clientData.data.id;
+                }
+            } catch (error) {
+                console.log('Failed to get client by userId, trying by email...');
+            }
+
+            // Fallback: Get client by email
+            try {
+                console.log('Fetching client data by email:', user.email);
+                const response = await api.get(`/Client/email/${encodeURIComponent(user.email)}`);
+                if (response.data && response.data.data && response.data.data.id) {
+                    console.log('ClientId found via email lookup:', response.data.data.id);
+                    return response.data.data.id;
+                }
+            } catch (error) {
+                console.error('Failed to get client by email:', error);
+            }
+
+            console.warn('Could not determine client ID for user:', user);
+            return null;
+        } catch (error) {
+            console.error('Error getting client ID:', error);
+            return null;
         }
     },
 };

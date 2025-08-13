@@ -21,6 +21,7 @@ export interface AuthUser {
     role: string,
     isActive: boolean,
     userId: number,
+    clientId?: number,
     organizationName?: string,
 }
 
@@ -129,6 +130,7 @@ export interface Bug {
 export interface Payment {
     paymentId: number;
     projectId: number;
+    clientId: number;
     paymentAmount: string;
     paymentType: string;
     paymentDescription: string;

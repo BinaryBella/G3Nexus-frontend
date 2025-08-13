@@ -77,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 try {
                     const userData = await authService.getCurrentUser();
                     console.log('User data extracted from token:', userData);
+                    console.log('User clientId:', userData.clientId);
                     setUser(userData);
                     setIsAuthenticated(true);
                     // Redirect based on user role
