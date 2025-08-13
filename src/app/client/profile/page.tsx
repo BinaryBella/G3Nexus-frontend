@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, ChangeEvent } from 'react';
 import Image from 'next/image';
-import { Camera, Lock, User, Mail, Phone, MapPin } from 'lucide-react';
+import { Camera, Lock, User, Mail, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import api, { authService } from '@/app/lib/services/api';
@@ -55,6 +55,11 @@ export default function ProfilePage() {
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+    const [showPasswords, setShowPasswords] = useState({
+        oldPassword: false,
+        newPassword: false,
+        confirmPassword: false
+    });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -148,6 +153,13 @@ export default function ProfilePage() {
         setPasswordData((prev) => ({
             ...prev,
             [name]: value,
+        }));
+    };
+
+    const togglePasswordVisibility = (field: keyof typeof showPasswords) => {
+        setShowPasswords(prev => ({
+            ...prev,
+            [field]: !prev[field]
         }));
     };
 
@@ -473,7 +485,7 @@ export default function ProfilePage() {
                                                     name="name"
                                                     value={profileData.name}
                                                     onChange={handleProfileInputChange}
-                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
+                                                    className="w-full text-black px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
                                                     required
                                                     placeholder="Enter your full name"
                                                 />
@@ -491,7 +503,7 @@ export default function ProfilePage() {
                                                     name="contactNo"
                                                     value={profileData.contactNo}
                                                     onChange={handleProfileInputChange}
-                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
+                                                    className="w-full text-black px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
                                                     required
                                                     placeholder="Enter your contact number"
                                                 />
@@ -508,7 +520,7 @@ export default function ProfilePage() {
                                                     id="emailAddress"
                                                     name="emailAddress"
                                                     value={profileData.emailAddress}
-                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                                                    className="w-full text-black px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                                                     readOnly
                                                     placeholder="Email address"
                                                 />
@@ -527,7 +539,7 @@ export default function ProfilePage() {
                                                     name="address"
                                                     value={profileData.address}
                                                     onChange={handleProfileInputChange}
-                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
+                                                    className="w-full text-black px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
                                                     required
                                                     placeholder="Enter your address"
                                                 />
@@ -565,16 +577,31 @@ export default function ProfilePage() {
                                             <Lock className="w-4 h-4 inline mr-2" />
                                             Current Password
                                         </label>
-                                        <input
-                                            type="password"
-                                            id="oldPassword"
-                                            name="oldPassword"
-                                            value={passwordData.oldPassword}
-                                            onChange={handlePasswordInputChange}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
-                                            required
-                                            placeholder="Enter your current password"
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type={showPasswords.oldPassword ? "text" : "password"}
+                                                id="oldPassword"
+                                                name="oldPassword"
+                                                value={passwordData.oldPassword}
+                                                onChange={handlePasswordInputChange}
+                                                className="w-full text-black px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
+                                                required
+                                                placeholder="Enter your current password"
+                                            />
+                                            {passwordData.oldPassword && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => togglePasswordVisibility('oldPassword')}
+                                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                                >
+                                                    {showPasswords.oldPassword ? (
+                                                        <EyeOff className="h-5 w-5" />
+                                                    ) : (
+                                                        <Eye className="h-5 w-5" />
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* New Password */}
@@ -583,17 +610,32 @@ export default function ProfilePage() {
                                             <Lock className="w-4 h-4 inline mr-2" />
                                             New Password
                                         </label>
-                                        <input
-                                            type="password"
-                                            id="newPassword"
-                                            name="newPassword"
-                                            value={passwordData.newPassword}
-                                            onChange={handlePasswordInputChange}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
-                                            required
-                                            minLength={8}
-                                            placeholder="Enter new password (min 8 characters)"
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type={showPasswords.newPassword ? "text" : "password"}
+                                                id="newPassword"
+                                                name="newPassword"
+                                                value={passwordData.newPassword}
+                                                onChange={handlePasswordInputChange}
+                                                className="w-full text-black px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
+                                                required
+                                                minLength={8}
+                                                placeholder="Enter new password (min 8 characters)"
+                                            />
+                                            {passwordData.newPassword && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => togglePasswordVisibility('newPassword')}
+                                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                                >
+                                                    {showPasswords.newPassword ? (
+                                                        <EyeOff className="h-5 w-5" />
+                                                    ) : (
+                                                        <Eye className="h-5 w-5" />
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Confirm New Password */}
@@ -602,17 +644,32 @@ export default function ProfilePage() {
                                             <Lock className="w-4 h-4 inline mr-2" />
                                             Confirm New Password
                                         </label>
-                                        <input
-                                            type="password"
-                                            id="confirmPassword"
-                                            name="confirmPassword"
-                                            value={passwordData.confirmPassword}
-                                            onChange={handlePasswordInputChange}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
-                                            required
-                                            minLength={8}
-                                            placeholder="Confirm your new password"
-                                        />
+                                        <div className="relative">
+                                            <input
+                                                type={showPasswords.confirmPassword ? "text" : "password"}
+                                                id="confirmPassword"
+                                                name="confirmPassword"
+                                                value={passwordData.confirmPassword}
+                                                onChange={handlePasswordInputChange}
+                                                className="w-full text-black px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-transparent transition-colors"
+                                                required
+                                                minLength={8}
+                                                placeholder="Confirm your new password"
+                                            />
+                                            {passwordData.confirmPassword && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => togglePasswordVisibility('confirmPassword')}
+                                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                                                >
+                                                    {showPasswords.confirmPassword ? (
+                                                        <EyeOff className="h-5 w-5" />
+                                                    ) : (
+                                                        <Eye className="h-5 w-5" />
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 

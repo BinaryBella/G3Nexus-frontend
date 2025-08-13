@@ -9,7 +9,7 @@ import { projectService } from '@/app/lib/services/projectService';
 import { fileService } from '@/app/lib/services/fileService';
 import { Payment } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
-import { CLIENT_ADMIN, CLIENT_USER } from '@/app/lib/constants';
+import { CLIENT_ADMIN, CLIENT_USER, ADVANCE_PAYMENT, BUG_PAYMENT, REQUIREMENT_PAYMENT, FINAL_PAYMENT } from '@/app/lib/constants';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 interface PaymentFormData {
@@ -47,10 +47,10 @@ const AddPaymentPage: React.FC = () => {
     });
 
     const paymentTypes = [
-        { value: 'Milestone', label: 'Milestone Payment' },
-        { value: 'Final', label: 'Final Payment' },
-        { value: 'Deposit', label: 'Deposit' },
-        { value: 'Refund', label: 'Refund' },
+        { value: ADVANCE_PAYMENT, label: 'Advance Payment' },
+        { value: FINAL_PAYMENT, label: 'Final Payment' },
+        { value: REQUIREMENT_PAYMENT, label: 'Payment for Requirement' },
+        { value: BUG_PAYMENT, label: 'Payment for Bug Fix' },
     ];
 
     const createPaymentMutation = useMutation({

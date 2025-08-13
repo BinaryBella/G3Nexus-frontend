@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { CreditCard, DollarSign, Calendar, FileText, TrendingUp, Search, AlertTriangle, CheckCircle, Eye, X, ArrowLeft, Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
+import { projectService } from '@/app/lib/services/projectService';
 import { Payment } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { CLIENT_ADMIN, CLIENT_USER } from '@/app/lib/constants';
@@ -41,10 +42,11 @@ const PaymentTypeBadge = ({ type }: { type: string }) => {
 };
 
 // Modal component for viewing payment attachments
-const AttachmentModal = ({ isOpen, onClose, payment }: {
+const AttachmentModal = ({ isOpen, onClose, payment, projectNames }: {
     isOpen: boolean;
     onClose: () => void;
     payment: Payment | null;
+    projectNames: Record<number, string>;
 }) => {
     if (!isOpen || !payment) return null;
 
@@ -56,7 +58,9 @@ const AttachmentModal = ({ isOpen, onClose, payment }: {
                 {/* Modal Header */}
                 <div className="flex items-center justify-between p-6 border-b">
                     <div>
-                        <h2 className="text-xl font-semibold text-gray-900">Payment #{payment.paymentId}</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">
+                            {projectNames[payment.projectId] || `Project #${payment.projectId}`}
+                        </h2>
                         <p className="text-sm text-gray-600">Payment Details</p>
                     </div>
                     <button
@@ -116,6 +120,7 @@ const ClientPaymentsPage: React.FC = () => {
     const router = useRouter();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+    const [projectNames, setProjectNames] = useState<Record<number, string>>({});
     const { user } = useAuth();
 
     const { data: payments = [], error, isLoading } = useQuery<Payment[], Error>({
@@ -124,11 +129,42 @@ const ClientPaymentsPage: React.FC = () => {
         enabled: !!user?.email,
     });
 
-    const filteredPayments = payments.filter(payment =>
-        payment.paymentDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
-        payment.paymentType?.toLowerCase().includes(searchText.toLowerCase()) ||
-        payment.paymentAmount?.toString().includes(searchText.toLowerCase())
-    );
+    // Fetch project names for all payments
+    useEffect(() => {
+        const fetchProjectNames = async () => {
+            if (payments.length > 0) {
+                const projectIds = Array.from(new Set(payments.map(payment => payment.projectId)));
+                const projectNamesMap: Record<number, string> = {};
+
+                try {
+                    await Promise.all(
+                        projectIds.map(async (projectId) => {
+                            try {
+                                const project = await projectService.getProjectById(projectId);
+                                projectNamesMap[projectId] = project.projectName;
+                            } catch (error) {
+                                console.error(`Failed to fetch project ${projectId}:`, error);
+                                projectNamesMap[projectId] = `Project #${projectId}`;
+                            }
+                        })
+                    );
+                    setProjectNames(projectNamesMap);
+                } catch (error) {
+                    console.error('Error fetching project names:', error);
+                }
+            }
+        };
+
+        fetchProjectNames();
+    }, [payments]);
+
+    const filteredPayments = payments.filter(payment => {
+        const projectName = projectNames[payment.projectId] || '';
+        return payment.paymentDescription?.toLowerCase().includes(searchText.toLowerCase()) ||
+               payment.paymentType?.toLowerCase().includes(searchText.toLowerCase()) ||
+               payment.paymentAmount?.toString().includes(searchText.toLowerCase()) ||
+               projectName.toLowerCase().includes(searchText.toLowerCase());
+    });
 
     const stats = {
         total: payments.length,
@@ -244,7 +280,7 @@ const ClientPaymentsPage: React.FC = () => {
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                         <input
                             type="text"
-                            placeholder="Search payments by description, type, or amount..."
+                            placeholder="Search payments by project name, description, type, or amount..."
                             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             value={searchText}
                             onChange={(e) => setSearchText(e.target.value)}
@@ -267,11 +303,10 @@ const ClientPaymentsPage: React.FC = () => {
                             <table className="w-full">
                                 <thead className="bg-gray-50 border-b">
                                     <tr>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Details</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Details</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                     </tr>
                                 </thead>
@@ -280,7 +315,9 @@ const ClientPaymentsPage: React.FC = () => {
                                         <tr key={payment.paymentId} className="hover:bg-gray-50">
                                             <td className="px-6 py-4">
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-900">Payment #{payment.paymentId}</p>
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                        {projectNames[payment.projectId] || `Project #${payment.projectId}`}
+                                                    </p>
                                                     <p className="text-sm text-gray-600 truncate max-w-xs">{payment.paymentDescription}</p>
                                                 </div>
                                             </td>
@@ -292,9 +329,6 @@ const ClientPaymentsPage: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-600">
                                                 {new Date(payment.paymentDate).toLocaleDateString()}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <PaymentStatusBadge status={payment.isActive} />
                                             </td>
                                             <td className="px-6 py-4">
                                                 <button
@@ -318,6 +352,7 @@ const ClientPaymentsPage: React.FC = () => {
                     isOpen={isModalOpen}
                     onClose={closeModal}
                     payment={selectedPayment}
+                    projectNames={projectNames}
                 />
             </div>
         </ProtectedRoute>
