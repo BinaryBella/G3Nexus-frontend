@@ -70,10 +70,10 @@ const sectionsConfig = [
         description: 'Track payments and invoices'
     },
     {
-        title: 'Payment Records',
-        icon: CreditCard,
-        route: '/company/payments',
-        description: 'Manage payment transactions'
+        title: 'Terms & Conditions',
+        icon: FileText,
+        route: '/company/terms',
+        description: 'Manage terms and conditions'
     },
     {
         title: 'Employee Details',
@@ -276,13 +276,6 @@ const ProjectsPage = () => {
                                                 <p className="text-sm leading-relaxed flex-1 transition-all duration-500 text-gray-600 group-hover:text-blue-100">
                                                     {section.description}
                                                 </p>
-                                            </div>
-
-                                            {/* Action Footer */}
-                                            <div className="relative z-10 flex items-center justify-between mt-6 pt-6 border-t transition-all duration-500 border-gray-200/50 group-hover:border-white/30">
-                                                <span className="text-xs font-bold uppercase tracking-wider transition-all duration-500 text-gray-500 group-hover:text-blue-200">
-                                                    Access
-                                                </span>
                                             </div>
                                         </div>
                                     </Link>

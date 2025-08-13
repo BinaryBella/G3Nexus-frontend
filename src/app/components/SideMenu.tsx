@@ -22,7 +22,6 @@ const companyMenuItems: MenuItem[] = [
     { title: 'Requirements', path: '/company/requirements', icon: FileText, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Bug Reports', path: '/company/bugs', icon: Bug, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Financial Details', path: '/company/financial', icon: ClipboardList, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
-    { title: 'Payments', path: '/company/payments', icon: DollarSign, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Terms & Conditions', path: '/company/terms', icon: File, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
 ];
 
