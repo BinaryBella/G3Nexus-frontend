@@ -19,6 +19,16 @@ export interface Project {
   status: string;
   isActive: boolean;
   companyId?: number; // Optional for backwards compatibility
+  clientName?: string;
+  clientEmail?: string;
+  quotationCost?: {
+    advancePayment: number;
+    developmentCost: number;
+    hostingAndDomain: number;
+    sslCertificate: number;
+    serverCost: number;
+    deploymentCost: number;
+  };
 }
 
 export const projectService = {
@@ -85,7 +95,41 @@ export const projectService = {
   // Update project
   updateProject: async (id: number, projectData: Partial<Omit<Project, 'projectId'>>): Promise<Project> => {
     try {
-      const response = await api.put<ApiResponse<Project>>(`/Project/${id}`, projectData);
+      // First fetch the existing project data
+      const existingProject = await projectService.getProjectById(id);
+      
+      // Merge existing data with updates
+      const updatePayload = {
+        projectId: id,
+        projectName: existingProject.projectName,
+        projectType: existingProject.projectType,
+        projectSize: existingProject.projectSize,
+        creationDate: existingProject.creationDate,
+        projectDescription: existingProject.projectDescription || "",
+        estimatedBudget: existingProject.estimatedBudget,
+        actualStartDate: existingProject.actualStartDate,
+        actualEndDate: existingProject.actualEndDate,
+        totalBudget: existingProject.totalBudget,
+        paymentType: existingProject.paymentType || "Advance Payment",
+        paymentStatus: existingProject.paymentStatus || "Pending",
+        status: existingProject.status,
+        isActive: existingProject.isActive,
+        companyId: existingProject.companyId,
+        clientName: existingProject.clientName || "",
+        clientEmail: existingProject.clientEmail || "",
+        quotationCost: existingProject.quotationCost || {
+          advancePayment: 0,
+          developmentCost: 0,
+          hostingAndDomain: 0,
+          sslCertificate: 0,
+          serverCost: 0,
+          deploymentCost: 0
+        },
+        // Override with the provided updates
+        ...projectData
+      };
+      
+      const response = await api.put<ApiResponse<Project>>('/Project', updatePayload);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update project');
