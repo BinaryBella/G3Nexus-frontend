@@ -30,7 +30,6 @@ interface ProjectFormData {
     // More Details fields
     actualStartDate: string;
     actualEndDate: string;
-    totalBudget: string;
     paymentType: string;
     paymentStatus: string;
     // Client fields
@@ -78,9 +77,8 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         status: 'Active',
         actualStartDate: '',
         actualEndDate: '',
-        totalBudget: '',
-        paymentType: '',
-        paymentStatus: '',
+        paymentType: 'Advance Payment',
+        paymentStatus: 'Pending',
         clientName: '',
         clientEmail: '',
     });
@@ -191,11 +189,6 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
             setError('Estimated Budget must be a valid number (up to 2 decimal places)');
             return;
         }
-        // Validate Total Budget format
-        if (formData.totalBudget && !/^\d+(\.\d{1,2})?$/.test(formData.totalBudget)) {
-            setError('Total Budget must be a valid number (up to 2 decimal places)');
-            return;
-        }
         // Validate Actual Start Date is earlier than Actual End Date
         if (formData.actualStartDate && formData.actualEndDate) {
             const start = new Date(formData.actualStartDate);
@@ -215,7 +208,6 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
             estimatedBudget: parseFloat(formData.estimatedBudget) || 0,
             actualStartDate: formData.actualStartDate,
             actualEndDate: formData.actualEndDate,
-            totalBudget: parseFloat(formData.totalBudget) || 0,
             paymentType: formData.paymentType,
             paymentStatus: formData.paymentStatus,
             status: formData.status,
@@ -249,20 +241,43 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         return (getTotalCost() * 0.25).toFixed(2);
     };
 
-    // Handle cost input changes
+    // Handle cost input changes with real-time validation
     const handleCostInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        if (!/^\d*(\.\d{0,2})?$/.test(value)) return; // Only allow numbers and 2 decimals
-        setCostInputs((prev) => ({ ...prev, [name]: value }));
+        // Allow empty value or valid number with up to 2 decimal places
+        if (value === '' || /^\d*(\.\d{0,2})?$/.test(value)) {
+            setCostInputs((prev) => ({ ...prev, [name]: value }));
+            // Clear error when user starts typing
+            if (costError && value !== '') {
+                setCostError(null);
+            }
+        }
     };
 
     // Step 1: Confirm cost breakdown, then fetch terms and go to step 2
     const handleCostModalNext = async () => {
         setCostError(null);
-        if (!costInputs.development || !costInputs.hosting || !costInputs.ssl || !costInputs.server || !costInputs.deployment) {
-            setCostError('Please fill in all cost fields.');
+        
+        // Validate all cost fields are filled
+        const emptyFields = [];
+        if (!costInputs.development || parseFloat(costInputs.development) <= 0) emptyFields.push('Development Cost');
+        if (!costInputs.hosting || parseFloat(costInputs.hosting) <= 0) emptyFields.push('Hosting & Domain');
+        if (!costInputs.ssl || parseFloat(costInputs.ssl) <= 0) emptyFields.push('SSL Certificate');
+        if (!costInputs.server || parseFloat(costInputs.server) <= 0) emptyFields.push('Server Setup');
+        if (!costInputs.deployment || parseFloat(costInputs.deployment) <= 0) emptyFields.push('Deployment Cost');
+        
+        if (emptyFields.length > 0) {
+            setCostError(`Please enter valid amounts for: ${emptyFields.join(', ')}`);
             return;
         }
+
+        // Validate minimum total cost
+        const totalCost = getTotalCost();
+        if (totalCost < 1000) {
+            setCostError('Total project cost should be at least Rs. 1,000');
+            return;
+        }
+        
         setTermsLoading(true);
         setTermsError(null);
         try {
@@ -321,18 +336,19 @@ const handleTermsModalConfirm = async () => {
                 }));
 
             // Create the payload matching the API schema exactly
+            const calculatedTotalCost = getTotalCost();
             const requestPayload = {
                 projectName: pendingProjectData.projectName,
                 projectType: pendingProjectData.projectType,
                 projectSize: pendingProjectData.projectSize,
                 creationDate: pendingProjectData.creationDate || new Date().toISOString(),
                 projectDescription: pendingProjectData.projectDescription || "",
-                estimatedBudget: getTotalCost(),
+                estimatedBudget: calculatedTotalCost,
                 actualStartDate: pendingProjectData.actualStartDate || null,
                 actualEndDate: pendingProjectData.actualEndDate || null,
-                totalBudget: pendingProjectData.totalBudget || 0,
-                paymentType: pendingProjectData.paymentType || "",
-                paymentStatus: pendingProjectData.paymentStatus || "",
+                totalBudget: calculatedTotalCost, // Use the calculated total cost from the modal
+                paymentType: pendingProjectData.paymentType, // Will always be "Advance Payment"
+                paymentStatus: pendingProjectData.paymentStatus, // Will always be "Pending"
                 status: pendingProjectData.status,
                 isActive: pendingProjectData.isActive,
                 companyId: pendingProjectData.companyId,
@@ -480,9 +496,11 @@ const handleTermsModalConfirm = async () => {
                         </div>
                         {costModalStep === 0 && (
                             <>
-                                <h2 className="text-2xl font-bold mb-2 text-black">Project Cost Breakdown & Advance Payment</h2>
+                                <h2 className="text-2xl font-bold mb-2 text-black">Project Cost Breakdown & Budget Calculation</h2>
                                 <div className="mb-4 text-gray-700 text-sm">
-                                    Please fill in the cost amounts for each item below. The system will calculate the <b>Total Project Cost</b> and the <b>Advance Payment (25%)</b> automatically.
+                                    Please fill in the cost amounts for each item below. The system will calculate the <b>Total Project Budget</b> and the <b>Advance Payment (25%)</b> automatically. 
+                                    <br />
+                                    <span className="text-blue-600 font-medium">This calculated total will be saved as the project's Total Budget in the database.</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
@@ -551,14 +569,14 @@ const handleTermsModalConfirm = async () => {
                                         />
                                     </div>
                                 </div>
-                                <div className="mt-6 border-t pt-4 space-y-2">
-                                    <div className="flex justify-between text-base font-semibold">
-                                        <span className='text-black'>Total Project Cost</span>
-                                        <span className='text-black'>Rs. {getTotalCost().toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                <div className="mt-6 border-t pt-4 space-y-3">
+                                    <div className="flex justify-between text-lg font-bold bg-blue-50 p-3 rounded-md border-l-4 border-blue-500">
+                                        <span className='text-[#3450A3]'>Total Project Budget</span>
+                                        <span className='text-[#3450A3]'>Rs. {getTotalCost().toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                                     </div>
-                                    <div className="flex justify-between text-base">
-                                        <span className='text-black'>Advance Payment (25%)</span>
-                                        <span className='text-black'>Rs. {getAdvance()}</span>
+                                    <div className="flex justify-between text-base text-[#9c9c9c] bg-green-50 p-3 rounded-md border-l-4 border-green-500">
+                                        <span className='font-medium'>Advance Payment (25%)</span>
+                                        <span className='font-semibold'>Rs. {parseFloat(getAdvance()).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                                     </div>
                                 </div>
                                 <div className="mt-6 text-sm text-black">
@@ -589,7 +607,13 @@ const handleTermsModalConfirm = async () => {
                         {costModalStep === 1 && (
                             <>
                                 <h2 className="text-2xl font-bold mb-2 text-black">Terms & Conditions</h2>
-                                <div className="mb-4 text-gray-700 text-sm">Please review and agree to the terms and conditions before sending the quotation.</div>
+                                <div className="mb-4 text-gray-700 text-sm">
+                                    Please review and agree to the terms and conditions before creating the project.
+                                    <br />
+                                    <span className="text-blue-600 font-medium">Total Budget of Rs. {getTotalCost().toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} will be saved to the project record.</span>
+                                    <br />
+                                    <span className="text-green-600 font-medium">Payment Type: "Advance Payment" | Payment Status: "Pending"</span>
+                                </div>
                                 {termsLoading ? (
                                     <div className="text-gray-500">Loading terms and conditions...</div>
                                 ) : termsError ? (
@@ -800,31 +824,6 @@ const handleTermsModalConfirm = async () => {
                                 <div>
                                     <label htmlFor="actualEndDate" className="block text-sm font-medium text-gray-700 mb-2">Actual End Date</label>
                                     <input type="date" id="actualEndDate" name="actualEndDate" value={formData.actualEndDate} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" />
-                                </div>
-                                {/* Total Budget */}
-                                <div>
-                                    <label htmlFor="totalBudget" className="block text-sm font-medium text-gray-700 mb-2">Total Budget</label>
-                                    <input type="text" id="totalBudget" name="totalBudget" value={formData.totalBudget} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]" placeholder="Enter total budget" />
-                                </div>
-                                {/* Payment Type */}
-                                <div>
-                                    <label htmlFor="paymentType" className="block text-sm font-medium text-gray-700 mb-2">Payment Type</label>
-                                    <select id="paymentType" name="paymentType" value={formData.paymentType} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]">
-                                        <option value="">Select Payment Type</option>
-                                        <option value="fixed">Fixed</option>
-                                        <option value="hourly">Hourly</option>
-                                        <option value="milestone">Milestone</option>
-                                    </select>
-                                </div>
-                                {/* Payment Status */}
-                                <div>
-                                    <label htmlFor="paymentStatus" className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
-                                    <select id="paymentStatus" name="paymentStatus" value={formData.paymentStatus} onChange={handleChange} className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]">
-                                        <option value="">Select Payment Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="partial">Partial</option>
-                                        <option value="paid">Paid</option>
-                                    </select>
                                 </div>
                                 {/* Status */}
                                 <div>

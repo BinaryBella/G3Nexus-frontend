@@ -475,16 +475,8 @@ export default function CompanyBugsPage() {
             console.log('First bug data:', firstBug);
             console.log('Selected IDs:', selectedIds);
 
-            // Try different approach based on number of bugs
-            if (selectedBugs.length === 1) {
-                // Use single quotation endpoint for single bug
-                console.log('Using single bug quotation endpoint');
-                await bugService.sendQuotation(selectedBugs[0]);
-            } else {
-                // Use bulk quotation endpoint for multiple bugs
-                console.log('Using bulk bug quotation endpoint');
+            console.log('Using bulk bug quotation endpoint');
                 await bugService.sendBulkQuotation(bulkQuotationRequest);
-            }
 
             selectedBugs.forEach(async bugQ => {
                 const bug = await bugService.getBugById(bugQ.bugId);
