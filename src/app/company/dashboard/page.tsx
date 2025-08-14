@@ -83,7 +83,6 @@ const sectionsConfig = [
 ];
 
 const ProjectsPage = () => {
-    const { logout } = useAuth();
     const [currentSlide, setCurrentSlide] = useState(0);
 
     // Auto-advance carousel

@@ -168,7 +168,7 @@ const TermsAndConditionsPage = () => {
                                 Terms and Conditions Editor
                             </h2>
                             <p className="text-sm text-black mt-1">
-                                Edit your company's terms and conditions below.
+                                Edit your company&apos;s terms and conditions below.
                             </p>
                         </div>
                         <div className="text-right">
