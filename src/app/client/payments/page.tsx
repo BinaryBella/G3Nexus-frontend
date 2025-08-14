@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { CreditCard, DollarSign, Calendar, FileText, TrendingUp, Search, AlertTriangle, CheckCircle, Eye, X, ArrowLeft, Plus } from 'lucide-react';
+import { CreditCard, DollarSign, Calendar, FileText, Search, AlertTriangle, CheckCircle, Eye, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
 import { projectService } from '@/app/lib/services/projectService';
@@ -11,18 +11,6 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { CLIENT_ADMIN, CLIENT_USER } from '@/app/lib/constants';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-
-const PaymentStatusBadge = ({ status }: { status: boolean }) => {
-    return (
-        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-            status 
-                ? 'bg-green-100 text-green-800 border border-green-200' 
-                : 'bg-red-100 text-red-800 border border-red-200'
-        }`}>
-            {status ? 'Active' : 'Inactive'}
-        </span>
-    );
-};
 
 const PaymentTypeBadge = ({ type }: { type: string }) => {
     const colorMap: Record<string, string> = {

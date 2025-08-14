@@ -44,11 +44,11 @@ const DashboardPage = () => {
         const fetchProjects = async () => {
             // Using dummy data for demonstration
             try {
-                var user = await authService.getCurrentUser();
+                const user = await authService.getCurrentUser();
                 console.log('Current user:', user);
 
                 setLoading(true);
-                var projects = await projectService.getProjectsByClient(user.email);
+                const projects = await projectService.getProjectsByClient(user.email);
                 setProjects(projects);
                 setError(null);
             } catch (err) {
@@ -235,7 +235,7 @@ const DashboardPage = () => {
                                             No Projects Yet
                                         </h3>
                                         <p className="text-gray-500 max-w-md mx-auto">
-                                            Your project portfolio is waiting to be filled. New projects will appear here once they're assigned to your organization.
+                                            Your project portfolio is waiting to be filled. New projects will appear here once they&apos;re assigned to your organization.
                                         </p>
                                     </div>
                                 </div>

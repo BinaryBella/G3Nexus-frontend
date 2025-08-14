@@ -5,19 +5,6 @@ import Image from 'next/image';
 import { Camera, Lock, User, Mail, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
-import api, { authService } from '@/app/lib/services/api';
-
-interface UserProfile {
-    name: string;
-    contactNo: string;
-    emailAddress: string;
-    address: string;
-    role: string;
-    image?: string;
-    id?: number;
-    clientId?: number;
-    employeeId?: number;
-}
 
 interface ProfileFormData {
     name: string;

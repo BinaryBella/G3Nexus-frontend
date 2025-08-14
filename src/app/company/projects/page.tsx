@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileSearch, Search, Plus, FileText, AlertTriangle, CheckCircle, Clock, DollarSign, Edit, Trash2, Eye } from 'lucide-react';
+import { FileSearch, Search, Plus, FileText, AlertTriangle, CheckCircle, Clock, DollarSign, Edit, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { projectService, Project } from '@/app/lib/services/projectService';
 import Pagination from '@/app/components/Pagination';

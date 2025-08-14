@@ -30,7 +30,6 @@ const EditClientPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [designation, setDesignation] = useState('');
 
     // Fetch client data
     const { data: client, isLoading: clientLoading, error: clientError } = useQuery({

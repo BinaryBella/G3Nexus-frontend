@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CreditCard, Upload, X, ArrowLeft, DollarSign, Calendar, FileText, AlertCircle, FolderOpen } from 'lucide-react';
+import { Upload, X, ArrowLeft, DollarSign, Calendar, FileText, AlertCircle, FolderOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';

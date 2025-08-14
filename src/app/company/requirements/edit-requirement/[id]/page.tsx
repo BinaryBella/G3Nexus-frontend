@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { requirementService } from '@/app/lib/services/requirementService'; 
 import { Requirement } from '../../../../lib/types';
-import { FileText, ArrowLeft, X, Upload, Trash2, Download, Undo } from 'lucide-react';
+import { FileText, ArrowLeft, X, Upload, Trash2, Undo } from 'lucide-react';
 import { clientService, projectService } from '@/app/lib/services';
 
 // Modal Component for Notifications
@@ -56,7 +56,6 @@ const EditRequirementForm = () => {
     const [projects, setProjects] = useState<{ projectId: number; projectName: string }[]>([]);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
     const [attachmentToDelete, setAttachmentToDelete] = useState<string | null>(null);
 
     // Fetch requirement data
@@ -70,8 +69,8 @@ const EditRequirementForm = () => {
     useEffect(() => {
         const loadClientData = async () => {
             if (requirement) {
-                var client = await clientService.getClientById(requirement.clientId);
-                var clientProjects = await projectService.getProjectsByClient(client.email);
+                const client = await clientService.getClientById(requirement.clientId);
+                const clientProjects = await projectService.getProjectsByClient(client.email);
                 const selectedProject = clientProjects.find(p => p.projectId === requirement.projectId);
                 setProjects(clientProjects.map(p => ({ projectId: p.projectId, projectName: p.projectName })));
                 setProject(selectedProject?.projectId?.toString() || null);
@@ -159,7 +158,6 @@ const EditRequirementForm = () => {
     const handleFileDelete = async (filename: string, showModal = true) => {
         if (!filename) return;
 
-        setIsDeleting(true);
         try {
             const response = await fetch(`/api/upload/delete?filename=${encodeURIComponent(filename)}`, {
                 method: 'DELETE',
@@ -184,8 +182,6 @@ const EditRequirementForm = () => {
                 setModalMessage('Error deleting file. Please try again.');
                 setIsModalOpen(true);
             }
-        } finally {
-            setIsDeleting(false);
         }
     };
 
@@ -525,7 +521,7 @@ const EditRequirementForm = () => {
                                                         <span className="text-xs text-yellow-800">!</span>
                                                     </div>
                                                     <p className="text-sm text-yellow-800">
-                                                        Existing attachment "{getFileDisplayName(attachment)}" will be replaced by the new file
+                                                        Existing attachment &quot;{getFileDisplayName(attachment)}&quot; will be replaced by the new file
                                                     </p>
                                                 </div>
                                             </div>

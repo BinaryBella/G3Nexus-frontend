@@ -34,8 +34,6 @@ const RequirementDetailsModal = ({ isOpen, onClose, requirement }: {
 }) => {
     if (!isOpen || !requirement) return null;
 
-    const hasAttachment = requirement.attachment && requirement.attachment.trim() !== '';
-
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -191,7 +189,7 @@ export default function CompanyRequirementsPage() {
 
     // Create lookup maps for client and project names
     const clientNameMap = allClients.reduce((acc, client) => {
-        acc[client.id] = client.name;
+        acc[client.clientId] = client.name;
         return acc;
     }, {} as Record<number, string>);
 

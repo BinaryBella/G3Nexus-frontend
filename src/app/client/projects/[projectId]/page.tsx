@@ -23,7 +23,6 @@ import {
     Briefcase,
     FileText,
     Bug,
-    ClipboardList,
     CreditCard,
     ArrowRight
 } from 'lucide-react';
@@ -491,7 +490,7 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                                     <div className="text-center py-8">
                                         <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                                         <h3 className="text-lg font-medium text-gray-900 mb-2">No requirements found</h3>
-                                        <p className="text-gray-600 mb-4">This project doesn't have any requirements yet.</p>
+                                        <p className="text-gray-600 mb-4">This project doesn&apos;t have any requirements yet.</p>
                                         <button
                                             onClick={() => router.push(`/client/requirements?projectId=${projectId}`)}
                                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"

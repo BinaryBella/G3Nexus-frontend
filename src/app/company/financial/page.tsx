@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { DollarSign, CreditCard, TrendingUp, Calendar, Receipt, FileText, Plus, ArrowUpRight, ArrowDownRight, Eye, Search, Filter, Download, ExternalLink, X } from 'lucide-react';
+import { DollarSign, CreditCard, TrendingUp, Receipt, FileText, ArrowUpRight, ArrowDownRight, Eye, Search, Filter, Download, ExternalLink, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
 import { projectService, Project } from '@/app/lib/services/projectService';
@@ -234,7 +233,6 @@ const PaymentModal = ({ payment, isOpen, onClose }: {
 };
 
 export default function CompanyFinancialDashboard() {
-    const router = useRouter();
     const [searchText, setSearchText] = useState('');
     const [selectedPaymentType, setSelectedPaymentType] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -269,7 +267,7 @@ export default function CompanyFinancialDashboard() {
     const enhancedPayments = useMemo(() => {
         return payments.map(payment => {
             const project = projects.find(p => p.projectId === payment.projectId);
-            const client = clients.find(c => c.id === payment.clientId);
+            const client = clients.find(c => c.clientId === payment.clientId);
             const company = client ? companies.find(comp => comp.companyId === client.companyId) : null;
 
             return {

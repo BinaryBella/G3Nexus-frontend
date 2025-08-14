@@ -60,7 +60,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
                 <div className="text-center">
                     <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don't have permission to add projects.</p>
+                    <p className="text-gray-600">You don&apos;t have permission to add projects.</p>
                 </div>
             </div>
         );
@@ -764,7 +764,7 @@ const handleTermsModalConfirm = async () => {
                                     >
                                         <option value="">Select Client Admin</option>
                                         {clientAdmins.map((client) => (
-                                            <option key={client.id} value={client.name}>{client.name}</option>
+                                            <option key={client.clientId} value={client.name}>{client.name}</option>
                                         ))}
                                     </select>
                                 </div>

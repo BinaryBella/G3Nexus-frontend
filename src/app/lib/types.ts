@@ -44,7 +44,7 @@ export interface JWTPayload {
 }
 
 export interface Client {
-    id: number;
+    clientId: number;
     name: string;
     contactNo: string;
     email: string;
@@ -184,6 +184,7 @@ export interface QuotationRequest {
 
 export interface BulkQuotationRequest {
   selectedRequirements: QuotationRequest[];
+  employeeId: number
   clientId: number;
   projectId: number;
   additionalNotes: string;
@@ -201,6 +202,7 @@ export interface BugQuotationRequest {
 export interface BulkBugQuotationRequest {
   selectedBugs: BugQuotationRequest[];
   clientId: number;
+  employeeId: number;
   projectId: number;
   additionalNotes: string;
 }

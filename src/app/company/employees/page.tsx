@@ -11,18 +11,6 @@ import { Employee } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import DeleteConfirmationModal from "@/app/components/DeleteConfirmationModal";
 
-const StatusBadge = ({ isActive }: { isActive: boolean }) => {
-    return (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-            isActive 
-                ? 'bg-green-100 text-green-800 border-green-200' 
-                : 'bg-red-100 text-red-800 border-red-200'
-        }`}>
-            {isActive ? 'Active' : 'Inactive'}
-        </span>
-    );
-};
-
 const RoleBadge = ({ role }: { role: string }) => {
     const colorMap: Record<string, string> = {
         'Admin': 'bg-purple-100 text-purple-800 border-purple-200',

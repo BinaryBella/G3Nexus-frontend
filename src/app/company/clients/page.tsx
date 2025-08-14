@@ -11,18 +11,6 @@ import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
-const StatusBadge = ({ isActive }: { isActive: boolean }) => {
-    return (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
-            isActive 
-                ? 'bg-green-100 text-green-800 border-green-200' 
-                : 'bg-red-100 text-red-800 border-red-200'
-        }`}>
-            {isActive ? 'Active' : 'Inactive'}
-        </span>
-    );
-};
-
 const RoleBadge = ({ role }: { role: string }) => {
     const colorMap: Record<string, string> = {
         'Admin': 'bg-purple-100 text-purple-800 border-purple-200',
@@ -131,7 +119,7 @@ export default function CompanyClientsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        const client = clients.find(cli => cli.id === id);
+        const client = clients.find(cli => cli.clientId === id);
         if (client) {
             setSelectedClient(client);
             setDeleteError(null); // Clear any previous errors
@@ -143,7 +131,7 @@ export default function CompanyClientsPage() {
         if (!selectedClient) return;
         
         try {
-            await deleteClientMutation.mutateAsync(selectedClient.id);
+            await deleteClientMutation.mutateAsync(selectedClient.clientId);
         } catch (error) {
             // Error handling is done in the mutation's onError callback
             console.error('Delete failed:', error);
@@ -297,7 +285,7 @@ export default function CompanyClientsPage() {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {paginatedClients.map((client) => (
-                                    <tr key={client.id} className="hover:bg-gray-50">
+                                    <tr key={client.clientId} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center">
                                                 <div className="flex-shrink-0 h-10 w-10">
@@ -310,7 +298,7 @@ export default function CompanyClientsPage() {
                                                         {client.name}
                                                     </div>
                                                     <div className="text-sm text-gray-500">
-                                                        ID: {client.id}
+                                                        ID: {client.clientId}
                                                     </div>
                                                 </div>
                                             </div>
@@ -338,14 +326,14 @@ export default function CompanyClientsPage() {
                                                 {canManageClients() ? (
                                                     <>
                                                         <button
-                                                            onClick={() => handleEdit(client.id)}
+                                                            onClick={() => handleEdit(client.clientId)}
                                                             className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                             title="Edit Client"
                                                         >
                                                             <Edit className="h-4 w-4" />
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDelete(client.id)}
+                                                            onClick={() => handleDelete(client.clientId)}
                                                             className="text-red-600 hover:text-red-800 text-sm font-medium"
                                                             title="Delete Client"
                                                         >

@@ -27,28 +27,6 @@ export default function VerificationCodePage() {
         inputRefs.current = inputRefs.current.slice(0, 6);
     }, [router]);
 
-    const handleInput = (index: number, value: string) => {
-        // Only allow numbers
-        if (!/^\d*$/.test(value)) return;
-
-        const newVerificationCode = [...verificationCode];
-        newVerificationCode[index] = value;
-        setVerificationCode(newVerificationCode);
-
-        // Auto-focus next input
-        if (value !== '' && index < 5) {
-            inputRefs.current[index + 1]?.focus();
-        }
-
-        // If all digits are filled, automatically submit
-        if (index === 5 && value !== '') {
-            const allFilled = newVerificationCode.every(digit => digit !== '');
-            if (allFilled) {
-                handleSubmit();
-            }
-        }
-    };
-
     const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
         // Handle backspace
         if (e.key === 'Backspace' && verificationCode[index] === '' && index > 0) {

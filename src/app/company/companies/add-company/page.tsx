@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, ArrowLeft, Save, X } from 'lucide-react';
+import { Building2, ArrowLeft, X } from 'lucide-react';
 import { companyService } from '@/app/lib/services/companyService';
 import { Company } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';

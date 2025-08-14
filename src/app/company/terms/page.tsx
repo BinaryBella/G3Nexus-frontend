@@ -5,10 +5,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { AxiosError } from 'axios';
-import { FileText, Save, RotateCcw, AlertTriangle, CheckCircle, Edit, FolderOpen } from 'lucide-react';
+import { FileText,AlertTriangle, CheckCircle, Edit } from 'lucide-react';
 import { termsService } from '@/app/lib/services/termsService';
-import { projectService } from '@/app/lib/services/projectService';
-import { ApiResponse, TermsConditions, Project } from "../../lib/types";
+import { ApiResponse, TermsConditions } from "../../lib/types";
 
 const TermsAndConditionsPage = () => {
     const queryClient = useQueryClient();
@@ -139,7 +138,7 @@ const TermsAndConditionsPage = () => {
                             <FileText className="h-8 w-8 text-[#3450A3]" />
                             Terms and Conditions
                         </h1>
-                        <p className="text-gray-600 mt-2">Manage your company's terms and conditions</p>
+                        <p className="text-gray-600 mt-2">Manage your company&apos;s terms and conditions</p>
                     </div>
                 </div>
 

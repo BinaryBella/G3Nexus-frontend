@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, Users, FileText, Bug, DollarSign, FolderOpen, Settings, ClipboardList, File } from 'lucide-react';
+import { User, Users, FileText, Bug, DollarSign, FolderOpen, ClipboardList, File } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 

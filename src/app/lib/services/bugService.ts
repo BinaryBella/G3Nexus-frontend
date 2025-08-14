@@ -18,7 +18,7 @@ export const bugService = {
       
       // For company users, we might need to fetch all bugs without user filtering
       // For client users, we filter by clientId
-      let apiUrl = '/Bug';
+      const apiUrl = '/Bug';
       let params = {};
       
       if (userRole && (userRole.includes('CLIENT') || userRole === 'CLIENT_ADMIN' || userRole === 'CLIENT_USER')) {

@@ -9,6 +9,7 @@ import { Bug, BugListItem, BugQuotationRequest, BulkBugQuotationRequest } from '
 import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import FeedbackPopup from '@/app/components/FeedbackPopup';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
     const colorMap: Record<string, string> = {
@@ -165,6 +166,7 @@ export default function CompanyBugsPage() {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
     const [isSendingQuotation, setIsSendingQuotation] = useState(false);
+    const { user } = useAuth();
     
     // Enhanced quotation form state
     const [quotationData, setQuotationData] = useState<Record<number, {
@@ -464,6 +466,7 @@ export default function CompanyBugsPage() {
             const bulkQuotationRequest: BulkBugQuotationRequest = {
                 selectedBugs,
                 clientId: parseInt(firstBug.clientId.toString()), // Ensure it's a number
+                employeeId: user!.userId, // Use current user's ID
                 projectId: parseInt(firstBug.projectId.toString()), // Ensure it's a number
                 additionalNotes: additionalNotes.trim() || ""
             };

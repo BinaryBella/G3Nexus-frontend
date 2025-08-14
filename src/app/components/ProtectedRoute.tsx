@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
-import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 
 interface ProtectedRouteProps {
     children: React.ReactNode;

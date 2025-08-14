@@ -209,7 +209,7 @@ export const authService = {
         if (isClient && user) {
             try {
                 console.log('Fetching client data for userId:', user.userId);
-                var clientData = await profileService.getClientById(user.userId);
+                const clientData = await profileService.getClientById(user.userId);
                 console.log('Client data received:', clientData);
                 
                 if (clientData && clientData.data) {

@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, FileText, ClipboardList, Bug, DollarSign, User, Bell, CreditCard, ChevronLeft, ChevronRight, Scale, Mail, Phone, MapPin, Globe, Twitter, Linkedin, Facebook, Instagram, ArrowUp } from 'lucide-react';
-import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { Users, FileText, ClipboardList, Bug, DollarSign, User, Bell, ChevronLeft, ChevronRight, Mail, Phone, MapPin, Globe, Twitter, Linkedin, Facebook, Instagram, ArrowUp } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 // Hero carousel data
@@ -84,7 +83,6 @@ const sectionsConfig = [
 ];
 
 const ProjectsPage = () => {
-    const { user } = useRoleAccess();
     const { logout } = useAuth();
     const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -107,10 +105,6 @@ const ProjectsPage = () => {
 
     const goToSlide = (index: number) => {
         setCurrentSlide(index);
-    };
-
-    const handleLogout = () => {
-        logout();
     };
 
     return (

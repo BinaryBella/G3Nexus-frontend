@@ -4,11 +4,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { User } from 'lucide-react';
-import { useRouter } from 'next/navigation'; // Import useRouter
 import { useAuth } from '@/app/contexts/AuthContext';
 
 const Navbar = () => {
-    const router = useRouter(); // Initialize useRouter
     const { user, logout } = useAuth();
 
     const handleLogout = () => {
