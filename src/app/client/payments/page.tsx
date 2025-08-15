@@ -10,7 +10,7 @@ import { Payment } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { CLIENT_ADMIN, CLIENT_USER } from '@/app/lib/constants';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const PaymentTypeBadge = ({ type }: { type: string }) => {
     const colorMap: Record<string, string> = {
@@ -110,11 +110,20 @@ const ClientPaymentsPage: React.FC = () => {
     const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
     const [projectNames, setProjectNames] = useState<Record<number, string>>({});
     const { user } = useAuth();
+    const searchParams = useSearchParams();
+    const projectId = searchParams.get('projectId');
 
     const { data: payments = [], error, isLoading } = useQuery<Payment[], Error>({
         queryKey: ['payments', 'client', user?.email],
         queryFn: () => paymentService.getPaymentsByClient(user?.email || ''),
         enabled: !!user?.email,
+    });
+
+    // Fetch project data when projectId is available
+    const { data: project } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => projectService.getProjectById(Number(projectId)),
+        enabled: !!projectId,
     });
 
     // Fetch project names for all payments
@@ -207,21 +216,51 @@ const ClientPaymentsPage: React.FC = () => {
             <div className="min-h-screen bg-gray-50 p-6">
                 {/* Header */}
                 <div className="mb-8">
-                    <div className="flex justify-between items-center mb-6">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                                <CreditCard className="h-8 w-8 text-[#3450A3]" />
-                                Payment History
-                            </h1>
-                            <p className="text-gray-600 mt-2">View your project payment history and details</p>
-                        </div>
-                        <button
-                            onClick={() => router.push('/client/payments/add-payment')}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#3450A3] text-white rounded-lg hover:bg-[#2A4082] transition-colors"
-                        >
-                            Make Payment
-                        </button>
-                    </div>
+ {/* Breadcrumb for project-specific view */}
+                 {projectId && (
+                     <div className="mb-4">
+                         <button
+                             onClick={() => router.push(`/client/projects/${projectId}`)}
+                             className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-2"
+                         >
+                             ← Back to Project
+                         </button>
+                     </div>
+                 )}
+ 
+                 <div className="flex justify-between items-center mb-6">
+                     <div>
+                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                             <FileText className="h-8 w-8 text-[#3450A3]" />
+                             {projectId
+                                 ? (project?.projectName || 'Project Payments')
+                                 : 'Payments'
+                             }
+                         </h1>
+                         <p className="text-gray-600 mt-2">
+                             {projectId
+                                 ? 'Project payments and specifications'
+                                 : 'Manage project payments and specifications'
+                             }
+                         </p>
+                     </div>
+                     {/* Add Payment Button (visible when payments exist) */}
+                     {filteredPayments.length > 0 && (
+                         <div className="flex justify-end mt-6">
+                             <button
+                                 onClick={() => {
+                                     const addPaymentUrl = projectId
+                                         ? `/client/payments/add-payment?projectId=${projectId}`
+                                         : '/client/payments/add-payment';
+                                     router.push(addPaymentUrl);
+                                 }}
+                                 className="bg-[#2b4b93] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                             >
+                                 Add Payment
+                             </button>
+                         </div>
+                     )}
+                 </div>
 
                     {/* Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, X, ArrowLeft, DollarSign, Calendar, FileText, AlertCircle, FolderOpen } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
 import { projectService } from '@/app/lib/services/projectService';
 import { fileService } from '@/app/lib/services/fileService';
 import { authService } from '@/app/lib/services';
-import { Payment } from '@/app/lib/types';
+import { Payment, Project } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { CLIENT_ADMIN, CLIENT_USER, ADVANCE_PAYMENT, BUG_PAYMENT, REQUIREMENT_PAYMENT, FINAL_PAYMENT } from '@/app/lib/constants';
 import { useAuth } from '@/app/contexts/AuthContext';
@@ -24,11 +24,16 @@ interface PaymentFormData {
 
 const AddPaymentPage: React.FC = () => {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
+    // Get projectId from URL params if available
+    const projectIdParam = searchParams.get('projectId');
+    const hasProjectIdParam = !!projectIdParam;
+
     const [formData, setFormData] = useState<PaymentFormData>({
-        projectId: '',
+        projectId: projectIdParam || '',
         paymentAmount: '',
         paymentType: 'Milestone',
         paymentDescription: '',
@@ -46,6 +51,23 @@ const AddPaymentPage: React.FC = () => {
         queryFn: () => projectService.getProjectsByClient(user?.email || ''),
         enabled: !!user?.email,
     });
+
+    // Fetch specific project if projectId is provided in URL
+    const { data: selectedProject, isLoading: selectedProjectLoading } = useQuery({
+        queryKey: ['project', projectIdParam],
+        queryFn: () => projectService.getProjectById(Number(projectIdParam)),
+        enabled: !!projectIdParam,
+    });
+
+    // Update form data when selectedProject is loaded
+    useEffect(() => {
+        if (selectedProject && projectIdParam) {
+            setFormData(prev => ({
+                ...prev,
+                projectId: projectIdParam
+            }));
+        }
+    }, [selectedProject, projectIdParam]);
 
     const paymentTypes = [
         { value: ADVANCE_PAYMENT, label: 'Advance Payment' },
@@ -252,30 +274,39 @@ const AddPaymentPage: React.FC = () => {
 
                             {/* Project Selection */}
                             <div>
-                                <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Select Project *
+                                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="projectId">
+                                    Project *
                                 </label>
-                                <div className="relative">
-                                    <FolderOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                                {hasProjectIdParam ? (
+                                    <input
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] bg-gray-50"
+                                        id="projectId"
+                                        disabled
+                                        placeholder={selectedProjectLoading ? "Loading project..." : "Project will be auto-filled"}
+                                        value={selectedProjectLoading ? "Loading..." : selectedProject?.projectName || ''}
+                                        required
+                                    />
+                                ) : (
                                     <select
+                                        className="text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         id="projectId"
                                         name="projectId"
-                                        value={formData.projectId}
+                                        value={formData.projectId || ''}
                                         onChange={handleInputChange}
-                                        className={`w-full text-black pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.projectId ? 'border-red-300' : 'border-gray-300'
-                                            }`}
-                                        disabled={projectsLoading}
+                                        required
                                     >
-                                        <option value="">
-                                            {projectsLoading ? 'Loading projects...' : 'Select a project'}
-                                        </option>
-                                        {projects.map(project => (
-                                            <option key={project.projectId} value={project.projectId.toString()}>
-                                                {project.projectName}
-                                            </option>
-                                        ))}
+                                        <option value="">Select a Project</option>
+                                        {projectsLoading ? (
+                                            <option disabled>Loading projects...</option>
+                                        ) : (
+                                            projects?.map((proj: Project) => (
+                                                <option key={proj.projectId} value={proj.projectId}>
+                                                    {proj.projectName}
+                                                </option>
+                                            ))
+                                        )}
                                     </select>
-                                </div>
+                                )}
                                 {errors.projectId && (
                                     <p className="mt-1 text-sm text-red-600">{errors.projectId}</p>
                                 )}

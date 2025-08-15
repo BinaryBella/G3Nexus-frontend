@@ -177,7 +177,7 @@ export default function CompanyClientsPage() {
                             Clients
                         </h1>
                         <p className="text-gray-600 mt-2">
-                            {canManageClients() ? 'Manage and track your clients' : 'View client information (read-only access)'}
+                            {canManageClients() ? 'Manage and track our clients' : 'View client information (read-only access)'}
                         </p>
                     </div>
                     {canManageClients() && (
