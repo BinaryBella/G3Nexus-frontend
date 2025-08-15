@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { Camera, Lock, User, Mail, Phone, MapPin, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { clientService } from '@/app/lib/services/clientService';
+import { Client, ClientEditPayload } from '@/app/lib/types';
 
 interface ProfileFormData {
     name: string;
@@ -54,60 +56,41 @@ export default function ProfilePage() {
             try {
                 setIsLoading(true);
                 if (user && user.email) {
-                    // Get current client profile data using the email from auth context
                     try {
-                        // First get all clients and find the current user
-                        const clientsResponse = await api.get('/Client');
+                        // Get client by email using the client service
+                        const currentClient = await clientService.getClientByEmail(user.email);
                         
-                        if (clientsResponse?.data?.status && clientsResponse.data.data) {
-                            const clients = Array.isArray(clientsResponse.data.data) 
-                                ? clientsResponse.data.data 
-                                : [clientsResponse.data.data];
+                        if (currentClient) {
+                            const profile: ProfileFormData = {
+                                name: currentClient.name || '',
+                                contactNo: currentClient.contactNo || '',
+                                emailAddress: currentClient.email || '',
+                                address: currentClient.address || '',
+                                image: currentClient.profileImageUrl || ''
+                            };
                             
-                            // Find the current client by email
-                            const currentClient = clients.find((client: any) => 
-                                client.email === user.email
-                            );
-                            
-                            if (currentClient) {
-                                const profile: ProfileFormData = {
-                                    name: currentClient.name || '',
-                                    contactNo: currentClient.contactNo || '',
-                                    emailAddress: currentClient.email || '',
-                                    address: currentClient.address || '',
-                                    image: currentClient.profileImage || ''
-                                };
-                                
-                                setProfileData(profile);
-                                setPreviewImage(profile.image || null);
-                                
-                                // Update user context with profile image if it exists
-                                if (currentClient.profileImage && currentClient.profileImage !== user?.profileImage) {
-                                    updateUser({ profileImage: currentClient.profileImage });
-                                }
-                            } else {
-                                // Fallback to auth context data if client not found in API
-                                const profile: ProfileFormData = {
-                                    name: user.name || '',
-                                    contactNo: user.contactNo || '',
-                                    emailAddress: user.email || '',
-                                    address: user.address || '',
-                                    image: ''
-                                };
-                                setProfileData(profile);
-                                setPreviewImage(null);
-                            }
+                            setProfileData(profile);
+                            setPreviewImage(profile.image || null);
                         } else {
-                            throw new Error('Failed to fetch client data');
+                            // Fallback to auth context data if client not found
+                            const profile: ProfileFormData = {
+                                name: '',
+                                contactNo: '',
+                                emailAddress: user.email || '',
+                                address: '',
+                                image: ''
+                            };
+                            setProfileData(profile);
+                            setPreviewImage(null);
                         }
                     } catch (apiError) {
                         console.log('Could not fetch client details from API, using auth context:', apiError);
                         // Fallback to auth context data
                         const profile: ProfileFormData = {
-                            name: user.name || '',
-                            contactNo: user.contactNo || '',
+                            name: '',
+                            contactNo: '',
                             emailAddress: user.email || '',
-                            address: user.address || '',
+                            address: '',
                             image: ''
                         };
                         setProfileData(profile);
@@ -189,59 +172,53 @@ export default function ProfilePage() {
         setSuccessMessage(null);
 
         try {
-            // First, get the current client to find their ID
-            const clientsResponse = await api.get('/Client');
+            // Get the current client to find their ID and existing data
+            const currentClient = await clientService.getClientByEmail(user?.email || '');
             
-            if (clientsResponse?.data?.status && clientsResponse.data.data) {
-                const clients = Array.isArray(clientsResponse.data.data) 
-                    ? clientsResponse.data.data 
-                    : [clientsResponse.data.data];
-                
-                // Find the current client by email
-                const currentClient = clients.find((client: any) => 
-                    client.email === user?.email
-                );
-                
-                if (!currentClient) {
-                    throw new Error('Client not found');
-                }
-                
-                // Prepare the update data
-                const updateData = {
-                    id: currentClient.id,
-                    name: profileData.name,
-                    contactNo: profileData.contactNo,
-                    email: profileData.emailAddress, // Keep email same
-                    address: profileData.address,
-                    password: currentClient.password, // Keep existing password
-                    role: currentClient.role, // Keep existing role
-                    isActive: currentClient.isActive, // Keep existing status
-                    companyId: currentClient.companyId, // Keep existing companyId
-                    ...(profileData.image && { profileImage: profileData.image })
-                };
+            if (!currentClient) {
+                throw new Error('Client not found');
+            }
+            
+            // Debug logging
+            console.log('Current client:', currentClient);
+            console.log('Client ID:', currentClient.id);
+            
+            // Validate that we have a valid client ID
+            if (!currentClient.id || currentClient.id === 0) {
+                throw new Error('Invalid client ID');
+            }
+            
+            // Prepare the update data according to the API structure
+            const updateData: ClientEditPayload = {
+                id: currentClient.id,
+                name: profileData.name,
+                contactNo: profileData.contactNo,
+                email: profileData.emailAddress,
+                address: profileData.address,
+                role: currentClient.role,
+                isActive: currentClient.isActive,
+                companyId: currentClient.companyId,
+                profileImageUrl: profileData.image || ''
+            };
 
-                const response = await api.put(`/Client/${currentClient.id}`, updateData);
+            console.log('Update data being sent:', updateData);
 
-                if (response.data.status) {
-                    setSuccessMessage('Profile updated successfully!');
-                    
-                    // Update user context with new data
-                    updateUser({
-                        name: profileData.name,
-                        contactNo: profileData.contactNo,
-                        address: profileData.address,
-                        ...(profileData.image && { profileImage: profileData.image })
-                    });
-                    
-                    setTimeout(() => setSuccessMessage(null), 3000);
-                } else {
-                    setError(response.data.message || 'Failed to update profile');
-                }
+            const response = await clientService.updateClient(updateData);
+
+            if (response) {
+                setSuccessMessage('Profile updated successfully!');
+                
+                // Update user context if needed (you may need to extend AuthUser interface)
+                // updateUser({
+                //     // Add any fields that need to be updated in the auth context
+                // });
+                
+                setTimeout(() => setSuccessMessage(null), 3000);
             } else {
-                throw new Error('Failed to get client data');
+                setError('Failed to update profile');
             }
         } catch (error: any) {
-            setError(error.response?.data?.message || error.message || 'Failed to update profile');
+            setError(error.message || 'Failed to update profile');
             console.error('Error updating profile:', error);
         } finally {
             setIsSaving(false);
@@ -264,54 +241,32 @@ export default function ProfilePage() {
                 return;
             }
 
-            // First, get the current client to find their ID and existing data
-            const clientsResponse = await api.get('/Client');
+            // Get the current client to find their ID
+            const currentClient = await clientService.getClientByEmail(user?.email || '');
             
-            if (clientsResponse?.data?.status && clientsResponse.data.data) {
-                const clients = Array.isArray(clientsResponse.data.data) 
-                    ? clientsResponse.data.data 
-                    : [clientsResponse.data.data];
-                
-                // Find the current client by email
-                const currentClient = clients.find((client: any) => 
-                    client.email === user?.email
-                );
-                
-                if (!currentClient) {
-                    throw new Error('Client not found');
-                }
-                
-                // Prepare the update data with new password
-                const updateData = {
-                    id: currentClient.id,
-                    name: currentClient.name,
-                    contactNo: currentClient.contactNo,
-                    email: currentClient.email,
-                    address: currentClient.address,
-                    password: passwordData.newPassword, // Update password
-                    role: currentClient.role,
-                    isActive: currentClient.isActive,
-                    companyId: currentClient.companyId
-                };
+            if (!currentClient) {
+                throw new Error('Client not found');
+            }
+            
+            // Use the dedicated password update method
+            const success = await clientService.updateClientPassword(currentClient.id, {
+                oldPassword: passwordData.oldPassword,
+                newPassword: passwordData.newPassword
+            });
 
-                const response = await api.put(`/Client/${currentClient.id}`, updateData);
-
-                if (response.data.status) {
-                    setSuccessMessage('Password changed successfully!');
-                    setPasswordData({
-                        oldPassword: '',
-                        newPassword: '',
-                        confirmPassword: ''
-                    });
-                    setTimeout(() => setSuccessMessage(null), 3000);
-                } else {
-                    setError(response.data.message || 'Failed to change password');
-                }
+            if (success) {
+                setSuccessMessage('Password changed successfully!');
+                setPasswordData({
+                    oldPassword: '',
+                    newPassword: '',
+                    confirmPassword: ''
+                });
+                setTimeout(() => setSuccessMessage(null), 3000);
             } else {
-                throw new Error('Failed to get client data');
+                setError('Failed to change password');
             }
         } catch (error: any) {
-            setError(error.response?.data?.message || error.message || 'Failed to change password');
+            setError(error.message || 'Failed to change password');
             console.error('Error changing password:', error);
         } finally {
             setIsChangingPassword(false);
@@ -507,7 +462,7 @@ export default function ProfilePage() {
                                                     id="emailAddress"
                                                     name="emailAddress"
                                                     value={profileData.emailAddress}
-                                                    className="w-full text-black px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                                                     readOnly
                                                     placeholder="Email address"
                                                 />

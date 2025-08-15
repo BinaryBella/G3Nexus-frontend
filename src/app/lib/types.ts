@@ -44,7 +44,7 @@ export interface JWTPayload {
 }
 
 export interface Client {
-    clientId: number;
+    id: number;  // Changed from clientId to id to match API
     name: string;
     contactNo: string;
     email: string;
@@ -53,6 +53,7 @@ export interface Client {
     role: string;
     isActive: boolean;
     companyId: number;
+    profileImageUrl?: string;
 }
 
 export interface ClientEditPayload {
@@ -61,10 +62,11 @@ export interface ClientEditPayload {
     contactNo: string;
     email: string;
     address: string;
+    profileImageUrl: string;
     role: string;
     isActive: boolean;
     companyId: number;
-    profileImageUrl: string;
+    password?: string; // Optional for password updates
 }
 
 export interface Employee {
