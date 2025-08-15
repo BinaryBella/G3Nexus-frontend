@@ -109,6 +109,85 @@ export default function ProfilePage() {
 
         fetchProfile();
     }, [user]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                setIsLoading(true);
+                if (user && user.email) {
+                    // Get current employee profile data using the email from auth context
+                    try {
+                        // First get all employees and find the current user
+                        const employeesResponse = await api.get('/Employee');
+                        
+                        if (employeesResponse?.data?.status && employeesResponse.data.data) {
+                            const employees = Array.isArray(employeesResponse.data.data) 
+                                ? employeesResponse.data.data 
+                                : [employeesResponse.data.data];
+                            
+                            // Find the current employee by email
+                            const currentEmployee = employees.find((employee: any) => 
+                                employee.email === user.email
+                            );
+                            
+                            if (currentEmployee) {
+                                const profile: ProfileFormData = {
+                                    name: currentEmployee.name || '',
+                                    contactNo: currentEmployee.contactNo || '',
+                                    emailAddress: currentEmployee.email || '',
+                                    address: currentEmployee.address || '',
+                                    image: currentEmployee.profileImage || ''
+                                };
+                                
+                                setProfileData(profile);
+                                setPreviewImage(profile.image || null);
+                                
+                                // Update user context with profile image if it exists
+                                if (currentEmployee.profileImage && currentEmployee.profileImage !== user?.profileImage) {
+                                    updateUser({ profileImage: currentEmployee.profileImage });
+                                }
+                            } else {
+                                // Fallback to auth context data if employee not found in API
+                                const profile: ProfileFormData = {
+                                    name: user.name || '',
+                                    contactNo: user.contactNo || '',
+                                    emailAddress: user.email || '',
+                                    address: user.address || '',
+                                    image: ''
+                                };
+                                setProfileData(profile);
+                                setPreviewImage(null);
+                            }
+                        } else {
+                            throw new Error('Failed to fetch employee data');
+                        }
+                    } catch (apiError) {
+                        console.log('Could not fetch employee details from API, using auth context:', apiError);
+                        // Fallback to auth context data
+                        const profile: ProfileFormData = {
+                            name: user.name || '',
+                            contactNo: user.contactNo || '',
+                            emailAddress: user.email || '',
+                            address: user.address || '',
+                            image: ''
+                        };
+                        setProfileData(profile);
+                        setPreviewImage(null);
+                    }
+                } else {
+                    setError('User not found');
+                }
+            } catch (error) {
+                setError('Failed to load profile data');
+                console.error('Error fetching profile:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, [user]);
 
     const handleProfileInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -172,52 +251,58 @@ export default function ProfilePage() {
         setSuccessMessage(null);
 
         try {
-            // Get the current employee to find their ID and existing data
-            const currentEmployee = await employeeService.getEmployeeByEmail(user?.email || '');
+            // First, get the current employee to find their ID
+            const employeesResponse = await api.get('/Employee');
             
-            if (!currentEmployee) {
-                throw new Error('Employee not found');
-            }
-            
-            // Debug logging
-            console.log('Current employee:', currentEmployee);
-            console.log('Employee ID:', currentEmployee.employeeId);
-            
-            // Validate that we have a valid employee ID
-            if (!currentEmployee.employeeId || currentEmployee.employeeId === 0) {
-                throw new Error('Invalid employee ID');
-            }
-            
-            // Prepare the update data according to the API structure
-            const updateData: EmployeeEditPayload = {
-                employeeId: currentEmployee.employeeId,
-                name: profileData.name,
-                contactNo: profileData.contactNo,
-                email: profileData.emailAddress,
-                address: profileData.address,
-                role: currentEmployee.role,
-                isActive: currentEmployee.isActive,
-                profileImageUrl: profileData.image || ''
-            };
-
-            console.log('Update data being sent:', updateData);
-
-            const response = await employeeService.updateEmployee(updateData);
-
-            if (response) {
-                setSuccessMessage('Profile updated successfully!');
+            if (employeesResponse?.data?.status && employeesResponse.data.data) {
+                const employees = Array.isArray(employeesResponse.data.data) 
+                    ? employeesResponse.data.data 
+                    : [employeesResponse.data.data];
                 
-                // Update user context if needed (you may need to extend AuthUser interface)
-                // updateUser({
-                //     // Add any fields that need to be updated in the auth context
-                // });
+                // Find the current employee by email
+                const currentEmployee = employees.find((employee: any) => 
+                    employee.email === user?.email
+                );
                 
-                setTimeout(() => setSuccessMessage(null), 3000);
+                if (!currentEmployee) {
+                    throw new Error('Employee not found');
+                }
+                
+                // Prepare the update data
+                const updateData = {
+                    employeeId: currentEmployee.employeeId,
+                    name: profileData.name,
+                    contactNo: profileData.contactNo,
+                    email: profileData.emailAddress, // Keep email same
+                    address: profileData.address,
+                    password: currentEmployee.password, // Keep existing password
+                    role: currentEmployee.role, // Keep existing role
+                    isActive: currentEmployee.isActive, // Keep existing status
+                    ...(profileData.image && { profileImage: profileData.image })
+                };
+
+                const response = await api.put(`/Employee/`, updateData);
+
+                if (response.data.status) {
+                    setSuccessMessage('Profile updated successfully!');
+                    
+                    // Update user context with new data
+                    updateUser({
+                        name: profileData.name,
+                        contactNo: profileData.contactNo,
+                        address: profileData.address,
+                        ...(profileData.image && { profileImage: profileData.image })
+                    });
+                    
+                    setTimeout(() => setSuccessMessage(null), 3000);
+                } else {
+                    setError(response.data.message || 'Failed to update profile');
+                }
             } else {
-                setError('Failed to update profile');
+                throw new Error('Failed to get employee data');
             }
         } catch (error: any) {
-            setError(error.message || 'Failed to update profile');
+            setError(error.response?.data?.message || error.message || 'Failed to update profile');
             console.error('Error updating profile:', error);
         } finally {
             setIsSaving(false);
@@ -240,32 +325,53 @@ export default function ProfilePage() {
                 return;
             }
 
-            // Get the current employee to find their ID
-            const currentEmployee = await employeeService.getEmployeeByEmail(user?.email || '');
+            // First, get the current employee to find their ID and existing data
+            const employeesResponse = await api.get('/Employee');
             
-            if (!currentEmployee) {
-                throw new Error('Employee not found');
-            }
-            
-            // Use the dedicated password update method
-            const success = await employeeService.updateEmployeePassword(currentEmployee.employeeId, {
-                oldPassword: passwordData.oldPassword,
-                newPassword: passwordData.newPassword
-            });
+            if (employeesResponse?.data?.status && employeesResponse.data.data) {
+                const employees = Array.isArray(employeesResponse.data.data) 
+                    ? employeesResponse.data.data 
+                    : [employeesResponse.data.data];
+                
+                // Find the current employee by email
+                const currentEmployee = employees.find((employee: any) => 
+                    employee.email === user?.email
+                );
+                
+                if (!currentEmployee) {
+                    throw new Error('Employee not found');
+                }
+                
+                // Prepare the update data with new password
+                const updateData = {
+                    employeeId: currentEmployee.employeeId,
+                    name: currentEmployee.name,
+                    contactNo: currentEmployee.contactNo,
+                    email: currentEmployee.email,
+                    address: currentEmployee.address,
+                    password: passwordData.newPassword, // Update password
+                    role: currentEmployee.role,
+                    isActive: currentEmployee.isActive
+                };
 
-            if (success) {
-                setSuccessMessage('Password changed successfully!');
-                setPasswordData({
-                    oldPassword: '',
-                    newPassword: '',
-                    confirmPassword: ''
-                });
-                setTimeout(() => setSuccessMessage(null), 3000);
+                const response = await api.put(`/Employee/`, updateData);
+
+                if (response.data.status) {
+                    setSuccessMessage('Password changed successfully!');
+                    setPasswordData({
+                        oldPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                    });
+                    setTimeout(() => setSuccessMessage(null), 3000);
+                } else {
+                    setError(response.data.message || 'Failed to change password');
+                }
             } else {
-                setError('Failed to change password');
+                throw new Error('Failed to get employee data');
             }
         } catch (error: any) {
-            setError(error.message || 'Failed to change password');
+            setError(error.response?.data?.message || error.message || 'Failed to change password');
             console.error('Error changing password:', error);
         } finally {
             setIsChangingPassword(false);
@@ -461,7 +567,7 @@ export default function ProfilePage() {
                                                     id="emailAddress"
                                                     name="emailAddress"
                                                     value={profileData.emailAddress}
-                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                                                    className="text-black-900 w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                                                     readOnly
                                                     placeholder="Email address"
                                                 />
@@ -614,19 +720,36 @@ export default function ProfilePage() {
                                     </div>
                                 </div>
 
+                                {/* Password Requirements */}
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h4 className="text-sm font-medium text-blue-800 mb-2">Password Requirements:</h4>
+                                    <ul className="text-sm text-blue-700 space-y-1">
+                                        <li>• At least 8 characters long</li>
+                                        <li>• Should contain letters and numbers</li>
+                                        <li>• Avoid using personal information</li>
+                                    </ul>
+                                </div>
+
                                 {/* Password Form Buttons */}
                                 <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
                                     <button
                                         type="button"
-                                        onClick={handleCancel}
+                                        onClick={() => {
+                                            setPasswordData({
+                                                oldPassword: '',
+                                                newPassword: '',
+                                                confirmPassword: ''
+                                            });
+                                            setError(null);
+                                        }}
                                         className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                                     >
-                                        Cancel
+                                        Reset
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isChangingPassword}
-                                        className="px-6 py-3 bg-[#FFBF00] text-black rounded-lg hover:bg-[#e6ac00] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="px-6 py-3 bg-[#3450A3] text-white rounded-lg hover:bg-[#2a4086] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isChangingPassword ? 'Changing...' : 'Change Password'}
                                     </button>

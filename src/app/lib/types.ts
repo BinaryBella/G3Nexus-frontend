@@ -70,15 +70,27 @@ export interface ClientEditPayload {
 }
 
 export interface Employee {
-    employeeId?: number;
+    employeeId: number;
+    name: string;
     contactNo: string;
     email: string;
     address: string;
-    isActive: boolean;
-    name: string;
     password: string;
     role: string;
-    profileImageUrl?: string | null;
+    profileImageUrl?: string;
+    isActive: boolean;
+}
+
+export interface EmployeeEditPayload {
+    employeeId: number;
+    name: string;
+    contactNo: string;
+    email: string;
+    address: string;
+    password?: string; // Optional for password updates
+    role: string;
+    profileImageUrl: string;
+    isActive: boolean;
 }
 
 
