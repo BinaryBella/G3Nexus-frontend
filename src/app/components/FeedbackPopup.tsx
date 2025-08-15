@@ -42,12 +42,12 @@ const FeedbackPopup = ({
   } else if (type === 'error') {
     titleText = title || 'Error';
     iconElement = (
-      <svg className="w-5 h-5 text-[#2b4b93]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
       </svg>
     );
-    textColor = 'text-[#2b4b93]';
-    buttonColor = 'bg-[#2b4b93] hover:bg-blue-700';
+    textColor = 'text-red-500';
+    buttonColor = 'bg-red-500 hover:bg-red-600';
   } else if (type === 'warning') {
     titleText = title || 'Warning';
     iconElement = (

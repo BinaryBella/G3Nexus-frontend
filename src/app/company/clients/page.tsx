@@ -10,6 +10,7 @@ import { Client, Company } from '@/app/lib/types';
 import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import FeedbackPopup from '@/app/components/FeedbackPopup';
 
 const RoleBadge = ({ role }: { role: string }) => {
     const colorMap: Record<string, string> = {
@@ -55,15 +56,14 @@ export default function CompanyClientsPage() {
     const deleteClientMutation = useMutation({
         mutationFn: (clientId: number) => clientService.deleteClient(clientId),
         onSuccess: () => {
-            // Invalidate and refetch clients data
             queryClient.invalidateQueries({queryKey: ['clients']}).then();
             setShowDeleteModal(false);
             setSelectedClient(null);
             setDeleteError(null);
         },
-        onError: (error: Error) => {
-            console.error('Failed to delete client:', error);
-            setDeleteError(error.message || 'Failed to delete client');
+        onError: (error: { response: { data: { message: string } } }) => {
+            
+            setDeleteError(error.response.data.message || 'Failed to delete client');
         },
     });
 
@@ -114,8 +114,10 @@ export default function CompanyClientsPage() {
         admins: clients.filter(client => client.role === 'CLIENT_ADMIN').length
     };
 
-    const handleEdit = (id: number) => {
-        router.push(`/company/clients/edit-client/${id}`);
+    const handleEdit = (client: Client) => {
+        console.log(client);
+        
+        router.push(`/company/clients/edit-client/${client.clientId}`);
     };
 
     const handleDelete = async (id: number) => {
@@ -326,7 +328,7 @@ export default function CompanyClientsPage() {
                                                 {canManageClients() ? (
                                                     <>
                                                         <button
-                                                            onClick={() => handleEdit(client.clientId)}
+                                                            onClick={() => handleEdit(client)}
                                                             className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                                                             title="Edit Client"
                                                         >
@@ -375,7 +377,15 @@ export default function CompanyClientsPage() {
                 title="Delete Client"
                 message={`Are you sure you want to delete the client "${selectedClient?.name}"?`}
                 itemName={selectedClient?.name}
-                warningMessage={deleteError || "This action cannot be undone. All client data will be permanently removed."}
+                warningMessage={"This action cannot be undone. All client data will be permanently removed."}
+            />
+
+            <FeedbackPopup
+                isOpen={!!deleteError}
+                onClose={() => setDeleteError(null)}
+                children={deleteError}
+                title="Failed to Delete Client"
+                type='error'
             />
         </div>
     );

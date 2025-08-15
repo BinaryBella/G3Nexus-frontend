@@ -24,7 +24,7 @@ const EditClientPage: React.FC = () => {
         role: '',
         isActive: true,
         companyId: 0,
-        id: clientId,
+        clientId: clientId,
         profileImageUrl: ""
     });
     const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ const EditClientPage: React.FC = () => {
                 role: client.role || '',
                 isActive: client.isActive,
                 companyId: client.companyId || 0,
-                id: clientId,
+                clientId: clientId,
                 profileImageUrl: ""
             });
         }
@@ -136,7 +136,7 @@ const EditClientPage: React.FC = () => {
             setIsSubmitting(true);
             const updateData: ClientEditPayload = {
                 ...clientData,
-                id: clientId,
+                clientId: clientId,
                 profileImageUrl: ""
 
             };

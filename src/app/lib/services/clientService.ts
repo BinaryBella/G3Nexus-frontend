@@ -14,7 +14,7 @@ export const clientService = {
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch clients');
       }
-
+      
       return response.data.data;
     } catch (error) {
       throw error;
@@ -22,9 +22,9 @@ export const clientService = {
   },
 
   // Get client by ID
-  getClientById: async (id: number): Promise<Client> => {
+  getClientById: async (clientId: number): Promise<Client> => {
     try {
-      const response = await api.get<ApiResponse<Client>>(`/Client/${id}`);
+      const response = await api.get<ApiResponse<Client>>(`/Client/${clientId}`);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to fetch client');
@@ -54,7 +54,7 @@ export const clientService = {
   },
 
   // Add new client
-  addClient: async (clientData: Omit<Client, 'id'>): Promise<Client> => {
+  addClient: async (clientData: Omit<Client, 'clientId'>): Promise<Client> => {
     try {
       const response = await api.post<ApiResponse<Client>>('/Client', clientData);
 
@@ -91,7 +91,7 @@ export const clientService = {
       
       // Prepare update payload with new password
       const updateData: ClientEditPayload = {
-        id: clientId,
+        clientId: clientId,
         name: currentClient.name,
         contactNo: currentClient.contactNo,
         email: currentClient.email,
@@ -116,9 +116,9 @@ export const clientService = {
   },
 
   // Delete client
-  deleteClient: async (id: number): Promise<boolean> => {
+  deleteClient: async (clientId: number): Promise<boolean> => {
     try {
-      const response = await api.delete<ApiResponse<boolean>>(`/Client/${id}`);
+      const response = await api.delete<ApiResponse<boolean>>(`/Client/${clientId}`);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to delete client');

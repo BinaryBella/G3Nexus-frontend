@@ -181,16 +181,16 @@ export default function ProfilePage() {
             
             // Debug logging
             console.log('Current client:', currentClient);
-            console.log('Client ID:', currentClient.id);
+            console.log('Client ID:', currentClient.clientId);
             
             // Validate that we have a valid client ID
-            if (!currentClient.id || currentClient.id === 0) {
+            if (!currentClient.clientId || currentClient.clientId === 0) {
                 throw new Error('Invalid client ID');
             }
             
             // Prepare the update data according to the API structure
             const updateData: ClientEditPayload = {
-                id: currentClient.id,
+                clientId: currentClient.clientId,
                 name: profileData.name,
                 contactNo: profileData.contactNo,
                 email: profileData.emailAddress,
@@ -249,7 +249,7 @@ export default function ProfilePage() {
             }
             
             // Use the dedicated password update method
-            const success = await clientService.updateClientPassword(currentClient.id, {
+            const success = await clientService.updateClientPassword(currentClient.clientId, {
                 oldPassword: passwordData.oldPassword,
                 newPassword: passwordData.newPassword
             });

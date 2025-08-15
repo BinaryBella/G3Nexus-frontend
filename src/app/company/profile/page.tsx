@@ -6,7 +6,7 @@ import { Camera, Lock, User, Mail, Phone, MapPin, Eye, EyeOff } from 'lucide-rea
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { employeeService } from '@/app/lib/services/employeeService';
-import { Employee, EmployeeEditPayload } from '@/app/lib/types';
+import { EmployeeEditPayload } from '@/app/lib/types';
 
 interface ProfileFormData {
     name: string;
