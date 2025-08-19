@@ -221,3 +221,22 @@ export interface BulkBugQuotationRequest {
   projectId: number;
   additionalNotes: string;
 }
+
+// Quotation history interface
+export interface QuotationHistory {
+  quotationId: number;
+  clientId: number;
+  clientName: string;
+  clientEmail: string;
+  projectId: number;
+  projectName: string;
+  projectDescription: string;
+  employeeId: number;
+  employeeName: string;
+  employeeEmail: string;
+  createdDate: string;
+  type: string;
+  totalCost: number;
+  formattedCreatedDate: string;
+  formattedTotalCost: string;
+}

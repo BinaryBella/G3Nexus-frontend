@@ -138,7 +138,7 @@ const TermsAndConditionsPage = () => {
                             <FileText className="h-8 w-8 text-[#3450A3]" />
                             Terms and Conditions
                         </h1>
-                        <p className="text-gray-600 mt-2">Manage your company&apos;s terms and conditions</p>
+                        <p className="text-gray-600 mt-2">Manage company&apos;s terms and conditions</p>
                     </div>
                 </div>
 
@@ -168,7 +168,7 @@ const TermsAndConditionsPage = () => {
                                 Terms and Conditions Editor
                             </h2>
                             <p className="text-sm text-black mt-1">
-                                Edit your company&apos;s terms and conditions below.
+                                Edit company&apos;s terms and conditions below.
                             </p>
                         </div>
                         <div className="text-right">

@@ -351,12 +351,105 @@ export default function CompanyBugsPage() {
 
     // Checkbox handlers
     const handleSelect = (id: number) => {
-        setSelectedIds((prev) => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+        if (selectedIds.includes(id)) {
+            // If unchecking, just remove the ID
+            setSelectedIds((prev) => prev.filter(i => i !== id));
+        } else {
+            // If checking, validate client and project consistency
+            if (selectedIds.length > 0) {
+                const firstSelectedBug = filteredBugs.find(bug => bug.bugId === selectedIds[0]);
+                const currentBug = filteredBugs.find(bug => bug.bugId === id);
+                
+                if (firstSelectedBug && currentBug) {
+                    if (firstSelectedBug.clientId !== currentBug.clientId) {
+                        showFeedback(
+                            'error',
+                            'Selection Error',
+                            `Cannot select bugs from different clients. Please select bugs from the same client: ${firstSelectedBug.clientName}`
+                        );
+                        return;
+                    }
+                    
+                    if (firstSelectedBug.projectId !== currentBug.projectId) {
+                        showFeedback(
+                            'error',
+                            'Selection Error',
+                            `Cannot select bugs from different projects. Please select bugs from the same project: ${firstSelectedBug.projectName}`
+                        );
+                        return;
+                    }
+                }
+            }
+            
+            // If validation passes, add the ID
+            setSelectedIds((prev) => [...prev, id]);
+        }
     };
+    
     const handleSelectAll = () => {
         const currentPageIds = paginatedBugs.map(r => r.bugId);
         const allSelected = currentPageIds.every(id => selectedIds.includes(id));
-        setSelectedIds(allSelected ? selectedIds.filter(id => !currentPageIds.includes(id)) : [...selectedIds, ...currentPageIds.filter(id => !selectedIds.includes(id))]);
+        
+        if (allSelected) {
+            // If all are selected, unselect them
+            setSelectedIds(selectedIds.filter(id => !currentPageIds.includes(id)));
+        } else {
+            // If not all are selected, validate consistency before selecting
+            if (selectedIds.length > 0) {
+                const firstSelectedBug = filteredBugs.find(bug => bug.bugId === selectedIds[0]);
+                const pagesBugs = paginatedBugs.filter(bug => !selectedIds.includes(bug.bugId));
+                
+                if (firstSelectedBug && pagesBugs.length > 0) {
+                    // Check if any bug on current page has different client or project
+                    const differentClientBugs = pagesBugs.filter(bug => bug.clientId !== firstSelectedBug.clientId);
+                    const differentProjectBugs = pagesBugs.filter(bug => bug.projectId !== firstSelectedBug.projectId);
+                    
+                    if (differentClientBugs.length > 0) {
+                        showFeedback(
+                            'error',
+                            'Selection Error',
+                            `Cannot select bugs from different clients. Some bugs on this page belong to different clients than your current selection.`
+                        );
+                        return;
+                    }
+                    
+                    if (differentProjectBugs.length > 0) {
+                        showFeedback(
+                            'error',
+                            'Selection Error',
+                            `Cannot select bugs from different projects. Some bugs on this page belong to different projects than your current selection.`
+                        );
+                        return;
+                    }
+                }
+            } else if (currentPageIds.length > 0) {
+                // If no bugs are selected yet, check if all bugs on current page belong to same client and project
+                const firstBug = paginatedBugs[0];
+                const differentClientBugs = paginatedBugs.filter(bug => bug.clientId !== firstBug.clientId);
+                const differentProjectBugs = paginatedBugs.filter(bug => bug.projectId !== firstBug.projectId);
+                
+                if (differentClientBugs.length > 0) {
+                    showFeedback(
+                        'error',
+                        'Selection Error',
+                        `Cannot select all bugs on this page as they belong to different clients. Please select bugs from the same client manually.`
+                    );
+                    return;
+                }
+                
+                if (differentProjectBugs.length > 0) {
+                    showFeedback(
+                        'error',
+                        'Selection Error',
+                        `Cannot select all bugs on this page as they belong to different projects. Please select bugs from the same project manually.`
+                    );
+                    return;
+                }
+            }
+            
+            // If validation passes, select all on current page
+            setSelectedIds([...selectedIds, ...currentPageIds.filter(id => !selectedIds.includes(id))]);
+        }
     };
 
     // Quotation modal handlers
@@ -419,6 +512,21 @@ export default function CompanyBugsPage() {
                 throw new Error('Invalid project ID for selected bug');
             }
 
+            // Validate that all selected bugs belong to the same client and project
+            const selectedBugs = filteredBugs.filter(r => selectedIds.includes(r.bugId));
+            const differentClientBugs = selectedBugs.filter(bug => bug.clientId !== firstBug.clientId);
+            const differentProjectBugs = selectedBugs.filter(bug => bug.projectId !== firstBug.projectId);
+            
+            if (differentClientBugs.length > 0) {
+                const bugTitles = differentClientBugs.map(bug => bug.bugTitle).join(', ');
+                throw new Error(`All selected bugs must belong to the same client. The following bugs belong to different clients: ${bugTitles}`);
+            }
+            
+            if (differentProjectBugs.length > 0) {
+                const bugTitles = differentProjectBugs.map(bug => bug.bugTitle).join(', ');
+                throw new Error(`All selected bugs must belong to the same project. The following bugs belong to different projects: ${bugTitles}`);
+            }
+
             // Validate that all required fields are filled
             for (const id of selectedIds) {
                 const data = quotationData[id];
@@ -440,7 +548,7 @@ export default function CompanyBugsPage() {
             }
 
             // Prepare quotation requests
-            const selectedBugs: BugQuotationRequest[] = selectedIds.map(id => {
+            const quotationRequests: BugQuotationRequest[] = selectedIds.map(id => {
                 const data = quotationData[id];
                 // Ensure delivery date is properly formatted and in the future
                 const deliveryDate = new Date(data.deliveryDate);
@@ -464,7 +572,7 @@ export default function CompanyBugsPage() {
             });
 
             const bulkQuotationRequest: BulkBugQuotationRequest = {
-                selectedBugs,
+                selectedBugs: quotationRequests,
                 clientId: parseInt(firstBug.clientId.toString()), // Ensure it's a number
                 employeeId: user!.userId, // Use current user's ID
                 projectId: parseInt(firstBug.projectId.toString()), // Ensure it's a number
@@ -478,7 +586,7 @@ export default function CompanyBugsPage() {
             console.log('Using bulk bug quotation endpoint');
                 await bugService.sendBulkQuotation(bulkQuotationRequest);
 
-            selectedBugs.forEach(async bugQ => {
+            quotationRequests.forEach(async bugQ => {
                 const bug = await bugService.getBugById(bugQ.bugId);
                 markBugAsRead(bug!, bugQ.bugId);
             })

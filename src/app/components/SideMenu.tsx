@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { User, Users, FileText, Bug, DollarSign, FolderOpen, ClipboardList, File } from 'lucide-react';
+import { User, Users, FileText, Bug, DollarSign, FolderOpen, ClipboardList, File, Receipt } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 
@@ -22,6 +22,7 @@ const companyMenuItems: MenuItem[] = [
     { title: 'Requirements', path: '/company/requirements', icon: FileText, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Bug Reports', path: '/company/bugs', icon: Bug, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Financial Details', path: '/company/financial', icon: ClipboardList, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
+    { title: 'Quotation History', path: '/company/quotations', icon: Receipt, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Terms & Conditions', path: '/company/terms', icon: File, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
 ];
 

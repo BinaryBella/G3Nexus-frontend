@@ -10,6 +10,7 @@ import { requirementService } from './requirementService';
 import { bugService } from './bugService';
 import { paymentService } from './paymentService';
 import { termsService } from './termsService';
+import { quotationService } from './quotationService';
 
 export {
   api,
@@ -21,5 +22,6 @@ export {
   requirementService,
   bugService,
   paymentService,
-  termsService
+  termsService,
+  quotationService
 };
