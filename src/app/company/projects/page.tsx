@@ -6,6 +6,7 @@ import { FileSearch, Search, Plus, FileText, AlertTriangle, CheckCircle, Clock, 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService, Project } from '@/app/lib/services/projectService';
 import Pagination from '@/app/components/Pagination';
+import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -165,12 +166,63 @@ export default function CompanyProjectsPage() {
     const queryClient = useQueryClient();
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [deleteModal, setDeleteModal] = useState<{
+        isOpen: boolean;
+        project: Project | null;
+        isDeleting: boolean;
+    }>({
+        isOpen: false,
+        project: null,
+        isDeleting: false
+    });
     const itemsPerPage = 6;
 
     const { data: projects = [], error, isLoading } = useQuery<Project[], Error>({
         queryKey: ['projects'],
         queryFn: projectService.getAllProjects,
     });
+
+    // Delete mutation
+    const deleteProjectMutation = useMutation({
+        mutationFn: async (projectId: number) => {
+            return await projectService.deleteProject(projectId);
+        },
+        onMutate: () => {
+            setDeleteModal(prev => ({ ...prev, isDeleting: true }));
+        },
+        onSuccess: () => {
+            // Invalidate and refetch projects data
+            queryClient.invalidateQueries({ queryKey: ['projects'] });
+            setDeleteModal({ isOpen: false, project: null, isDeleting: false });
+            // You could add a success toast here if needed
+        },
+        onError: (error) => {
+            console.error('Failed to delete project:', error);
+            setDeleteModal(prev => ({ ...prev, isDeleting: false }));
+            // You could add an error toast here if needed
+        }
+    });
+
+    // Delete modal handlers
+    const handleDeleteClick = (project: Project) => {
+        setDeleteModal({
+            isOpen: true,
+            project,
+            isDeleting: false
+        });
+    };
+
+    const handleDeleteConfirm = () => {
+        if (deleteModal.project) {
+            deleteProjectMutation.mutate(deleteModal.project.projectId);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        if (!deleteModal.isDeleting) {
+            setDeleteModal({ isOpen: false, project: null, isDeleting: false });
+        }
+    };
 
     // Reset to first page when search text changes
     useEffect(() => {
@@ -412,7 +464,7 @@ export default function CompanyProjectsPage() {
                                                             <Edit className="h-4 w-4" />
                                                         </button>
                                                         <button
-                                                            onClick={() => console.log(`Delete project ${project.projectId}`)}
+                                                            onClick={() => handleDeleteClick(project)}
                                                             className="text-red-600 hover:text-red-800 text-sm font-medium"
                                                             title="Delete Project"
                                                         >
@@ -444,6 +496,20 @@ export default function CompanyProjectsPage() {
                     />
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={deleteModal.isOpen}
+                onClose={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+                title="Delete Project"
+                message="Are you sure you want to delete this project?"
+                warningMessage="This action cannot be undone. All project data will be permanently removed."
+                isDeleting={deleteModal.isDeleting}
+                itemName={deleteModal.project?.projectName ? `"${deleteModal.project.projectName}"` : undefined}
+                confirmButtonText="Delete Project"
+                cancelButtonText="Cancel"
+            />
         </div>
     );
 }
