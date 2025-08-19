@@ -239,4 +239,21 @@ export interface QuotationHistory {
   totalCost: number;
   formattedCreatedDate: string;
   formattedTotalCost: string;
+  items: QuotationItem[];
+}
+
+// Quotation item interface
+export interface QuotationItem {
+  itemId: number;
+  itemType: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: string;
+  cost: number;
+  formattedCost: string;
+  attachment: string;
+  isActive: boolean;
+  createdAt: string;
+  formattedCreatedAt: string;
 }

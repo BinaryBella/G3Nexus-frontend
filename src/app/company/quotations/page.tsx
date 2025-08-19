@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Receipt, DollarSign, User, Calendar, Search, Filter, Eye, X, FileText } from 'lucide-react';
+import { Receipt, DollarSign, User, Calendar, Search, Filter, Eye, X, FileText, Bug, Paperclip } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { quotationService } from '@/app/lib/services/quotationService';
-import { QuotationHistory } from '@/app/lib/types';
+import { QuotationHistory, QuotationItem } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 import Pagination from '@/app/components/Pagination';
@@ -15,7 +15,9 @@ const QuotationTypeBadge = ({ type }: { type: string }) => {
         'Bug': "bg-red-100 text-red-800 border-red-200",
         'Requirement': "bg-blue-100 text-blue-800 border-blue-200",
         'Feature': "bg-green-100 text-green-800 border-green-200",
-        'Enhancement': "bg-purple-100 text-purple-800 border-purple-200"
+        'Enhancement': "bg-purple-100 text-purple-800 border-purple-200",
+        'Advanced': "bg-indigo-100 text-indigo-800 border-indigo-200",
+        'Final': "bg-green-100 text-green-800 border-green-200"
     };
 
     const colorClass = colorMap[type] || "bg-gray-100 text-gray-800 border-gray-200";
@@ -24,6 +26,100 @@ const QuotationTypeBadge = ({ type }: { type: string }) => {
         <span className={`px-3 py-1 rounded-full text-xs font-medium border ${colorClass}`}>
             {type}
         </span>
+    );
+};
+
+// Priority Badge Component for Items
+const PriorityBadge = ({ priority }: { priority: string }) => {
+    const colorMap: Record<string, string> = {
+        'High': "bg-red-100 text-red-800 border-red-200",
+        'Medium': "bg-yellow-100 text-yellow-800 border-yellow-200",
+        'Low': "bg-green-100 text-green-800 border-green-200"
+    };
+
+    const colorClass = colorMap[priority] || "bg-gray-100 text-gray-800 border-gray-200";
+
+    return (
+        <span className={`px-2 py-1 rounded text-xs font-medium border ${colorClass}`}>
+            {priority}
+        </span>
+    );
+};
+
+// Quotation Item Component
+const QuotationItemCard = ({ item }: { item: QuotationItem }) => {
+    const isRequirement = item.itemType === 'Requirement';
+    const isBug = item.itemType === 'Bug';
+    
+    return (
+        <div className={`border rounded-lg p-4 ${
+            isRequirement ? 'bg-blue-50 border-blue-200' :
+            isBug ? 'bg-red-50 border-red-200' :
+            'bg-gray-50 border-gray-200'
+        }`}>
+            <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    {isRequirement ? <FileText className="h-4 w-4 text-blue-600" /> :
+                     isBug ? <Bug className="h-4 w-4 text-red-600" /> :
+                     <Receipt className="h-4 w-4 text-gray-600" />}
+                    <span className={`text-sm font-medium ${
+                        isRequirement ? 'text-blue-800' :
+                        isBug ? 'text-red-800' :
+                        'text-gray-800'
+                    }`}>
+                        {item.itemType}
+                    </span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <PriorityBadge priority={item.priority} />
+                    <span className="text-sm font-semibold text-green-600">
+                        {item.formattedCost}
+                    </span>
+                </div>
+            </div>
+            
+            <div className="space-y-2">
+                <div>
+                    <p className={`font-medium ${
+                        isRequirement ? 'text-blue-900' :
+                        isBug ? 'text-red-900' :
+                        'text-gray-900'
+                    }`}>
+                        {item.title}
+                    </p>
+                    <p className={`text-sm ${
+                        isRequirement ? 'text-blue-700' :
+                        isBug ? 'text-red-700' :
+                        'text-gray-700'
+                    }`}>
+                        Category: {item.category}
+                    </p>
+                </div>
+                
+                <div className="mt-2">
+                    <p className={`text-sm whitespace-pre-wrap ${
+                        isRequirement ? 'text-blue-800' :
+                        isBug ? 'text-red-800' :
+                        'text-gray-800'
+                    }`}>
+                        {item.description}
+                    </p>
+                </div>
+
+                {item.attachment && (
+                    <div className="mt-2 flex items-center gap-2">
+                        <Paperclip className="h-4 w-4 text-gray-500" />
+                        <span className="text-xs text-gray-600">
+                            Attachment: {item.attachment}
+                        </span>
+                    </div>
+                )}
+
+                <div className="mt-2 text-xs text-gray-500">
+                    Created: {item.formattedCreatedAt}
+                </div>
+            </div>
+        </div>
     );
 };
 
@@ -65,16 +161,78 @@ const QuotationModal = ({ quotation, isOpen, onClose }: {
                         </div>
                     </div>
 
-                    {/* Quotation Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Quotation Items */}
+                    {quotation.items && quotation.items.length > 0 && (
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Quotation Type
+                            <label className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-1">
+                                {quotation.type === 'Requirement' ? (
+                                    <FileText className="h-4 w-4" />
+                                ) : quotation.type === 'Bug' ? (
+                                    <Bug className="h-4 w-4" />
+                                ) : (
+                                    <Receipt className="h-4 w-4" />
+                                )}
+                                {quotation.type} Items ({quotation.items.length})
                             </label>
-                            <div className="bg-gray-50 rounded-lg p-4">
-                                <QuotationTypeBadge type={quotation.type} />
+                            <div className="space-y-3">
+                                {quotation.items.map((item, index) => (
+                                    <QuotationItemCard key={`${item.itemId}-${index}`} item={item} />
+                                ))}
                             </div>
                         </div>
+                    )}
+
+                    {/* No Items Message */}
+                    {(!quotation.items || quotation.items.length === 0) && (
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                                {quotation.type === 'Requirement' ? (
+                                    <FileText className="h-4 w-4" />
+                                ) : quotation.type === 'Bug' ? (
+                                    <Bug className="h-4 w-4" />
+                                ) : (
+                                    <Receipt className="h-4 w-4" />
+                                )}
+                                {quotation.type} Details
+                            </label>
+                            <div className={`rounded-lg p-4 border ${
+                                quotation.type === 'Requirement' ? 'bg-blue-50 border-blue-200' :
+                                quotation.type === 'Bug' ? 'bg-red-50 border-red-200' :
+                                'bg-gray-50 border-gray-200'
+                            }`}>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <QuotationTypeBadge type={quotation.type} />
+                                        <span className={`text-sm font-medium ${
+                                            quotation.type === 'Requirement' ? 'text-blue-800' :
+                                            quotation.type === 'Bug' ? 'text-red-800' :
+                                            'text-gray-800'
+                                        }`}>
+                                            {quotation.type === 'Requirement' ? 'Requirement Quotation' :
+                                             quotation.type === 'Bug' ? 'Bug Fix Quotation' :
+                                             `${quotation.type} Quotation`}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="mt-2">
+                                    <p className={`text-sm ${
+                                        quotation.type === 'Requirement' ? 'text-blue-700' :
+                                        quotation.type === 'Bug' ? 'text-red-700' :
+                                        'text-gray-700'
+                                    }`}>
+                                        {quotation.type === 'Requirement' ? 
+                                            'This quotation is for implementing project requirements.' :
+                                         quotation.type === 'Bug' ? 
+                                            'This quotation is for fixing reported bugs.' :
+                                            `This is a ${quotation.type.toLowerCase()} quotation for the project.`}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Quotation Details Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Total Cost
@@ -83,6 +241,14 @@ const QuotationModal = ({ quotation, isOpen, onClose }: {
                                 <span className="text-lg font-semibold text-green-600">
                                     {quotation.formattedTotalCost}
                                 </span>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Created Date
+                            </label>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <p className="text-gray-900">{quotation.formattedCreatedDate}</p>
                             </div>
                         </div>
                         <div>
@@ -103,21 +269,15 @@ const QuotationModal = ({ quotation, isOpen, onClose }: {
                                 <p className="text-sm text-gray-600">{quotation.employeeEmail}</p>
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Created Date
-                            </label>
-                            <div className="bg-gray-50 rounded-lg p-4">
-                                <p className="text-gray-900">{quotation.formattedCreatedDate}</p>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Quotation ID
-                            </label>
-                            <div className="bg-gray-50 rounded-lg p-4">
-                                <p className="text-gray-900 font-mono">#{quotation.quotationId}</p>
-                            </div>
+                    </div>
+
+                    {/* Quotation ID */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Quotation ID
+                        </label>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <p className="text-gray-900 font-mono">#{quotation.quotationId}</p>
                         </div>
                     </div>
                 </div>
