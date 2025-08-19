@@ -98,35 +98,33 @@ export const projectService = {
       // First fetch the existing project data
       const existingProject = await projectService.getProjectById(id);
       
-      // Merge existing data with updates
+      // Merge existing data with updates - prioritize new data over existing
       const updatePayload = {
         projectId: id,
-        projectName: existingProject.projectName,
-        projectType: existingProject.projectType,
-        projectSize: existingProject.projectSize,
-        creationDate: existingProject.creationDate,
-        projectDescription: existingProject.projectDescription || "",
-        estimatedBudget: existingProject.estimatedBudget,
-        actualStartDate: existingProject.actualStartDate,
-        actualEndDate: existingProject.actualEndDate,
-        totalBudget: existingProject.totalBudget,
-        paymentType: existingProject.paymentType || "Advance Payment",
-        paymentStatus: existingProject.paymentStatus || "Pending",
-        status: existingProject.status,
-        isActive: existingProject.isActive,
-        companyId: existingProject.companyId,
-        clientName: existingProject.clientName || "",
-        clientEmail: existingProject.clientEmail || "",
-        quotationCost: existingProject.quotationCost || {
+        projectName: projectData.projectName || existingProject.projectName,
+        projectType: projectData.projectType || existingProject.projectType,
+        projectSize: projectData.projectSize || existingProject.projectSize,
+        creationDate: projectData.creationDate || existingProject.creationDate,
+        projectDescription: projectData.projectDescription !== undefined ? projectData.projectDescription : (existingProject.projectDescription || ""),
+        estimatedBudget: projectData.estimatedBudget !== undefined ? projectData.estimatedBudget : existingProject.estimatedBudget,
+        actualStartDate: projectData.actualStartDate !== undefined ? projectData.actualStartDate : existingProject.actualStartDate,
+        actualEndDate: projectData.actualEndDate !== undefined ? projectData.actualEndDate : existingProject.actualEndDate,
+        totalBudget: projectData.totalBudget !== undefined ? projectData.totalBudget : existingProject.totalBudget,
+        paymentType: projectData.paymentType || existingProject.paymentType || "Advance Payment",
+        paymentStatus: projectData.paymentStatus || existingProject.paymentStatus || "Pending",
+        status: projectData.status || existingProject.status,
+        isActive: projectData.isActive !== undefined ? projectData.isActive : existingProject.isActive,
+        companyId: projectData.companyId || existingProject.companyId,
+        clientName: projectData.clientName !== undefined ? projectData.clientName : (existingProject.clientName || ""),
+        clientEmail: projectData.clientEmail !== undefined ? projectData.clientEmail : (existingProject.clientEmail || ""),
+        quotationCost: projectData.quotationCost || existingProject.quotationCost || {
           advancePayment: 0,
           developmentCost: 0,
           hostingAndDomain: 0,
           sslCertificate: 0,
           serverCost: 0,
           deploymentCost: 0
-        },
-        // Override with the provided updates
-        ...projectData
+        }
       };
       
       const response = await api.put<ApiResponse<Project>>('/Project', updatePayload);

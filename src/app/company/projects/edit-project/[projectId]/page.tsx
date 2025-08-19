@@ -7,6 +7,7 @@ import { companyService } from '@/app/lib/services/companyService';
 import { projectService } from '@/app/lib/services/projectService';
 import { Company } from '@/app/lib/types';
 import { Edit3, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 interface ProjectFormData {
     // Project Initialization fields
@@ -30,6 +31,7 @@ export default function EditProjectForm() {
     const router = useRouter();
     const params = useParams();
     const queryClient = useQueryClient();
+    const { canManageProjects } = useRoleAccess();
     const projectId = params.projectId as string;
     
     const [activeTab, setActiveTab] = useState(0);
@@ -51,6 +53,27 @@ export default function EditProjectForm() {
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+
+    // Check permission first
+    useEffect(() => {
+        if (!canManageProjects()) {
+            router.push('/company/projects');
+            return;
+        }
+    }, [canManageProjects, router]);
+
+    // Don't render if user doesn't have permission
+    if (!canManageProjects()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don&apos;t have permission to edit projects.</p>
+                </div>
+            </div>
+        );
+    }
 
     // Fetch project data
     const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
@@ -124,22 +147,37 @@ export default function EditProjectForm() {
         
         try {
             setIsSubmitting(true);
+            
+            // Format dates properly - use null for empty dates, ISO string for valid dates
+            const formatDate = (dateString: string) => {
+                if (!dateString) return null;
+                try {
+                    const date = new Date(dateString);
+                    return isNaN(date.getTime()) ? null : date.toISOString();
+                } catch {
+                    return null;
+                }
+            };
+
             // Prepare data for API call
             const projectData = {
-                projectName: formData.projectName,
+                projectName: formData.projectName.trim(),
                 projectType: formData.projectType,
                 projectSize: formData.projectSize,
-                creationDate: formData.creationDate,
-                projectDescription: formData.projectDescription,
+                creationDate: formatDate(formData.creationDate) || new Date().toISOString(),
+                projectDescription: formData.projectDescription.trim(),
                 estimatedBudget: parseFloat(formData.estimatedBudget) || 0,
-                actualStartDate: formData.actualStartDate,
-                actualEndDate: formData.actualEndDate,
+                actualStartDate: formatDate(formData.actualStartDate),
+                actualEndDate: formatDate(formData.actualEndDate),
                 totalBudget: parseFloat(formData.totalBudget) || 0,
                 paymentType: formData.paymentType,
                 paymentStatus: formData.paymentStatus,
                 status: formData.status,
                 isActive: true,
-                companyId: parseInt(formData.companyId)
+                companyId: parseInt(formData.companyId),
+                // Include client fields to maintain existing data
+                clientName: project?.clientName || "",
+                clientEmail: project?.clientEmail || ""
             };
 
             await updateProjectMutation.mutateAsync(projectData);
@@ -228,7 +266,7 @@ export default function EditProjectForm() {
                     <Edit3 className="h-8 w-8 text-[#3450A3]" />
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Edit Project</h1>
-                        <p className="text-gray-600 mt-1">Update project information</p>
+                        <p className="text-gray-600 mt-1">Update project information and details</p>
                     </div>
                 </div>
             </div>
@@ -344,9 +382,14 @@ export default function EditProjectForm() {
                                         required
                                     >
                                         <option value="">Select Project Type</option>
-                                        <option value="web">Web Development</option>
-                                        <option value="mobile">Mobile Development</option>
-                                        <option value="desktop">Desktop Application</option>
+                                        <option value="Web Development">Web Development</option>
+                                        <option value="Mobile Development">Mobile Development</option>
+                                        <option value="Desktop Application">Desktop Application</option>
+                                        <option value="E-commerce">E-commerce</option>
+                                        <option value="CRM System">CRM System</option>
+                                        <option value="ERP System">ERP System</option>
+                                        <option value="Content Management">Content Management</option>
+                                        <option value="Custom Software">Custom Software</option>
                                     </select>
                                 </div>
 
@@ -364,9 +407,9 @@ export default function EditProjectForm() {
                                         required
                                     >
                                         <option value="">Select Project Size</option>
-                                        <option value="small">Small</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="large">Large</option>
+                                        <option value="Small">Small (1-3 months)</option>
+                                        <option value="Medium">Medium (3-6 months)</option>
+                                        <option value="Large">Large (6+ months)</option>
                                     </select>
                                 </div>
 
@@ -388,16 +431,18 @@ export default function EditProjectForm() {
                                 {/* Estimated Budget */}
                                 <div>
                                     <label htmlFor="estimatedBudget" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Estimated Budget
+                                        Estimated Budget (LKR)
                                     </label>
                                     <input
-                                        type="text"
+                                        type="number"
                                         id="estimatedBudget"
                                         name="estimatedBudget"
                                         value={formData.estimatedBudget}
                                         onChange={handleChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter estimated budget"
+                                        step="0.01"
+                                        min="0"
                                     />
                                 </div>
 
@@ -411,9 +456,9 @@ export default function EditProjectForm() {
                                         name="projectDescription"
                                         value={formData.projectDescription}
                                         onChange={handleChange}
-                                        rows={3}
+                                        rows={4}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
-                                        placeholder="Enter project description"
+                                        placeholder="Enter project description, goals, and requirements..."
                                     />
                                 </div>
 
@@ -475,16 +520,18 @@ export default function EditProjectForm() {
                                 {/* Total Budget */}
                                 <div>
                                     <label htmlFor="totalBudget" className="block text-sm font-medium text-gray-700 mb-2">
-                                        Total Budget
+                                        Total Budget (LKR)
                                     </label>
                                     <input
-                                        type="text"
+                                        type="number"
                                         id="totalBudget"
                                         name="totalBudget"
                                         value={formData.totalBudget}
                                         onChange={handleChange}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                         placeholder="Enter total budget"
+                                        step="0.01"
+                                        min="0"
                                     />
                                 </div>
 
@@ -501,9 +548,10 @@ export default function EditProjectForm() {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     >
                                         <option value="">Select Payment Type</option>
-                                        <option value="fixed">Fixed</option>
-                                        <option value="hourly">Hourly</option>
-                                        <option value="milestone">Milestone</option>
+                                        <option value="Fixed Price">Fixed Price</option>
+                                        <option value="Hourly Rate">Hourly Rate</option>
+                                        <option value="Milestone Based">Milestone Based</option>
+                                        <option value="Advance Payment">Advance Payment</option>
                                     </select>
                                 </div>
 
@@ -520,9 +568,10 @@ export default function EditProjectForm() {
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                     >
                                         <option value="">Select Payment Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="partial">Partial</option>
-                                        <option value="paid">Paid</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Partial">Partial</option>
+                                        <option value="Paid">Paid</option>
+                                        <option value="Overdue">Overdue</option>
                                     </select>
                                 </div>
 
@@ -542,6 +591,11 @@ export default function EditProjectForm() {
                                         <option value="Inactive">Inactive</option>
                                         <option value="Completed">Completed</option>
                                         <option value="On Hold">On Hold</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                        <option value="Planning">Planning</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Testing">Testing</option>
+                                        <option value="Deployed">Deployed</option>
                                     </select>
                                 </div>
 
