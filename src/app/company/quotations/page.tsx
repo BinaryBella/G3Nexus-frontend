@@ -282,7 +282,7 @@ const QuotationHistoryPage = () => {
     const [selectedType, setSelectedType] = useState('');
     const [selectedQuotation, setSelectedQuotation] = useState<QuotationHistory | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const itemsPerPage = 10;
+    const itemsPerPage = 5;
 
     // Fetch quotations data
     const { data: quotations = [], isLoading, error } = useQuery({
