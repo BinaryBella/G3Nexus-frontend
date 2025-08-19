@@ -79,6 +79,12 @@ const sectionsConfig = [
         icon: User,
         route: '/company/employees',
         description: 'Manage team members'
+    },
+        {
+        title: 'Quotation Details',
+        icon: ClipboardList,
+        route: '/company/quotations',
+        description: 'Manage quotation history'
     }
 ];
 
@@ -237,7 +243,7 @@ const ProjectsPage = () => {
                         </div>
 
                         {/* Cards Grid */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
                             {sectionsConfig.map((section, index) => {
                                 const Icon = section.icon;
 
