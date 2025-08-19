@@ -270,16 +270,6 @@ const QuotationModal = ({ quotation, isOpen, onClose }: {
                             </div>
                         </div>
                     </div>
-
-                    {/* Quotation ID */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Quotation ID
-                        </label>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                            <p className="text-gray-900 font-mono">#{quotation.quotationId}</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
