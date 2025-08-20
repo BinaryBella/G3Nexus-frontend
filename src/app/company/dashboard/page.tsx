@@ -247,6 +247,21 @@ const ProjectsPage = () => {
                             {sectionsConfig.map((section, index) => {
                                 const Icon = section.icon;
 
+                                // Map card titles to image filenames
+                                const imageMap: { [key: string]: string } = {
+                                    'Company Details': '/images/company.png',
+                                    'Client Details': '/images/profile.png',
+                                    'Project Details': '/images/project.png',
+                                    'Requirement Details': '/images/reqs.png',
+                                    'Bug Details': '/images/bug.png',
+                                    'Financial Details': '/images/financial.png',
+                                    'Terms & Conditions': '/images/terms.png',
+                                    'Employee Details': '/images/profile.png',
+                                    'Quotation Details': '/images/project-icon black.png',
+                                };
+
+                                const cardImage = imageMap[section.title] || '/images/project.png';
+
                                 return (
                                     <Link
                                         key={index}
@@ -276,6 +291,12 @@ const ProjectsPage = () => {
                                                     {section.description}
                                                 </p>
                                             </div>
+                                            {/* Decorative Image/Vector Bottom Right */}
+                                            <img
+                                                src={cardImage}
+                                                alt="Decorative"
+                                                className="absolute bottom-2 right-2 w-40 h-40 object-contain opacity-20 pointer-events-none select-none"
+                                            />
                                         </div>
                                     </Link>
                                 );

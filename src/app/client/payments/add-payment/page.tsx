@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Upload, X, ArrowLeft, DollarSign, Calendar, FileText, AlertCircle, FolderOpen } from 'lucide-react';
+import { Upload, X, ArrowLeft, DollarSign, Calendar, FileText, AlertCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
@@ -35,7 +35,7 @@ const AddPaymentPage: React.FC = () => {
     const [formData, setFormData] = useState<PaymentFormData>({
         projectId: projectIdParam || '',
         paymentAmount: '',
-        paymentType: 'Milestone',
+        paymentType: '',
         paymentDescription: '',
         paymentDate: new Date().toISOString().split('T')[0],
     });
@@ -88,9 +88,10 @@ const AddPaymentPage: React.FC = () => {
             // Create payment data with the attachment filename
             const paymentDataWithAttachment = {
                 ...data.paymentData,
-                attachment: attachmentFilename
+                attachment: attachmentFilename,
             };
 
+            debugger
             // Create the payment
             const payment = await paymentService.addPayment(paymentDataWithAttachment);
             return payment;
@@ -173,6 +174,10 @@ const AddPaymentPage: React.FC = () => {
             newErrors.paymentDescription = 'Payment description is required';
         }
 
+        if (!formData.paymentType) {
+            newErrors.paymentType = 'Payment type is required';
+        }
+
         if (!formData.paymentDate) {
             newErrors.paymentDate = 'Payment date is required';
         }
@@ -193,7 +198,7 @@ const AddPaymentPage: React.FC = () => {
         try {
             // Get clientId from authenticated user
             console.log('Current user:', user);
-            let clientId = user?.clientId;
+            let clientId = user?.userId;
             
             // If clientId is not available from user context, try to fetch it
             if (!clientId) {
@@ -343,12 +348,14 @@ const AddPaymentPage: React.FC = () => {
                                     Payment Type *
                                 </label>
                                 <select
+                                    required
                                     id="paymentType"
                                     name="paymentType"
                                     value={formData.paymentType}
                                     onChange={handleInputChange}
                                     className="w-full text-black px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
+                                    <option value="">Select Payment Type</option>
                                     {paymentTypes.map(type => (
                                         <option key={type.value} value={type.value}>
                                             {type.label}
