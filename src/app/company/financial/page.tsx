@@ -389,7 +389,7 @@ export default function CompanyFinancialDashboard() {
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                                 <DollarSign className="h-8 w-8 text-[#3450A3]" />
-                                Financial Dashboard
+                                Financial Details
                             </h1>
                             <p className="text-gray-600 mt-2">Overview of your financial performance and payment records</p>
                         </div>
