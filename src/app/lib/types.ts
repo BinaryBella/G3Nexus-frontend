@@ -16,6 +16,19 @@ export interface LoginResponse {
     refreshToken: string;
 }
 
+export interface ChangePasswordRequest {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+export interface ChangePasswordResponse {
+    status: boolean;
+    message: string;
+    data?: any;
+    error?: string;
+}
+
 export interface AuthUser {
     email: string,
     role: string,

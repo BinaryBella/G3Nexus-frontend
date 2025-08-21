@@ -1,6 +1,6 @@
 // src/services/api.ts
 import axios from 'axios';
-import { AuthUser, LoginRequest, LoginResponse, ApiResponse, JWTPayload } from '@/app/lib/types';
+import { AuthUser, LoginRequest, LoginResponse, ApiResponse, JWTPayload, ChangePasswordRequest, ChangePasswordResponse } from '@/app/lib/types';
 import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 import { companyService } from './companyService';
 import { employeeService } from './employeeService';
@@ -359,6 +359,21 @@ export const authService = {
                 newPassword: newPassword,
                 verificationCode: verificationCode
             });
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    // Change password for authenticated user
+    changePassword: async (currentPassword: string, newPassword: string, confirmPassword: string): Promise<ChangePasswordResponse> => {
+        try {
+            const requestData: ChangePasswordRequest = {
+                currentPassword,
+                newPassword,
+                confirmPassword
+            };
+            const response = await api.post('/Auth/change-password', requestData);
             return response.data;
         } catch (error) {
             throw error;

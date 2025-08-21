@@ -6,6 +6,7 @@ import { Camera, Lock, User, Mail, Phone, MapPin, Eye, EyeOff } from 'lucide-rea
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { clientService } from '@/app/lib/services/clientService';
+import { authService } from '@/app/lib/services/api';
 import { Client, ClientEditPayload } from '@/app/lib/types';
 
 interface ProfileFormData {
@@ -300,20 +301,14 @@ export default function ProfilePage() {
                 return;
             }
 
-            // Get the current client to find their ID
-            const currentClient = await clientService.getClientByEmail(user?.email || '');
-            
-            if (!currentClient) {
-                throw new Error('Client not found');
-            }
-            
-            // Use the dedicated password update method
-            const success = await clientService.updateClientPassword(currentClient.clientId, {
-                oldPassword: passwordData.oldPassword,
-                newPassword: passwordData.newPassword
-            });
+            // Use the dedicated change password API
+            const response = await authService.changePassword(
+                passwordData.oldPassword,
+                passwordData.newPassword,
+                passwordData.confirmPassword
+            );
 
-            if (success) {
+            if (response.status) {
                 setSuccessMessage('Password changed successfully!');
                 setPasswordData({
                     oldPassword: '',
@@ -322,10 +317,16 @@ export default function ProfilePage() {
                 });
                 setTimeout(() => setSuccessMessage(null), 3000);
             } else {
-                setError('Failed to change password');
+                setError(response.message || 'Failed to change password');
             }
         } catch (error: any) {
-            setError(error.message || 'Failed to change password');
+            if (error.response?.status === 400) {
+                setError(error.response.data.message || 'Invalid current password or password requirements not met');
+            } else if (error.response?.status === 401) {
+                setError('Current password is incorrect');
+            } else {
+                setError(error.message || 'Failed to change password');
+            }
             console.error('Error changing password:', error);
         } finally {
             setIsChangingPassword(false);
