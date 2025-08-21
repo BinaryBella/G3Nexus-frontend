@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { FileText, ArrowLeft, X } from 'lucide-react';
 import { fileService } from '@/app/lib/services/fileService';
+import { stringToStatusNumber } from '@/app/lib/utils/statusUtils';
 
 // Modal Component for Notifications
 const Modal = ({ isOpen, onClose, children = 'Notice' }: any) => {
@@ -45,6 +46,7 @@ const RequirementForm = () => {
     // State variables for form fields and error handling
     const [requirementTitle, setRequirementTitle] = useState('');
     const [priority, setPriority] = useState('');
+    const [status, setStatus] = useState('Pending'); // Default status for new requirements
     const [requirementDescription, setRequirementDescription] = useState('');
     const [attachment, setAttachment] = useState<File | null>(null);
     const [project, setProject] = useState<number | null>(null);
@@ -193,6 +195,7 @@ const RequirementForm = () => {
             const newRequirement: Omit<Requirement, 'requirementId'> = {
                 requirementTitle,
                 priority,
+                status: stringToStatusNumber(status),
                 requirementDescription,
                 attachment: savedFileName, // Use the saved filename
                 isActive: true,

@@ -9,7 +9,10 @@ import { Bug, BugListItem, BugQuotationRequest, BulkBugQuotationRequest } from '
 import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import FeedbackPopup from '@/app/components/FeedbackPopup';
+import BugStatusDropdown from '@/app/components/BugStatusDropdown';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { normalizeStatus } from '@/app/lib/utils/statusUtils';
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
     const colorMap: Record<string, string> = {
@@ -167,6 +170,7 @@ export default function CompanyBugsPage() {
     const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
     const [isSendingQuotation, setIsSendingQuotation] = useState(false);
     const { user } = useAuth();
+    const { canManageBugs } = useRoleAccess();
     
     // Enhanced quotation form state
     const [quotationData, setQuotationData] = useState<Record<number, {
@@ -902,6 +906,7 @@ export default function CompanyBugsPage() {
                                         </th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bug</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -931,6 +936,13 @@ export default function CompanyBugsPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <SeverityBadge severity={req.severity || 'Medium'} />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <BugStatusDropdown
+                                                    bugId={req.bugId}
+                                                    currentStatus={normalizeStatus(req.status) || 'Pending'}
+                                                    canManage={canManageBugs() && (user?.role === 'COMPANY_ADMIN' || user?.role === 'COMPANY_DEVELOPER')}
+                                                />
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">
                                                 {req.clientName}

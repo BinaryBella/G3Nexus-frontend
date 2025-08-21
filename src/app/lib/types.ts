@@ -118,6 +118,7 @@ export interface Requirement {
     isActive: boolean;
     clientId: number;
     projectId: number;
+    status?: string | number;
     isNew?: boolean;
 }
 
@@ -127,6 +128,7 @@ export interface RequirementListItem {
     priority: string;
     clientId: number;
     projectId: number;
+    status?: string | number;
     isNew?: boolean;
     clientName?: string;
     projectName?: string;
@@ -138,6 +140,7 @@ export interface BugListItem {
     severity: string;
     clientId: number;
     projectId: number;
+    status?: string | number;
     isNew?: boolean;
     clientName?: string;
     projectName?: string;
@@ -153,6 +156,7 @@ export interface Bug {
     isActive: boolean;
     clientId: number;
     projectId: number;
+    status?: string | number;
     isNew?: boolean;
 }
 

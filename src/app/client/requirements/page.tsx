@@ -9,6 +9,8 @@ import { projectService, Project } from '@/app/lib/services/projectService';
 import { clientService } from '@/app/lib/services/clientService';
 import { Requirement, RequirementListItem, Client } from '../../lib/types';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { RequirementStatusBadge } from '@/app/components/RequirementStatusDropdown';
+import { normalizeStatus } from '@/app/lib/utils/statusUtils';
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
     const colorMap: Record<string, string> = {
@@ -382,6 +384,7 @@ export default function CompanyRequirementsPage() {
                                 <tr>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requirement</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -397,6 +400,9 @@ export default function CompanyRequirementsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <PriorityBadge priority={req.priority || 'Medium'} />
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <RequirementStatusBadge status={normalizeStatus(req.status) || 'Pending'} />
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
                                             {clientNameMap[req.clientId] || `Client ${req.clientId}`}

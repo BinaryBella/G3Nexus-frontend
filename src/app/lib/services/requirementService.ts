@@ -2,6 +2,7 @@
 import api from './api';
 import { ApiResponse, Requirement, RequirementListItem, QuotationRequest, BulkQuotationRequest } from '@/app/lib/types';
 import { authService } from './api';
+import { stringToStatusNumber } from '@/app/lib/utils/statusUtils';
 
 export const requirementService = {
   // Get all requirements
@@ -85,7 +86,15 @@ export const requirementService = {
   // Add requirement
   addRequirement: async (requirementData: Omit<Requirement, 'requirementId'>): Promise<Requirement> => {
     try {
-      const response = await api.post<ApiResponse<Requirement>>('/Requirement', requirementData);
+      // Ensure status is a number if it's a string
+      const processedData = {
+        ...requirementData,
+        status: typeof requirementData.status === 'string' 
+          ? stringToStatusNumber(requirementData.status) 
+          : requirementData.status
+      };
+
+      const response = await api.post<ApiResponse<Requirement>>('/Requirement', processedData);
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add requirement');
       }
@@ -153,6 +162,39 @@ export const requirementService = {
       return response.data.data;
     } catch (error) {
       console.error('Error sending bulk quotation:', error);
+      throw error;
+    }
+  },
+
+  // Update requirement status
+  updateRequirementStatus: async (requirementId: number, status: string): Promise<boolean> => {
+    try {
+      // First get the current requirement
+      const currentRequirement = await requirementService.getRequirementById(requirementId);
+      
+      // Update the requirement with new status (convert string to number)
+      const updatedRequirement: Requirement = {
+        ...currentRequirement,
+        status: stringToStatusNumber(status)
+      };
+      
+      const response = await api.put<ApiResponse<Requirement>>('/Requirement', updatedRequirement);
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to update requirement status');
+      }
+
+      // Trigger charts refresh
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('requirementUpdated', Date.now().toString());
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'requirementUpdated',
+          newValue: Date.now().toString()
+        }));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating requirement status:', error);
       throw error;
     }
   }

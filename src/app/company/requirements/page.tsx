@@ -9,7 +9,10 @@ import { Requirement, RequirementListItem, QuotationRequest, BulkQuotationReques
 import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import FeedbackPopup from '@/app/components/FeedbackPopup';
+import RequirementStatusDropdown from '@/app/components/RequirementStatusDropdown';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { normalizeStatus } from '@/app/lib/utils/statusUtils';
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
     const colorMap: Record<string, string> = {
@@ -171,6 +174,8 @@ export default function CompanyRequirementsPage() {
     const [requirementToDelete, setRequirementToDelete] = useState<RequirementListItem | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const itemsPerPage = 6;
+    const { user } = useAuth();
+    const { canManageRequirements } = useRoleAccess();
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
     const [isSendingQuotation, setIsSendingQuotation] = useState(false);
@@ -182,7 +187,6 @@ export default function CompanyRequirementsPage() {
     const [retryCount, setRetryCount] = useState(0);
     const [quotationStatus, setQuotationStatus] = useState<{ [key: number]: 'available' | 'quoted' | 'unavailable' }>({});
     const [statusCheckInProgress, setStatusCheckInProgress] = useState(false);
-    const { user } = useAuth();
 
     // Enhanced quotation form state
     const [quotationData, setQuotationData] = useState<Record<number, {
@@ -1292,6 +1296,7 @@ export default function CompanyRequirementsPage() {
                                         </th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requirement</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -1324,6 +1329,13 @@ export default function CompanyRequirementsPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <PriorityBadge priority={req.priority || 'Medium'} />
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <RequirementStatusDropdown
+                                                    requirementId={req.requirementId}
+                                                    currentStatus={normalizeStatus(req.status) || 'Pending'}
+                                                    canManage={canManageRequirements() && (user?.role === 'COMPANY_ADMIN' || user?.role === 'COMPANY_DEVELOPER')}
+                                                />
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">
                                                 {req.clientName}

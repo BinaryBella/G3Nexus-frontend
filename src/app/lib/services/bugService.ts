@@ -2,6 +2,7 @@
 import api from './api';
 import { ApiResponse, Bug, BugListItem, BugQuotationRequest, BulkBugQuotationRequest } from '@/app/lib/types';
 import { authService } from './api';
+import { stringToStatusNumber } from '@/app/lib/utils/statusUtils';
 
 export const bugService = {
   // Get all bugs
@@ -133,7 +134,7 @@ export const bugService = {
   // Update bug
   updateBug: async (bugData: Bug): Promise<Bug> => {
     try {
-      const response = await api.put<ApiResponse<Bug>>(`/Bug/${bugData.bugId}`, bugData);
+      const response = await api.put<ApiResponse<Bug>>(`/Bug`, bugData);
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to update bug');
@@ -249,6 +250,42 @@ export const bugService = {
         console.error('Response status:', error.response.status);
         console.error('Response data:', error.response.data);
       }
+      throw error;
+    }
+  },
+
+  // Update bug status
+  updateBugStatus: async (bugId: number, status: string): Promise<boolean> => {
+    try {
+      // First get the current bug
+      const currentBug = await bugService.getBugById(bugId);
+      if (!currentBug) {
+        throw new Error('Bug not found');
+      }
+      
+      // Update the bug with new status (convert string to number)
+      const updatedBug: Bug = {
+        ...currentBug,
+        status: stringToStatusNumber(status)
+      };
+      
+      const response = await api.put<ApiResponse<Bug>>(`/Bug`, updatedBug);
+      if (!response.data.status) {
+        throw new Error(response.data.error || 'Failed to update bug status');
+      }
+
+      // Trigger charts refresh
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('bugUpdated', Date.now().toString());
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'bugUpdated',
+          newValue: Date.now().toString()
+        }));
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating bug status:', error);
       throw error;
     }
   }
