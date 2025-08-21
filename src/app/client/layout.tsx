@@ -23,7 +23,7 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                 // Projects and Dashboard pages layout without side menu
                 <div className="min-h-screen bg-gray-50">
                     {/* Navbar - full width without side menu */}
-                    <div className="fixed top-0 left-0 right-0 h-16 bg-white shadow-md z-10">
+                    <div className="fixed top-0 left-0 right-0 h-16 bg-white shadow-md z-40">
                         <Navbar />
                     </div>
                     
@@ -43,7 +43,7 @@ const ClientLayout: React.FC<ClientLayoutProps> = ({ children }) => {
                     {/* Main content */}
                     <div className="flex-1 ml-64 bg-gray-50">
                         {/* Navbar */}
-                        <div className="fixed top-0 left-64 right-0 h-16 bg-white shadow-md z-10">
+                        <div className="fixed top-0 left-64 right-0 h-16 bg-white shadow-md z-40">
                             <Navbar />
                         </div>
 
