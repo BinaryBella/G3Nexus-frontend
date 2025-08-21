@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Users, FileText, ClipboardList, Bug, DollarSign, User, Bell, ChevronLeft, ChevronRight, Mail, Phone, MapPin, Globe, Twitter, Linkedin, Facebook, Instagram, ArrowUp } from 'lucide-react';
 import { useAuth } from '@/app/contexts/AuthContext';
+import PerformanceCharts from '@/app/components/PerformanceCharts';
 
 // Hero carousel data
 const heroSlides = [
@@ -305,7 +306,7 @@ const ProjectsPage = () => {
                     </div>
                 </div>
 
-                {/* Quick Stats Section */}
+                {/* Enhanced Performance Overview Section */}
                 <div className="relative z-10 py-20 bg-gradient-to-br from-white/80 to-blue-50/50 backdrop-blur-sm">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         {/* Stats Section Header */}
@@ -319,91 +320,15 @@ const ProjectsPage = () => {
                                 Performance Overview
                             </h2>
                             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                                Real-time insights into your business operations and team performance metrics
+                                Real-time insights into your business operations with interactive charts and detailed analytics
                             </p>
                         </div>
 
-                        {/* Stats Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div
-                                className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-8 border border-white/60 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 hover:-translate-y-2 overflow-hidden">
-                                {/* Background Gradient */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-green-50/50 to-emerald-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        {/* Quick Stats Cards */}
 
-                                <div className="relative z-10 flex items-center justify-between mb-6">
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Active Projects</p>
-                                        <p className="text-4xl font-black text-gray-900 mb-2">42</p>
-                                        <div className="flex items-center text-[#3450a3]">
-                                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-                                            </svg>
-                                            <span className="text-sm font-bold">+18% this month</span>
-                                        </div>
-                                    </div>
-                                    <div className="w-20 h-20 bg-[#deecfe] rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-lg">
-                                        <FileText className="w-10 h-10 text-[#3450a3]" />
-                                    </div>
-                                </div>
 
-                                {/* Progress Bar */}
-                                <div className="relative z-10 w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                    <div className="bg-gradient-to-r from-[#ffbf00] to-[#ffbf00] h-3 rounded-full shadow-sm transition-all duration-1000 group-hover:w-4/5" style={{width: '75%'}}></div>
-                                </div>
-                            </div>
-
-                            <div className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-8 border border-white/60 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 hover:-translate-y-2 overflow-hidden">
-                                {/* Background Gradient */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-cyan-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                                <div className="relative z-10 flex items-center justify-between mb-6">
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Team Members</p>
-                                        <p className="text-4xl font-black text-gray-900 mb-2">156</p>
-                                        <div className="flex items-center text-[#3450a3]">
-                                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-                                            </svg>
-                                            <span className="text-sm font-bold">+12 new hires</span>
-                                        </div>
-                                    </div>
-                                    <div className="w-20 h-20 bg-[#deecfe]  rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-lg">
-                                        <Users className="w-10 h-10 text-[#3450a3]" />
-                                    </div>
-                                </div>
-
-                                {/* Progress Bar */}
-                                <div className="relative z-10 w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                    <div className="bg-gradient-to-r from-[#ffbf00] to-[#ffbf00] h-3 rounded-full shadow-sm transition-all duration-1000 group-hover:w-5/6" style={{width: '85%'}}></div>
-                                </div>
-                            </div>
-
-                            <div className="group relative bg-white/90 backdrop-blur-xl rounded-3xl p-8 border border-white/60 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-105 hover:-translate-y-2 overflow-hidden">
-                                {/* Background Gradient */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-pink-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                                <div className="relative z-10 flex items-center justify-between mb-6">
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Success Rate</p>
-                                        <p className="text-4xl font-black text-gray-900 mb-2">98.7%</p>
-                                        <div className="flex items-center text-[#3450a3]">
-                                            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd"/>
-                                            </svg>
-                                            <span className="text-sm font-bold">All-time high</span>
-                                        </div>
-                                    </div>
-                                    <div className="w-20 h-20 bg-[#deecfe] rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 shadow-lg">
-                                        <ClipboardList className="w-10 h-10 text-[#3450a3]" />
-                                    </div>
-                                </div>
-
-                                {/* Progress Bar */}
-                                <div className="relative z-10 w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                    <div className="bg-gradient-to-r from-[#ffbf00] to-[#ffbf00] h-3 rounded-full shadow-sm transition-all duration-1000 group-hover:w-full" style={{width: '99%'}}></div>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Interactive Charts Section */}
+                        <PerformanceCharts />
                     </div>
                 </div>
 
