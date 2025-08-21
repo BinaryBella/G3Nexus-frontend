@@ -23,6 +23,7 @@ export interface AuthUser {
     userId: number,
     clientId?: number,
     organizationName?: string,
+    profileImageUrl?: string,
 }
 
 // JWT Token payload interface

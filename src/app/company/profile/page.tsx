@@ -24,7 +24,7 @@ interface PasswordFormData {
 
 export default function ProfilePage() {
     const router = useRouter();
-    const { user, updateUser } = useAuth();
+    const { user, updateUser, refreshUserData } = useAuth();
     const [profileData, setProfileData] = useState<ProfileFormData>({
         name: '',
         contactNo: '',
@@ -133,7 +133,7 @@ export default function ProfilePage() {
         }));
     };
 
-    const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             // Validate file size (5MB limit)
@@ -152,17 +152,60 @@ export default function ProfilePage() {
             // Clear any previous errors
             setError(null);
 
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const result = reader.result as string;
-                setPreviewImage(result);
-                setProfileData((prev) => ({
-                    ...prev,
-                    image: result,
-                }));
-            };
-            reader.readAsDataURL(file);
+            try {
+                // Show preview immediately using data URL
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setPreviewImage(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+
+                // Upload file to server
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Failed to upload image');
+                }
+
+                const uploadResult = await uploadResponse.json();
+                
+                if (uploadResult.success) {
+                    // Update profile data with the uploaded file path
+                    const imageUrl = `/uploads/${uploadResult.filename}`;
+                    setProfileData((prev) => ({
+                        ...prev,
+                        image: imageUrl,
+                    }));
+                    console.log('Image uploaded successfully:', imageUrl);
+                } else {
+                    throw new Error(uploadResult.error || 'Failed to upload image');
+                }
+            } catch (uploadError: any) {
+                setError(uploadError.message || 'Failed to upload image');
+                console.error('Error uploading image:', uploadError);
+                // Reset preview on error
+                setPreviewImage(null);
+            }
         }
+    };
+
+    // Helper function to get the display image source
+    const getDisplayImageSrc = () => {
+        if (previewImage) {
+            // If preview image exists (either data URL or file path), use it
+            return previewImage;
+        }
+        if (profileData.image) {
+            // If there's a stored image path, use it
+            return profileData.image;
+        }
+        return null;
     };
 
     const handleProfileSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -207,10 +250,26 @@ export default function ProfilePage() {
             if (response) {
                 setSuccessMessage('Profile updated successfully!');
                 
-                // Update user context if needed (you may need to extend AuthUser interface)
-                // updateUser({
-                //     // Add any fields that need to be updated in the auth context
-                // });
+                // Refresh user data to get the updated profile image in the navbar
+                await refreshUserData();
+                
+                // Refresh the profile data from the server to get the updated image URL
+                try {
+                    const updatedEmployee = await employeeService.getEmployeeByEmail(user?.email || '');
+                    if (updatedEmployee) {
+                        const updatedProfile: ProfileFormData = {
+                            name: updatedEmployee.name || '',
+                            contactNo: updatedEmployee.contactNo || '',
+                            emailAddress: updatedEmployee.email || '',
+                            address: updatedEmployee.address || '',
+                            image: updatedEmployee.profileImageUrl || ''
+                        };
+                        setProfileData(updatedProfile);
+                        setPreviewImage(updatedProfile.image || null);
+                    }
+                } catch (refreshError) {
+                    console.error('Error refreshing profile data:', refreshError);
+                }
                 
                 setTimeout(() => setSuccessMessage(null), 3000);
             } else {
@@ -366,9 +425,9 @@ export default function ProfilePage() {
                                         <div className="flex flex-col items-center space-y-4">
                                             <div className="relative group">
                                                 <div className="w-32 h-32 rounded-full overflow-hidden bg-gradient-to-r from-blue-400 to-purple-500 border-4 border-white shadow-xl">
-                                                    {previewImage ? (
+                                                    {getDisplayImageSrc() ? (
                                                         <Image
-                                                            src={previewImage}
+                                                            src={getDisplayImageSrc()!}
                                                             alt="Profile"
                                                             width={128}
                                                             height={128}

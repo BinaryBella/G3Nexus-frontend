@@ -41,10 +41,10 @@ const Navbar = () => {
                     href={getProfileLink()}
                     className="flex items-center p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
                 >
-                    {user?.profileImage ? (
+                    {user?.profileImageUrl ? (
                         <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#3450A3]">
                             <Image
-                                src={user.profileImage}
+                                src={user.profileImageUrl}
                                 alt="Profile"
                                 width={32}
                                 height={32}

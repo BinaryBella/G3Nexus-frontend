@@ -3,6 +3,7 @@ import axios from 'axios';
 import { AuthUser, LoginRequest, LoginResponse, ApiResponse, JWTPayload } from '@/app/lib/types';
 import { CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 import { companyService } from './companyService';
+import { employeeService } from './employeeService';
 
 // Create an axios instance with default config
 const api = axios.create({
@@ -206,6 +207,8 @@ export const authService = {
 
         const user = getUserFromToken(accessToken);
         const isClient = authService.isClient();
+        const isCompanyUser = authService.isCompanyUser();
+        
         if (isClient && user) {
             try {
                 console.log('Fetching client data for userId:', user.userId);
@@ -218,7 +221,10 @@ export const authService = {
                     user.organizationName = companyData.companyName;
                     // Set the clientId from the profile data
                     user.clientId = clientData.data.id;
+                    // Set the profile image URL
+                    user.profileImageUrl = clientData.data.profileImageUrl;
                     console.log('Set clientId to:', user.clientId);
+                    console.log('Set profileImageUrl to:', user.profileImageUrl);
                 } else {
                     console.warn('No client data found for userId:', user.userId);
                 }
@@ -226,7 +232,25 @@ export const authService = {
                 console.error('Error fetching client profile:', error);
                 // Don't throw here, let the user continue but without client data
             }
+        } else if (isCompanyUser && user && user.email) {
+            try {
+                console.log('Fetching employee data for email:', user.email);
+                const employeeData = await employeeService.getEmployeeByEmail(user.email);
+                console.log('Employee data received:', employeeData);
+                
+                if (employeeData) {
+                    // Set the profile image URL
+                    user.profileImageUrl = employeeData.profileImageUrl;
+                    console.log('Set profileImageUrl to:', user.profileImageUrl);
+                } else {
+                    console.warn('No employee data found for email:', user.email);
+                }
+            } catch (error) {
+                console.error('Error fetching employee profile:', error);
+                // Don't throw here, let the user continue but without employee data
+            }
         }
+        
         if (!user) {
             throw new Error('Invalid access token');
         }
