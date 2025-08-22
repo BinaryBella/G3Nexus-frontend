@@ -713,17 +713,6 @@ export default function ProfilePage() {
                         )}
                     </div>
                 </div>
-
-                {/* Illustration */}
-                <div className="hidden lg:block fixed bottom-4 right-4">
-                    <Image
-                        src="/images/profile.png"
-                        alt="Profile illustration"
-                        width={300}
-                        height={240}
-                        className="opacity-50"
-                    />
-                </div>
             </div>
         </div>
     );
