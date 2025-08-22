@@ -217,16 +217,16 @@ export default function CompanyBugsPage() {
         setSelectedBug(null);
     };
 
-    const filteredBugs = bugs.filter(req =>
-        req.bugTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
-        req.severity?.toLowerCase().includes(searchText.toLowerCase())
+    const filteredBugs = bugs.filter(bug =>
+        bug.bugTitle?.toLowerCase().includes(searchText.toLowerCase()) ||
+        bug.severity?.toLowerCase().includes(searchText.toLowerCase())
     );
 
     const stats = {
         total: bugs.length,
-        high: bugs.filter(req => req.severity === 'High').length,
-        medium: bugs.filter(req => req.severity === 'Medium').length,
-        low: bugs.filter(req => req.severity === 'Low').length
+        high: bugs.filter(bug => bug.severity === 'High').length,
+        medium: bugs.filter(bug => bug.severity === 'Medium').length,
+        low: bugs.filter(bug => bug.severity === 'Low').length
     };
 
     if (isLoading) {
@@ -391,28 +391,28 @@ export default function CompanyBugsPage() {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredBugs.map((req) => (
-                                    <tr key={req.bugId} className="hover:bg-gray-50">
+                                {filteredBugs.map((bug) => (
+                                    <tr key={bug.bugId} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900">{req.bugTitle}</p>
+                                                <p className="text-sm font-medium text-gray-900">{bug.bugTitle}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <SeverityBadge severity={req.severity || 'Medium'} />
+                                            <SeverityBadge severity={bug.severity || 'Medium'} />
                                         </td>
                                         <td className="px-6 py-4">
-                                            <BugStatusBadge status={normalizeStatus(req.status) || 'Pending'} />
+                                            <BugStatusBadge status={normalizeStatus(bug.status) || 'Pending'} />
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
-                                            {clientNameMap[req.clientId] || `Client ${req.clientId}`}
+                                            {clientNameMap[bug.clientId] || `Client ${bug.clientName}`}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
-                                            {projectNameMap[req.projectId] || `Project ${req.projectId}`}
+                                            {projectNameMap[bug.projectId] || `Project ${bug.projectId}`}
                                         </td>                                       
                                         <td className="px-6 py-4">
                                             <button
-                                                onClick={() => openModal(req.bugId)}
+                                                onClick={() => openModal(bug.bugId)}
                                                 className="flex items-center gap-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1 rounded-lg transition-colors"
                                                 title="View attachment"
                                             >

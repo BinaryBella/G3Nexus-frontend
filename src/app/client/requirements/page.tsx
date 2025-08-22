@@ -405,7 +405,7 @@ export default function CompanyRequirementsPage() {
                                             <RequirementStatusBadge status={normalizeStatus(req.status) || 'Pending'} />
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
-                                            {clientNameMap[req.clientId] || `Client ${req.clientId}`}
+                                            {clientNameMap[req.clientId] || `Client ${req.clientName}`}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-900">
                                             {projectNameMap[req.projectId] || `Project ${req.projectId}`}
