@@ -283,7 +283,6 @@ export default function CompanyProjectsPage() {
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type & Size</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Budget</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -314,12 +313,6 @@ export default function CompanyProjectsPage() {
                                             </div>
                                             <div className="text-sm text-gray-500">
                                                 Est: {formatCurrency(project.estimatedBudget)}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <PaymentStatusBadge status={project.paymentStatus} />
-                                            <div className="text-xs text-gray-500 mt-1">
-                                                {project.paymentType}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600">
