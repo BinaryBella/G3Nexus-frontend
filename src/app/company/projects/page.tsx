@@ -11,24 +11,6 @@ import FeedbackPopup from '@/app/components/FeedbackPopup';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import StatusDropdown from '@/app/components/StatusDropdown';
 
-
-const PaymentStatusBadge = ({ status }: { status: string }) => {
-    const colorMap: Record<string, string> = {
-        Paid: "bg-green-100 text-green-800 border-green-200",
-        Pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
-        Overdue: "bg-red-100 text-red-800 border-red-200",
-        Partial: "bg-orange-100 text-orange-800 border-orange-200"
-    };
-
-    const colorClass = colorMap[status] || "bg-gray-100 text-gray-800 border-gray-200";
-
-    return (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${colorClass}`}>
-            {status}
-        </span>
-    );
-};
-
 export default function CompanyProjectsPage() {
     const router = useRouter();
     const { canManageProjects } = useRoleAccess();

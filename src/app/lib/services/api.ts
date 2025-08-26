@@ -157,12 +157,16 @@ const getUserFromToken = (accessToken: string): AuthUser | null => {
 
     // Extract clientId from JWT payload
     const clientId = payload.clientId || payload['ClientId'] || payload['client_id'];
+    const profileImageUrl = payload.ProfileImageUrl || payload['ProfileImageUrl'];
+    const organizationName = payload.organizationName || payload['organization'];
 
     console.log('Extracted user data:', {
         email: userEmail,
         role: role,
         id: userId,
         clientId: clientId,
+        profileImageUrl: profileImageUrl,
+        organizationName: organizationName,
         payload: payload
     });
 
@@ -171,7 +175,9 @@ const getUserFromToken = (accessToken: string): AuthUser | null => {
         role: role,
         isActive: true,
         userId: parseInt(userId),
-        clientId: clientId ? parseInt(clientId) : undefined
+        clientId: clientId ? parseInt(clientId) : undefined,
+        profileImageUrl: profileImageUrl,
+        organizationName: organizationName
     };
     
     console.log('Final user data object:', userData);
@@ -207,47 +213,14 @@ export const authService = {
 
         const user = getUserFromToken(accessToken);
         const isClient = authService.isClient();
-        const isCompanyUser = authService.isCompanyUser();
         
         if (isClient && user) {
             try {
-                console.log('Fetching client data for userId:', user.userId);
-                const clientData = await profileService.getClientById(user.userId);
-                console.log('Client data received:', clientData);
-                
-                if (clientData && clientData.data) {
-                    const companyId = clientData.data.companyId;
-                    const companyData = await companyService.getCompanyById(companyId);
-                    user.organizationName = companyData.companyName;
-                    // Set the clientId from the profile data
-                    user.clientId = clientData.data.id;
-                    // Set the profile image URL
-                    user.profileImageUrl = clientData.data.profileImageUrl;
-                    console.log('Set clientId to:', user.clientId);
-                    console.log('Set profileImageUrl to:', user.profileImageUrl);
-                } else {
-                    console.warn('No client data found for userId:', user.userId);
-                }
+                user.clientId = user.userId;
+                console.log('Set clientId to:', user.clientId);
             } catch (error) {
                 console.error('Error fetching client profile:', error);
                 // Don't throw here, let the user continue but without client data
-            }
-        } else if (isCompanyUser && user && user.email) {
-            try {
-                console.log('Fetching employee data for email:', user.email);
-                const employeeData = await employeeService.getEmployeeByEmail(user.email);
-                console.log('Employee data received:', employeeData);
-                
-                if (employeeData) {
-                    // Set the profile image URL
-                    user.profileImageUrl = employeeData.profileImageUrl;
-                    console.log('Set profileImageUrl to:', user.profileImageUrl);
-                } else {
-                    console.warn('No employee data found for email:', user.email);
-                }
-            } catch (error) {
-                console.error('Error fetching employee profile:', error);
-                // Don't throw here, let the user continue but without employee data
             }
         }
         

@@ -91,7 +91,6 @@ const AddPaymentPage: React.FC = () => {
                 attachment: attachmentFilename,
             };
 
-            debugger
             // Create the payment
             const payment = await paymentService.addPayment(paymentDataWithAttachment);
             return payment;
@@ -199,7 +198,7 @@ const AddPaymentPage: React.FC = () => {
             // Get clientId from authenticated user
             console.log('Current user:', user);
             let clientId = user?.userId;
-            
+
             // If clientId is not available from user context, try to fetch it
             if (!clientId) {
                 console.log('ClientId not in user context, fetching from auth service...');
@@ -213,7 +212,7 @@ const AddPaymentPage: React.FC = () => {
                     console.error('Error fetching clientId from auth service:', error);
                 }
             }
-            
+
             if (!clientId) {
                 console.error('ClientId not found. User object:', user);
                 setErrors({ submit: 'Unable to determine client ID. Please try logging in again or contact support.' });

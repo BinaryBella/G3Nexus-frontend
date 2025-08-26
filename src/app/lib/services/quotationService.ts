@@ -1,6 +1,6 @@
 // src/app/lib/services/quotationService.ts
 import api from './api';
-import { ApiResponse, QuotationHistory } from '@/app/lib/types';
+import { QuotationHistory } from '@/app/lib/types';
 
 export const quotationService = {
     // Get all quotations

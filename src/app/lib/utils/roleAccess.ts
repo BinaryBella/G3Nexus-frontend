@@ -1,0 +1,74 @@
+
+
+import { COMPANY_ADMIN, COMPANY_DEVELOPER, CLIENT_ADMIN, CLIENT_USER } from "../constants";
+
+export type Role = typeof COMPANY_ADMIN | typeof COMPANY_DEVELOPER | typeof CLIENT_ADMIN | typeof CLIENT_USER;
+
+// API and UI permissions for each role, section, and operation
+export const PERMISSIONS: Record<string, Record<string, string[]>> = {
+  Bug: {
+    VIEW: [CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER],
+    CREATE: [CLIENT_ADMIN, CLIENT_USER],
+    UPDATE: [COMPANY_ADMIN, COMPANY_DEVELOPER],
+    DELETE: [COMPANY_ADMIN, COMPANY_DEVELOPER],
+    CHANGE_STATUS: [COMPANY_ADMIN, COMPANY_DEVELOPER],
+    SEND_QUOTATION: [COMPANY_ADMIN],
+    SEND_BULK_QUOTATION: [COMPANY_ADMIN],
+  },
+  Client: {
+    VIEW: [COMPANY_ADMIN, COMPANY_DEVELOPER],
+    CREATE: [COMPANY_ADMIN],
+    UPDATE: [COMPANY_ADMIN],
+    DELETE: [COMPANY_ADMIN],
+  },
+  Company: {
+    VIEW: [COMPANY_ADMIN, COMPANY_DEVELOPER],
+    CREATE: [COMPANY_ADMIN],
+    UPDATE: [COMPANY_ADMIN],
+    DELETE: [COMPANY_ADMIN],
+  },
+  Employee: {
+    VIEW: [COMPANY_ADMIN, COMPANY_DEVELOPER],
+    CREATE: [COMPANY_ADMIN],
+    UPDATE: [COMPANY_ADMIN],
+    DELETE: [COMPANY_ADMIN],
+  },
+  Payment: {
+    VIEW: [CLIENT_ADMIN, COMPANY_ADMIN],
+    CREATE: [CLIENT_ADMIN],
+    UPDATE: [CLIENT_ADMIN, COMPANY_ADMIN],
+    DELETE: [COMPANY_ADMIN],
+  },
+  Project: {
+    VIEW: [CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER],
+    CREATE: [COMPANY_ADMIN],
+    UPDATE: [COMPANY_ADMIN],
+    DELETE: [COMPANY_ADMIN],
+  },
+  Quotation: {
+    VIEW: [COMPANY_ADMIN],
+  },
+  Requirement: {
+    VIEW: [CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER],
+    CREATE: [CLIENT_ADMIN, CLIENT_USER],
+    UPDATE: [COMPANY_ADMIN, COMPANY_DEVELOPER],
+    DELETE: [COMPANY_ADMIN, COMPANY_DEVELOPER],
+    CHANGE_STATUS: [CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER],
+    SEND_QUOTATION: [CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER],
+    SEND_BULK_QUOTATION: [CLIENT_ADMIN, CLIENT_USER, COMPANY_ADMIN, COMPANY_DEVELOPER],
+  },
+  TermsConditions: {
+    VIEW: [COMPANY_ADMIN],
+    CREATE: [COMPANY_ADMIN],
+    UPDATE: [COMPANY_ADMIN],
+    DELETE: [COMPANY_ADMIN],
+  },
+};
+
+// Checks if a role has access to a section and operation
+export function hasAccess(role: string, section: string, operation: string): boolean {
+  const sectionPerms = PERMISSIONS[section];
+  if (!sectionPerms) return false;
+  const allowedRoles = sectionPerms[operation];
+  return allowedRoles ? allowedRoles.includes(role) : false;
+}

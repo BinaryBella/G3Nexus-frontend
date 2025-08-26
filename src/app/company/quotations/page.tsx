@@ -1,13 +1,17 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { Receipt, DollarSign, User, Calendar, Search, Filter, Eye, X, FileText, Bug, Paperclip } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Receipt, DollarSign, Search, Filter, Eye, X, FileText, Bug, Paperclip } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { quotationService } from '@/app/lib/services/quotationService';
 import { QuotationHistory, QuotationItem } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
+import { hasAccess } from "@/app/lib/utils/roleAccess";
+
 import Pagination from '@/app/components/Pagination';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 // Quotation Type Badge Component
 const QuotationTypeBadge = ({ type }: { type: string }) => {
@@ -50,7 +54,7 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
 const QuotationItemCard = ({ item }: { item: QuotationItem }) => {
     const isRequirement = item.itemType === 'Requirement';
     const isBug = item.itemType === 'Bug';
-    
+
     return (
         <div className={`border rounded-lg p-4 ${
             isRequirement ? 'bg-blue-50 border-blue-200' :
@@ -77,7 +81,7 @@ const QuotationItemCard = ({ item }: { item: QuotationItem }) => {
                     </span>
                 </div>
             </div>
-            
+
             <div className="space-y-2">
                 <div>
                     <p className={`font-medium ${
@@ -95,7 +99,7 @@ const QuotationItemCard = ({ item }: { item: QuotationItem }) => {
                         Category: {item.category}
                     </p>
                 </div>
-                
+
                 <div className="mt-2">
                     <p className={`text-sm whitespace-pre-wrap ${
                         isRequirement ? 'text-blue-800' :
@@ -124,10 +128,10 @@ const QuotationItemCard = ({ item }: { item: QuotationItem }) => {
 };
 
 // Quotation Details Modal Component
-const QuotationModal = ({ quotation, isOpen, onClose }: { 
-    quotation: QuotationHistory | null; 
-    isOpen: boolean; 
-    onClose: () => void; 
+const QuotationModal = ({ quotation, isOpen, onClose }: {
+    quotation: QuotationHistory | null;
+    isOpen: boolean;
+    onClose: () => void;
 }) => {
     if (!isOpen || !quotation) return null;
 
@@ -220,9 +224,9 @@ const QuotationModal = ({ quotation, isOpen, onClose }: {
                                         quotation.type === 'Bug' ? 'text-red-700' :
                                         'text-gray-700'
                                     }`}>
-                                        {quotation.type === 'Requirement' ? 
+                                        {quotation.type === 'Requirement' ?
                                             'This quotation is for implementing project requirements.' :
-                                         quotation.type === 'Bug' ? 
+                                         quotation.type === 'Bug' ?
                                             'This quotation is for fixing reported bugs.' :
                                             `This is a ${quotation.type.toLowerCase()} quotation for the project.`}
                                     </p>
@@ -282,7 +286,17 @@ const QuotationHistoryPage = () => {
     const [selectedType, setSelectedType] = useState('');
     const [selectedQuotation, setSelectedQuotation] = useState<QuotationHistory | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const { user, loading } = useAuth();
+    const router = useRouter();
     const itemsPerPage = 5;
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Quotation", "VIEW")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
 
     // Fetch quotations data
     const { data: quotations = [], isLoading, error } = useQuery({
@@ -302,15 +316,15 @@ const QuotationHistoryPage = () => {
     // Filter quotations based on search and type
     const filteredQuotations = useMemo(() => {
         return quotations.filter(quotation => {
-            const matchesSearch = !searchText || 
+            const matchesSearch = !searchText ||
                 quotation.clientName.toLowerCase().includes(searchText.toLowerCase()) ||
                 quotation.projectName.toLowerCase().includes(searchText.toLowerCase()) ||
                 quotation.employeeName.toLowerCase().includes(searchText.toLowerCase()) ||
                 quotation.type.toLowerCase().includes(searchText.toLowerCase()) ||
                 quotation.quotationId.toString().includes(searchText);
-            
+
             const matchesType = !selectedType || quotation.type === selectedType;
-            
+
             return matchesSearch && matchesType;
         });
     }, [quotations, searchText, selectedType]);
@@ -370,8 +384,8 @@ const QuotationHistoryPage = () => {
                             <p className="text-gray-600 mb-4">
                                 {error instanceof Error ? error.message : 'There was an error loading the quotation data.'}
                             </p>
-                            <button 
-                                onClick={() => window.location.reload()} 
+                            <button
+                                onClick={() => window.location.reload()}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                             >
                                 Retry
@@ -395,7 +409,7 @@ const QuotationHistoryPage = () => {
                         </h1>
                         <p className="text-gray-600">Manage and track all quotations</p>
                     </div>
-                                                
+
 
                     {/* Statistics Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
