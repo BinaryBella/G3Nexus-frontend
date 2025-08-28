@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Users, FileText, ClipboardList, Bug, DollarSign, User, Bell, ChevronLeft, ChevronRight, Mail, Phone, MapPin, Globe, Twitter, Linkedin, Facebook, Instagram, ArrowUp } from 'lucide-react';
+import { COMPANY_ADMIN, COMPANY_DEVELOPER } from "@/app/lib/constants";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 // Hero carousel data
 const heroSlides = [
@@ -35,62 +37,71 @@ const sectionsConfig = [
         title: 'Company Details',
         icon: Users,
         route: '/company/companies',
-        description: 'Manage companies and their information'
+        description: 'Manage companies and their information',
+        allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER]
     },
     {
         title: 'Client Details',
         icon: Users,
         route: '/company/clients',
-        description: 'Manage clients and their information'
+        description: 'Manage clients and their information',
+        allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER]
     },
     {
         title: 'Project Details',
         icon: FileText,
         route: '/company/projects',
-        description: 'View and manage all projects'
+        description: 'View and manage all projects',
+        allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER]
     },
     {
         title: 'Requirement Details',
         icon: ClipboardList,
         route: '/company/requirements',
-        description: 'Track project requirements'
+        description: 'Track project requirements',
+        allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER]
     },
     {
         title: 'Bug Details',
         icon: Bug,
         route: '/company/bugs',
-        description: 'Monitor and fix reported bugs'
+        description: 'Monitor and fix reported bugs',
+        allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER]
     },
     {
         title: 'Financial Details',
         icon: DollarSign,
         route: '/company/financial',
-        description: 'Track payments and invoices'
+        description: 'Track payments and invoices',
+        allowedRoles: [COMPANY_ADMIN]
     },
     {
         title: 'Terms & Conditions',
         icon: FileText,
         route: '/company/terms',
-        description: 'Manage terms and conditions'
+        description: 'Manage terms and conditions',
+        allowedRoles: [COMPANY_ADMIN]
     },
     {
         title: 'Employee Details',
         icon: User,
         route: '/company/employees',
-        description: 'Manage team members'
+        description: 'Manage team members',
+        allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER]
     },
         {
         title: 'Quotation Details',
         icon: ClipboardList,
         route: '/company/quotations',
-        description: 'Manage quotation history'
+        description: 'Manage quotation history',
+        allowedRoles: [COMPANY_ADMIN]
     }
 ];
 
-const ProjectsPage = () => {
+const DashboardPage = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
+    const { user } = useAuth();
 
-    // Auto-advance carousel
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
@@ -261,7 +272,7 @@ const ProjectsPage = () => {
 
                                 const cardImage = imageMap[section.title] || '/images/project.png';
 
-                                return (
+                                return (section.allowedRoles.includes(user!.role) &&
                                     <Link
                                         key={index}
                                         href={section.route}
@@ -464,4 +475,4 @@ const ProjectsPage = () => {
     );
 };
 
-export default ProjectsPage;
+export default DashboardPage;

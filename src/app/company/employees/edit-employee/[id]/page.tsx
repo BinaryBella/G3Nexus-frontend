@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { employeeService } from '@/app/lib/services/employeeService';
-import { Employee } from '@/app/lib/types';
+import { Employee, EmployeeEditPayload } from '@/app/lib/types';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, User, X } from 'lucide-react';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 // Modal Component
 interface ModalProps {
@@ -67,6 +69,17 @@ const EditEmployeeForm = () => {
         address: ''
     });
 
+
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Employee", "UPDATE")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
+
     // Fetch employee data
     const { data: employee, isLoading, error: fetchError } = useQuery({
         queryKey: ['employee', employeeId],
@@ -96,7 +109,7 @@ const EditEmployeeForm = () => {
 
     const updateEmployeeMutation = useMutation({
         mutationFn: ({ data }: { data: Employee }) =>
-            employeeService.updateEmployee(data),
+            employeeService.updateEmployee(data as EmployeeEditPayload),
         onSuccess: () => {
             setSuccess(true);
             setTimeout(() => {
@@ -287,7 +300,7 @@ const EditEmployeeForm = () => {
                     <ArrowLeft className="h-5 w-5 mr-2" />
                     Back to Employees
                 </button>
-                
+
                 <div className="flex items-center gap-3">
                     <User className="h-8 w-8 text-[#3450A3]" />
                     <div>
@@ -319,7 +332,7 @@ const EditEmployeeForm = () => {
 
                     <form onSubmit={handleSubmit}>
                         <h2 className="text-xl font-semibold text-gray-900 mb-6">Employee Information</h2>
-                        
+
                         <div className="space-y-6">
                             {/* Employee Name */}
                             <div>

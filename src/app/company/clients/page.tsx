@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, UserCheck } from 'lucide-react';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { AlertTriangle, Edit, FileSearch, Plus, Search, Trash2, UserCheck, Users } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
 import { Client, Company } from '@/app/lib/types';
 import Pagination from '@/app/components/Pagination';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
-import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import FeedbackPopup from '@/app/components/FeedbackPopup';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
-const RoleBadge = ({ role }: { role: string }) => {
+const RoleBadge = ({role}: { role: string }) => {
     const colorMap: Record<string, string> = {
         'Admin': 'bg-purple-100 text-purple-800 border-purple-200',
         'Manager': 'bg-blue-100 text-blue-800 border-blue-200',
@@ -33,7 +34,6 @@ const RoleBadge = ({ role }: { role: string }) => {
 export default function CompanyClientsPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
-    const { canManageClients } = useRoleAccess();
     const [searchText, setSearchText] = useState("");
     const [companySearchText, setCompanySearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -41,13 +41,14 @@ export default function CompanyClientsPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const {user} = useAuth();
 
-    const { data: clients = [], error, isLoading } = useQuery<Client[], Error>({
+    const {data: clients = [], error, isLoading} = useQuery<Client[], Error>({
         queryKey: ['clients'],
         queryFn: clientService.getAllClients,
     });
 
-    const { data: companies = [] } = useQuery<Company[], Error>({
+    const {data: companies = []} = useQuery<Company[], Error>({
         queryKey: ['companies'],
         queryFn: companyService.getAllCompanies,
     });
@@ -62,7 +63,7 @@ export default function CompanyClientsPage() {
             setDeleteError(null);
         },
         onError: (error: { response: { data: { message: string } } }) => {
-            
+
             setDeleteError(error.response.data.message || 'Failed to delete client');
         },
     });
@@ -82,7 +83,7 @@ export default function CompanyClientsPage() {
         };
 
         // Main search filter
-        const matchesMainSearch = searchText.trim() === '' || 
+        const matchesMainSearch = searchText.trim() === '' ||
             matchesWordBeginning(client.name || '', searchText) ||
             matchesWordBeginning(client.email || '', searchText) ||
             matchesWordBeginning(client.role || '', searchText) ||
@@ -116,7 +117,7 @@ export default function CompanyClientsPage() {
 
     const handleEdit = (client: Client) => {
         console.log(client);
-        
+
         router.push(`/company/clients/edit-client/${client.clientId}`);
     };
 
@@ -131,7 +132,7 @@ export default function CompanyClientsPage() {
 
     const confirmDelete = async () => {
         if (!selectedClient) return;
-        
+
         try {
             await deleteClientMutation.mutateAsync(selectedClient.clientId);
         } catch (error) {
@@ -150,7 +151,8 @@ export default function CompanyClientsPage() {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
-                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                    <div
+                        className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
                     <p className="mt-2 text-gray-600">Loading clients...</p>
                 </div>
             </div>
@@ -161,7 +163,7 @@ export default function CompanyClientsPage() {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
-                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4"/>
                     <p className="text-gray-600">Error loading clients. Please try again.</p>
                 </div>
             </div>
@@ -175,19 +177,19 @@ export default function CompanyClientsPage() {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <Users className="h-8 w-8 text-[#3450A3]" />
+                            <Users className="h-8 w-8 text-[#3450A3]"/>
                             Clients
                         </h1>
                         <p className="text-gray-600 mt-2">
-                            {canManageClients() ? 'Manage and track our clients' : 'View client information (read-only access)'}
+                            {!hasAccess(user!.role, "Client", "CREATE") ? 'Manage and track our clients' : 'View client information (read-only access)'}
                         </p>
                     </div>
-                    {canManageClients() && (
+                    {hasAccess(user!.role, "Client", "CREATE") && (
                         <button
                             onClick={() => router.push('/company/clients/add-client')}
                             className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
                         >
-                            <Plus className="h-5 w-5" />
+                            <Plus className="h-5 w-5"/>
                             Add New Client
                         </button>
                     )}
@@ -201,7 +203,7 @@ export default function CompanyClientsPage() {
                                 <p className="text-sm font-medium text-gray-600">Total Clients</p>
                                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                             </div>
-                            <Users className="h-8 w-8 text-gray-400" />
+                            <Users className="h-8 w-8 text-gray-400"/>
                         </div>
                     </div>
                     <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -210,7 +212,7 @@ export default function CompanyClientsPage() {
                                 <p className="text-sm font-medium text-gray-600">Active</p>
                                 <p className="text-2xl font-bold text-green-600">{stats.active}</p>
                             </div>
-                            <UserCheck className="h-8 w-8 text-green-400" />
+                            <UserCheck className="h-8 w-8 text-green-400"/>
                         </div>
                     </div>
                     <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -219,7 +221,7 @@ export default function CompanyClientsPage() {
                                 <p className="text-sm font-medium text-gray-600">Admins</p>
                                 <p className="text-2xl font-bold text-purple-600">{stats.admins}</p>
                             </div>
-                            <Users className="h-8 w-8 text-purple-400" />
+                            <Users className="h-8 w-8 text-purple-400"/>
                         </div>
                     </div>
                 </div>
@@ -227,7 +229,7 @@ export default function CompanyClientsPage() {
                 {/* Search */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5"/>
                         <input
                             type="text"
                             placeholder="Filter by company name..."
@@ -237,7 +239,7 @@ export default function CompanyClientsPage() {
                         />
                     </div>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5"/>
                         <input
                             type="text"
                             placeholder="Search clients by name, email, role, or contact..."
@@ -253,17 +255,17 @@ export default function CompanyClientsPage() {
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
                 {filteredClients.length === 0 ? (
                     <div className="text-center py-12">
-                        <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4"/>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No clients found</h3>
                         <p className="text-gray-600">
-                            {searchText 
-                                ? 'Try adjusting your search criteria.' 
-                                : canManageClients() 
+                            {searchText
+                                ? 'Try adjusting your search criteria.'
+                                : hasAccess(user!.role, "Client", "CREATE")
                                     ? 'Get started by adding your first client.'
                                     : 'No clients found in the system.'
                             }
                         </p>
-                        {!searchText && canManageClients() && (
+                        {!searchText && hasAccess(user!.role, "Client", "CREATE") && (
                             <button
                                 onClick={() => router.push('/company/clients/add-client')}
                                 className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
@@ -276,79 +278,81 @@ export default function CompanyClientsPage() {
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Information</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
+                            <tr>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact
+                                    Information
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {paginatedClients.map((client) => (
-                                    <tr key={client.clientId} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center">
-                                                <div className="flex-shrink-0 h-10 w-10">
-                                                    <div className="h-10 w-10 rounded-full bg-[#3450A3] flex items-center justify-center text-white font-medium">
-                                                        {client.name?.charAt(0).toUpperCase()}
-                                                    </div>
-                                                </div>
-                                                <div className="ml-4">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {client.name}
-                                                    </div>
-                                                    <div className="text-sm text-gray-500">
-                                                        ID: {client.clientId}
-                                                    </div>
+                            {paginatedClients.map((client) => (
+                                <tr key={client.clientId} className="hover:bg-gray-50">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0 h-10 w-10">
+                                                <div
+                                                    className="h-10 w-10 rounded-full bg-[#3450A3] flex items-center justify-center text-white font-medium">
+                                                    {client.name?.charAt(0).toUpperCase()}
                                                 </div>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm text-gray-900">{client.email}</div>
-                                            <div className="text-sm text-gray-500">{client.contactNo}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <RoleBadge role={client.role == "CLIENT_ADMIN" ? "Admin" : "User"} />
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            {(() => {
-                                                const company = companies.find(comp => comp.companyId === client.companyId);
-                                                return company ? company.companyName : `Company ID: ${client.companyId}`;
-                                            })()}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
-                                            <div className="max-w-xs truncate">
-                                                {client.address}
+                                            <div className="ml-4">
+                                                <div className="text-sm font-medium text-gray-900">
+                                                    {client.name}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    ID: {client.clientId}
+                                                </div>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex space-x-2">
-                                                {canManageClients() ? (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleEdit(client)}
-                                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                            title="Edit Client"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(client.clientId)}
-                                                            className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                                            title="Delete Client"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <span className="text-gray-400 text-sm">View Only</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm text-gray-900">{client.email}</div>
+                                        <div className="text-sm text-gray-500">{client.contactNo}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <RoleBadge role={client.role == "CLIENT_ADMIN" ? "Admin" : "User"}/>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-900">
+                                        {(() => {
+                                            const company = companies.find(comp => comp.companyId === client.companyId);
+                                            return company ? company.companyName : `Company ID: ${client.companyId}`;
+                                        })()}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                        <div className="max-w-xs truncate">
+                                            {client.address}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex space-x-2">
+                                            {hasAccess(user!.role, "Client", "UPDATE") &&
+                                                <button
+                                                    onClick={() => handleEdit(client)}
+                                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                    title="Edit Client"
+                                                >
+                                                    <Edit className="h-4 w-4"/>
+                                                </button>
+                                            }
+                                            {hasAccess(user!.role, "Client", "DELETE") &&
+                                                <button
+                                                    onClick={() => handleDelete(client.clientId)}
+                                                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                    title="Delete Client"
+                                                >
+                                                    <Trash2 className="h-4 w-4"/>
+                                                </button>}
+                                            {!hasAccess(user!.role, "Client", "UPDATE") && !hasAccess(user!.role, "Client", "DELETE") &&
+                                                <span className="text-gray-400 text-sm">View Only</span>}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
                             </tbody>
                         </table>
                     </div>

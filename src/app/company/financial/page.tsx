@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { DollarSign, CreditCard, TrendingUp, Receipt, FileText, ArrowUpRight, ArrowDownRight, Eye, Search, Filter, Download, ExternalLink, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService } from '@/app/lib/services/paymentService';
@@ -11,6 +11,9 @@ import { Payment, Company } from '@/app/lib/types';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { COMPANY_ADMIN, COMPANY_DEVELOPER } from '@/app/lib/constants';
 import Pagination from '@/app/components/Pagination';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 // Enhanced payment type with related data
 interface EnhancedPayment extends Payment {
@@ -239,6 +242,16 @@ export default function CompanyFinancialDashboard() {
     const [selectedPayment, setSelectedPayment] = useState<EnhancedPayment | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const itemsPerPage = 6;
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Quotation", "VIEW")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
 
     // Fetch all required data
     const { data: payments = [], isLoading: paymentsLoading } = useQuery<Payment[], Error>({

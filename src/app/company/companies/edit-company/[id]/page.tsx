@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { Building2, ArrowLeft, X } from 'lucide-react';
 import { companyService } from '@/app/lib/services/companyService';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 const EditCompanyPage = () => {
     const router = useRouter();
@@ -17,19 +19,30 @@ const EditCompanyPage = () => {
         address: '',
         isActive: true
     });
-    const [loading, setLoading] = useState(true);
+    const [loadingData, setLoadingData] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [nameValidationError, setNameValidationError] = useState('');
     const [originalCompanyName, setOriginalCompanyName] = useState('');
 
+
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Company", "UPDATE")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
+
     useEffect(() => {
         if (companyId) {
             fetchCompany();
         }
     }, [companyId]);
-    
+
     // Redirect if user doesn't have permission to manage companies
     useEffect(() => {
         if (!canManageCompanies()) {
@@ -79,7 +92,7 @@ const EditCompanyPage = () => {
 
     const fetchCompany = async () => {
         try {
-            setLoading(true);
+            setLoadingData(true);
             const company = await companyService.getCompanyById(companyId);
             setFormData({
                 companyName: company.companyName,
@@ -91,7 +104,7 @@ const EditCompanyPage = () => {
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch company');
         } finally {
-            setLoading(false);
+            setLoadingData(false);
         }
     };
 
@@ -105,7 +118,7 @@ const EditCompanyPage = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!formData.companyName.trim() || !formData.address.trim()) {
             setError('Please fill in all required fields');
             return;
@@ -120,15 +133,15 @@ const EditCompanyPage = () => {
         try {
             setSubmitting(true);
             setError(null);
-            
+
             const updateData = {
                 companyName: formData.companyName.trim(),
                 address: formData.address.trim(),
                 isActive: formData.isActive
             };
-            
+
             await companyService.updateCompany(companyId, updateData);
-            
+
             setSuccess(true);
             setTimeout(() => {
                 router.push('/company/companies');
@@ -146,7 +159,7 @@ const EditCompanyPage = () => {
 
     // Debounced validation for company name (only if name changed)
 
-    if (loading) {
+    if (loadingData) {
         return (
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
@@ -184,7 +197,7 @@ const EditCompanyPage = () => {
                     <ArrowLeft className="h-5 w-5 mr-2" />
                     Back to Companies
                 </button>
-                
+
                 <div className="flex items-center gap-3">
                     <Building2 className="h-8 w-8 text-[#3450A3]" />
                     <div>

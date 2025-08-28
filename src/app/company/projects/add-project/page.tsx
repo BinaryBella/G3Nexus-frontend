@@ -1,4 +1,4 @@
-   
+
 'use client';
 
 import { clientService, Client } from '@/app/lib/services/clientService';
@@ -11,11 +11,9 @@ import { companyService } from '@/app/lib/services/companyService';
 import { projectService } from '@/app/lib/services/projectService';
 import { Company } from '@/app/lib/types';
 import { FolderPlus, ArrowLeft, ArrowRight, X } from 'lucide-react';
-import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
-interface ProjectFormProps {
-    projectId: string;
-}
 
 interface ProjectFormData {
     // Project Initialization fields
@@ -37,33 +35,12 @@ interface ProjectFormData {
     clientEmail: string;
 }
 
-export default function ProjectForm({ projectId }: ProjectFormProps) {
+export default function ProjectForm() {
     const router = useRouter();
-    const { canManageProjects } = useRoleAccess();
        // State for filtered client admins
     const [clientAdmins, setClientAdmins] = useState<Client[]>([]);
     const [allClients, setAllClients] = useState<Client[]>([]);
     const [clientsLoading, setClientsLoading] = useState(false);
-    // Redirect if user doesn't have permission to manage projects
-    useEffect(() => {
-        if (!canManageProjects()) {
-            router.push('/company/projects');
-            return;
-        }
-    }, [canManageProjects, router]);
-
-    // Don't render if user doesn't have permission
-    if (!canManageProjects()) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don&apos;t have permission to add projects.</p>
-                </div>
-            </div>
-        );
-    }
 
     const [activeTab, setActiveTab] = useState(0);
     const [formData, setFormData] = useState<ProjectFormData>({
@@ -102,6 +79,15 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     const [termsLoading, setTermsLoading] = useState(false);
     const [termsError, setTermsError] = useState<string | null>(null);
     const [checkedTerms, setCheckedTerms] = useState<{ [key: number]: boolean }>({});
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Project", "CREATE")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
 
     // Fetch companies for dropdown
     const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery<Company[], Error>({
@@ -257,7 +243,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
     // Step 1: Confirm cost breakdown, then fetch terms and go to step 2
     const handleCostModalNext = async () => {
         setCostError(null);
-        
+
         // Validate all cost fields are filled
         const emptyFields = [];
         if (!costInputs.development || parseFloat(costInputs.development) <= 0) emptyFields.push('Development Cost');
@@ -265,7 +251,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
         if (!costInputs.ssl || parseFloat(costInputs.ssl) <= 0) emptyFields.push('SSL Certificate');
         if (!costInputs.server || parseFloat(costInputs.server) <= 0) emptyFields.push('Server Setup');
         if (!costInputs.deployment || parseFloat(costInputs.deployment) <= 0) emptyFields.push('Deployment Cost');
-        
+
         if (emptyFields.length > 0) {
             setCostError(`Please enter valid amounts for: ${emptyFields.join(', ')}`);
             return;
@@ -277,7 +263,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
             setCostError('Total project cost should be at least Rs. 1,000');
             return;
         }
-        
+
         setTermsLoading(true);
         setTermsError(null);
         try {
@@ -304,7 +290,7 @@ export default function ProjectForm({ projectId }: ProjectFormProps) {
             setTermsLoading(false);
         }
     };
-    
+
     // Step 2: Finalize project creation with cost breakdown and selected terms
 const handleTermsModalConfirm = async () => {
     setCostError(null);
@@ -313,7 +299,7 @@ const handleTermsModalConfirm = async () => {
         setCostError('Please agree to at least one term and condition.');
         return;
     }
-    
+
     if (pendingProjectData) {
         setIsSubmitting(true);
         try {
@@ -498,9 +484,9 @@ const handleTermsModalConfirm = async () => {
                             <>
                                 <h2 className="text-2xl font-bold mb-2 text-black">Project Cost Breakdown & Budget Calculation</h2>
                                 <div className="mb-4 text-gray-700 text-sm">
-                                    Please fill in the cost amounts for each item below. The system will calculate the <b>Total Project Budget</b> and the <b>Advance Payment (25%)</b> automatically. 
+                                    Please fill in the cost amounts for each item below. The system will calculate the <b>Total Project Budget</b> and the <b>Advance Payment (25%)</b> automatically.
                                     <br />
-                                    <span className="text-blue-600 font-medium">This calculated total will be saved as the project's Total Budget in the database.</span>
+                                    <span className="text-blue-600 font-medium">This calculated total will be saved as the project&apos;s Total Budget in the database.</span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
@@ -612,7 +598,7 @@ const handleTermsModalConfirm = async () => {
                                     <br />
                                     <span className="text-blue-600 font-medium">Total Budget of Rs. {getTotalCost().toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} will be saved to the project record.</span>
                                     <br />
-                                    <span className="text-green-600 font-medium">Payment Type: "Advance Payment" | Payment Status: "Pending"</span>
+                                    <span className="text-green-600 font-medium">Payment Type: &quot;Advance Payment&quot; | Payment Status: &quot;Pending&quot;</span>
                                 </div>
                                 {termsLoading ? (
                                     <div className="text-gray-500">Loading terms and conditions...</div>

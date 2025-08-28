@@ -7,13 +7,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
 import { ClientEditPayload } from '@/app/lib/types';
-import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 const EditClientPage: React.FC = () => {
     const router = useRouter();
     const params = useParams();
     const queryClient = useQueryClient();
-    const { canManageClients } = useRoleAccess();
     const clientId = parseInt(params.id as string, 10);
     const [activeTab, setActiveTab] = useState(0);
     const [clientData, setClientData] = useState<ClientEditPayload>({
@@ -30,6 +30,16 @@ const EditClientPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Client", "UPDATE")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
 
     // Fetch client data
     const { data: client, isLoading: clientLoading, error: clientError } = useQuery({
@@ -77,42 +87,21 @@ const EditClientPage: React.FC = () => {
             });
         }
     }, [client, companies]);
-    
-    // Redirect if user doesn't have permission to manage clients
-    useEffect(() => {
-        if (!canManageClients()) {
-            router.push('/company/clients');
-            return;
-        }
-    }, [canManageClients, router]);
-
-    // Don't render if user doesn't have permission
-    if (!canManageClients()) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don&apos;t have permission to edit clients.</p>
-                </div>
-            </div>
-        );
-    }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        
+
         // Prevent email changes
         if (name === 'email') {
             return;
         }
-        
+
         setClientData((prev) => ({
             ...prev,
-            [name]: type === 'checkbox' 
-                ? (e.target as HTMLInputElement).checked 
-                : name === 'companyId' 
-                    ? parseInt(value, 10) || 0 
+            [name]: type === 'checkbox'
+                ? (e.target as HTMLInputElement).checked
+                : name === 'companyId'
+                    ? parseInt(value, 10) || 0
                     : value,
         }));
     };
@@ -120,13 +109,13 @@ const EditClientPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        
+
         // Validate all required fields
         if (!clientData.companyId || !clientData.name || !clientData.contactNo || !clientData.address) {
             setError('Please fill in all personal information fields');
             return;
         }
-        
+
         if (!clientData.role) {
             setError('Please select a role');
             return;
@@ -226,7 +215,7 @@ const EditClientPage: React.FC = () => {
                     <ArrowLeft className="h-5 w-5 mr-2" />
                     Back to Clients
                 </button>
-                
+
                 <div className="flex items-center gap-3">
                     <User className="h-8 w-8 text-[#3450A3]" />
                     <div>
@@ -283,7 +272,7 @@ const EditClientPage: React.FC = () => {
                         {activeTab === 0 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Personal Information</h2>
-                                
+
                                 {/* Company */}
                                 <div>
                                     <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">
@@ -396,7 +385,7 @@ const EditClientPage: React.FC = () => {
                         {activeTab === 1 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Information</h2>
-                                
+
                                 {/* Email */}
                                 <div>
                                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">

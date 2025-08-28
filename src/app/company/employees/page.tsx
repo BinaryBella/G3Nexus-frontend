@@ -10,6 +10,8 @@ import { employeeService } from '@/app/lib/services/employeeService';
 import { Employee } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import DeleteConfirmationModal from "@/app/components/DeleteConfirmationModal";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 const RoleBadge = ({ role }: { role: string }) => {
     const colorMap: Record<string, string> = {
@@ -41,6 +43,7 @@ const EmployeesPage = () => {
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const {user} = useAuth();
     const { data: employees = [], error, isLoading } = useQuery<Employee[], Error>({
         queryKey: ['employees'],
         queryFn: employeeService.getAllEmployees,
@@ -229,9 +232,9 @@ const EmployeesPage = () => {
                         <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
                         <p className="text-gray-600">
-                            {searchText 
-                                ? 'Try adjusting your search criteria.' 
-                                : canManageEmployees() 
+                            {searchText
+                                ? 'Try adjusting your search criteria.'
+                                : canManageEmployees()
                                     ? 'Get started by adding your first employee.'
                                     : 'No employees found in the system.'
                             }
@@ -291,26 +294,25 @@ const EmployeesPage = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
-                                                {canManageEmployees() ? (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleEdit(employee.employeeId)}
-                                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                            title="Edit Employee"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(employee.employeeId)}
-                                                            className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                                            title="Delete Employee"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <span className="text-gray-400 text-sm">View Only</span>
-                                                )}
+                                                {hasAccess(user!.role, "Employee", "UPDATE") &&
+                                                    <button
+                                                        onClick={() => handleEdit(employee.employeeId)}
+                                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                        title="Edit Employee"
+                                                    >
+                                                        <Edit className="h-4 w-4"/>
+                                                    </button>
+                                                }
+                                                {hasAccess(user!.role, "Employee", "DELETE") &&
+                                                    <button
+                                                        onClick={() => handleDelete(employee.employeeId)}
+                                                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                        title="Delete Employee"
+                                                    >
+                                                        <Trash2 className="h-4 w-4"/>
+                                                    </button>}
+                                                {!hasAccess(user!.role, "Employee", "UPDATE") && !hasAccess(user!.role, "Employee", "DELETE") &&
+                                                    <span className="text-gray-400 text-sm">View Only</span>}
                                             </div>
                                         </td>
                                     </tr>

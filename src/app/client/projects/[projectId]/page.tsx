@@ -26,6 +26,8 @@ import {
     CreditCard,
     ArrowRight
 } from 'lucide-react';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { CLIENT_ADMIN, CLIENT_USER } from "@/app/lib/constants";
 
 interface ProjectDetailsProps {
     params: {
@@ -38,6 +40,9 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
     const [activeTab, setActiveTab] = useState(0);
     const { projectId } = params;
     const { selectedProject, projectCache, setSelectedProject, addToProjectCache } = useProject();
+    const { user } = useAuth();
+
+    const userRole = user?.role;
 
     // Try to get project from context first, then fetch if needed
     const cachedProject = projectCache[projectId] || selectedProject;
@@ -164,9 +169,9 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
     }
 
     const tabs = [
-        { id: 0, name: 'Overview', icon: FolderPlus },
-        { id: 1, name: 'Details', icon: Briefcase },
-        { id: 2, name: 'Financial', icon: DollarSign }
+        { id: 0, name: 'Overview', icon: FolderPlus, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },
+        { id: 1, name: 'Details', icon: Briefcase, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },
+        { id: 2, name: 'Financial', icon: DollarSign, allowedRoles: [CLIENT_ADMIN] }
     ];
 
     return (
@@ -200,7 +205,8 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                     <nav className="-mb-px flex space-x-8">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
-                            return (
+                            const isAllowed = tab.allowedRoles.includes(userRole!);
+                            return (isAllowed &&
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
@@ -249,20 +255,20 @@ export default function ProjectDetails({ params }: ProjectDetailsProps) {
                             <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-red-600" />
                         </div>
                     </button>
-                                       
-                    <button
+
+                    {userRole == CLIENT_ADMIN && <button
                         onClick={() => router.push(`/client/payments?projectId=${projectId}`)}
                         className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
                     >
                         <div className="flex items-center space-x-3">
-                            <CreditCard className="h-6 w-6 text-purple-600 group-hover:text-purple-700" />
+                            <CreditCard className="h-6 w-6 text-purple-600 group-hover:text-purple-700"/>
                             <div className="text-left">
                                 <p className="font-medium text-gray-900">Payments</p>
                                 <p className="text-sm text-gray-500">Payment history</p>
                             </div>
-                            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-purple-600" />
+                            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-purple-600"/>
                         </div>
-                    </button>
+                    </button>}
                 </div>
             </div>
 

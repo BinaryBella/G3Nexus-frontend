@@ -7,6 +7,8 @@ import { Employee } from '@/app/lib/types';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, User, X, Eye, EyeOff } from 'lucide-react';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 // Modal Component
 interface ModalProps {
@@ -72,6 +74,16 @@ const EmployeeForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Employee", "CREATE")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
+
     // Debounced validation for email
     useEffect(() => {
         const checkEmployeeEmail = async () => {
@@ -105,7 +117,7 @@ const EmployeeForm = () => {
         const timeoutId = setTimeout(checkEmployeeEmail, 500);
         return () => clearTimeout(timeoutId);
     }, [email]);
-    
+
     // Redirect if the user doesn't have permission to manage employees
     useEffect(() => {
         if (!canManageEmployees()) {
@@ -315,7 +327,8 @@ const EmployeeForm = () => {
             isActive: true,
             password: password,
             role: designation.trim(),
-            profileImageUrl: "", // Always send a string, never null
+            profileImageUrl: "",
+            employeeId: 0
         };
 
         try {
@@ -378,7 +391,7 @@ const EmployeeForm = () => {
                     <ArrowLeft className="h-5 w-5 mr-2" />
                     Back to Employees
                 </button>
-                
+
                 <div className="flex items-center gap-3">
                     <User className="h-8 w-8 text-[#3450A3]" />
                     <div>
@@ -409,7 +422,7 @@ const EmployeeForm = () => {
 
                     <form onSubmit={handleSubmit}>
                         <h2 className="text-xl font-semibold text-gray-900 mb-6">Employee Information</h2>
-                        
+
                         <div className="space-y-6">
                             {/* Employee Name */}
                             <div>

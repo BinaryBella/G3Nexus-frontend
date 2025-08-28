@@ -11,8 +11,8 @@ import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import FeedbackPopup from '@/app/components/FeedbackPopup';
 import BugStatusDropdown from '@/app/components/BugStatusDropdown';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import { normalizeStatus } from '@/app/lib/utils/statusUtils';
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
     const colorMap: Record<string, string> = {
@@ -170,7 +170,6 @@ export default function CompanyBugsPage() {
     const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
     const [isSendingQuotation, setIsSendingQuotation] = useState(false);
     const { user } = useAuth();
-    const { canManageBugs } = useRoleAccess();
     
     // Enhanced quotation form state
     const [quotationData, setQuotationData] = useState<Record<number, {
@@ -631,7 +630,7 @@ export default function CompanyBugsPage() {
                         <p className="text-gray-600 mt-2">Manage project bugs and specifications</p>
                     </div>
 
-                        {/* Generate Quotation Button */}
+                        {hasAccess(user!.role, "Bug", "SEND_QUOTATION") &&
                         <div className="flex justify-end mt-4">
                             <button
                                 className={`bg-[#2b4b93] text-white px-6 py-2 rounded-lg font-medium transition-colors ${selectedIds.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
@@ -640,7 +639,7 @@ export default function CompanyBugsPage() {
                             >
                                 Generate Quotation ({selectedIds.length})
                             </button>
-                        </div>
+                        </div>}
 
                         {/* Enhanced Quotation Modal */}
                         {isQuotationModalOpen && (
@@ -941,7 +940,7 @@ export default function CompanyBugsPage() {
                                                 <BugStatusDropdown
                                                     bugId={req.bugId}
                                                     currentStatus={normalizeStatus(req.status) || 'Pending'}
-                                                    canManage={canManageBugs() && (user?.role === 'COMPANY_ADMIN' || user?.role === 'COMPANY_DEVELOPER')}
+                                                    canManage={true}
                                                 />
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">

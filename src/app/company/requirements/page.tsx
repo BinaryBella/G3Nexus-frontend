@@ -13,6 +13,7 @@ import RequirementStatusDropdown from '@/app/components/RequirementStatusDropdow
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import { normalizeStatus } from '@/app/lib/utils/statusUtils';
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
     const colorMap: Record<string, string> = {
@@ -821,19 +822,17 @@ export default function CompanyRequirementsPage() {
                     {/* Generate Quotation Button and Selection Info */}
                     <div className="flex justify-between items-center mt-4">
 
-                        <button
-                            className={`bg-[#2b4b93] text-white px-6 py-2 rounded-lg font-medium transition-all ${selectedIds.length === 0
-                                    ? 'opacity-50 cursor-not-allowed'
-                                    : 'hover:bg-blue-700 hover:shadow-md transform hover:-translate-y-0.5'
-                                }`}
-                            disabled={selectedIds.length === 0}
-                            onClick={openQuotationModal}
-                        >
-                            <div className="flex items-center gap-2">
-                                <DollarSign className="h-4 w-4" />
-                                Generate Quotation {selectedIds.length > 0 && `(${selectedIds.length})`}
+                        {hasAccess(user!.role, "Requirement", "SEND_QUOTATION") &&
+                            <div className="flex justify-end mt-4">
+                                <button
+                                    className={`bg-[#2b4b93] text-white px-6 py-2 rounded-lg font-medium transition-colors ${selectedIds.length === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+                                    disabled={selectedIds.length === 0}
+                                    onClick={openQuotationModal}
+                                >
+                                    Generate Quotation ({selectedIds.length})
+                                </button>
                             </div>
-                        </button>
+                        }
                     </div>
 
                     {/* Enhanced Quotation Modal */}
@@ -1334,7 +1333,7 @@ export default function CompanyRequirementsPage() {
                                                 <RequirementStatusDropdown
                                                     requirementId={req.requirementId}
                                                     currentStatus={normalizeStatus(req.status) || 'Pending'}
-                                                    canManage={canManageRequirements() && (user?.role === 'COMPANY_ADMIN' || user?.role === 'COMPANY_DEVELOPER')}
+                                                    canManage={true}
                                                 />
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">

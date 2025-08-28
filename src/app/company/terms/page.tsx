@@ -8,6 +8,9 @@ import { AxiosError } from 'axios';
 import { FileText,AlertTriangle, CheckCircle, Edit } from 'lucide-react';
 import { termsService } from '@/app/lib/services/termsService';
 import { ApiResponse, TermsConditions } from "../../lib/types";
+import { useAuth } from "@/app/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 const TermsAndConditionsPage = () => {
     const queryClient = useQueryClient();
@@ -22,6 +25,16 @@ const TermsAndConditionsPage = () => {
     const [termsText, setTermsText] = useState<string>('');
     const [showSuccess, setShowSuccess] = useState<boolean>(false);
     const [showError, setShowError] = useState<string>('');
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "TermsConditions", "VIEW")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
 
     useEffect(() => {
         if (termsData?.content) {

@@ -7,13 +7,15 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { clientService } from '@/app/lib/services/clientService';
 import { companyService } from '@/app/lib/services/companyService';
 import { Client } from '@/app/lib/types';
-import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
-const ClientsPage: React.FC = () => {
+export default function ClientsPage() {
     const router = useRouter();
-    const { canManageClients } = useRoleAccess();
     const [activeTab, setActiveTab] = useState(0);
     const [clientData, setClientData] = useState<Omit<Client, 'id'>>({
+        clientId: 0,
+        profileImageUrl: "",
         name: '',
         contactNo: '',
         address: '',
@@ -21,7 +23,7 @@ const ClientsPage: React.FC = () => {
         password: '',
         role: '',
         isActive: true,
-        companyId: 0,
+        companyId: 0
     });
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -31,6 +33,16 @@ const ClientsPage: React.FC = () => {
     const [success, setSuccess] = useState(false);
     const [emailValidationError, setEmailValidationError] = useState('');
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Client", "CREATE")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
 
     // Fetch companies data
     const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery({
@@ -86,35 +98,14 @@ const ClientsPage: React.FC = () => {
         },
     });
 
-    // Redirect if user doesn't have permission to manage clients
-    useEffect(() => {
-        if (!canManageClients()) {
-            router.push('/company/clients');
-            return;
-        }
-    }, [canManageClients, router]);
-
-    // Don't render if user doesn't have permission
-    if (!canManageClients()) {
-        return (
-            <div className="flex justify-center items-center min-h-[400px]">
-                <div className="text-center">
-                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don&apos;t have permission to add clients.</p>
-                </div>
-            </div>
-        );
-    }
-    
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         setClientData((prev) => ({
             ...prev,
-            [name]: type === 'checkbox' 
-                ? (e.target as HTMLInputElement).checked 
-                : name === 'companyId' 
-                    ? parseInt(value, 10) || 0 
+            [name]: type === 'checkbox'
+                ? (e.target as HTMLInputElement).checked
+                : name === 'companyId'
+                    ? parseInt(value, 10) || 0
                     : value,
         }));
     };
@@ -122,18 +113,18 @@ const ClientsPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        
+
         // Validate all required fields
         if (!clientData.companyId || !clientData.name || !clientData.contactNo || !clientData.address) {
             setError('Please fill in all personal information fields');
             return;
         }
-        
+
         if (!clientData.email || !clientData.password || !clientData.role) {
             setError('Please fill in all account information fields');
             return;
         }
-        
+
         if (clientData.password !== confirmPassword) {
             setError("Passwords don't match");
             return;
@@ -143,7 +134,7 @@ const ClientsPage: React.FC = () => {
             setError('Please resolve the email issue before submitting');
             return;
         }
-        
+
         try {
             setIsSubmitting(true);
 
@@ -219,7 +210,7 @@ const ClientsPage: React.FC = () => {
                     <ArrowLeft className="h-5 w-5 mr-2" />
                     Back to Clients
                 </button>
-                
+
                 <div className="flex items-center gap-3">
                     <User className="h-8 w-8 text-[#3450A3]" />
                     <div>
@@ -276,7 +267,7 @@ const ClientsPage: React.FC = () => {
                         {activeTab === 0 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Personal Information</h2>
-                                
+
                                 {/* Company */}
                                 <div>
                                     <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">
@@ -384,7 +375,7 @@ const ClientsPage: React.FC = () => {
                         {activeTab === 1 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Information</h2>
-                                
+
                                 {/* Email */}
                                 <div>
                                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -560,5 +551,3 @@ const ClientsPage: React.FC = () => {
         </div>
     );
 };
-
-export default ClientsPage;

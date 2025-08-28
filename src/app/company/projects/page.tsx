@@ -10,6 +10,8 @@ import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import FeedbackPopup from '@/app/components/FeedbackPopup';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import StatusDropdown from '@/app/components/StatusDropdown';
+import { hasAccess } from "@/app/lib/utils/roleAccess";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 export default function CompanyProjectsPage() {
     const router = useRouter();
@@ -18,6 +20,7 @@ export default function CompanyProjectsPage() {
     const [searchText, setSearchText] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    const {user} = useAuth();
     const [deleteModal, setDeleteModal] = useState<{
         isOpen: boolean;
         project: Project | null;
@@ -303,26 +306,26 @@ export default function CompanyProjectsPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-2">
-                                                {canManageProjects() ? (
-                                                    <>
-                                                        <button
-                                                            onClick={() => router.push(`/company/projects/edit-project/${project.projectId}`)}
-                                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                            title="Edit Project"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteClick(project)}
-                                                            className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                                            title="Delete Project"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <span className="text-gray-400 text-sm">View Only</span>
-                                                )}
+                                                {hasAccess(user!.role, "Project", "UPDATE") &&
+                                                    <button
+                                                        onClick={() => router.push(`/company/projects/edit-project/${project.projectId}`)}
+                                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                        title="Edit Project"
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </button>
+                                                }
+                                                {hasAccess(user!.role, "Project", "DELETE") &&
+                                                    <button
+                                                        onClick={() => handleDeleteClick(project)}
+                                                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                        title="Delete Project"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                }
+                                                {!hasAccess(user!.role, "Project", "UPDATE") && !hasAccess(user!.role, "Project", "DELETE") &&
+                                                    <span className="text-gray-400 text-sm">View Only</span>}
                                             </div>
                                         </td>
                                     </tr>

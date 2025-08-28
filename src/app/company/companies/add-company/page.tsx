@@ -6,6 +6,8 @@ import { Building2, ArrowLeft, X } from 'lucide-react';
 import { companyService } from '@/app/lib/services/companyService';
 import { Company } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 const AddCompanyForm = () => {
     const router = useRouter();
@@ -19,6 +21,15 @@ const AddCompanyForm = () => {
     const [success, setSuccess] = useState(false);
     const [nameValidationError, setNameValidationError] = useState('');
     const [isCheckingName, setIsCheckingName] = useState(false);
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Company", "CREATE")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
 
     // Debounced validation for company name
     useEffect(() => {
@@ -46,7 +57,7 @@ const AddCompanyForm = () => {
         const timeoutId = setTimeout(checkCompanyName, 500);
         return () => clearTimeout(timeoutId);
     }, [companyName]);
-    
+
     // Redirect if user doesn't have permission to manage companies
     useEffect(() => {
         if (!canManageCompanies()) {
@@ -92,7 +103,7 @@ const AddCompanyForm = () => {
 
         try {
             setIsSubmitting(true);
-            
+
             const companyExists = await companyService.checkCompanyExists(trimmedCompanyName);
             if (companyExists) {
                 setError('A company with this name already exists. Please choose a different name.');
@@ -147,7 +158,7 @@ const AddCompanyForm = () => {
                     <ArrowLeft className="h-5 w-5 mr-2" />
                     Back to Companies
                 </button>
-                
+
                 <div className="flex items-center gap-3">
                     <Building2 className="h-8 w-8 text-[#3450A3]" />
                     <div>

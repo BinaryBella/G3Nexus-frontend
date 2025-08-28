@@ -11,6 +11,7 @@ import ProtectedRoute from '@/app/components/ProtectedRoute';
 import { CLIENT_ADMIN, CLIENT_USER, ADVANCE_PAYMENT, BUG_PAYMENT, REQUIREMENT_PAYMENT, FINAL_PAYMENT } from '@/app/lib/constants';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 const getReadablePaymentType = (paymentType: string): string => {
     const paymentTypeMap = {
@@ -119,9 +120,17 @@ const ClientPaymentsPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
     const [projectNames, setProjectNames] = useState<Record<number, string>>({});
-    const { user } = useAuth();
     const searchParams = useSearchParams();
     const projectId = searchParams.get('projectId');
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Payment", "VIEW")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
 
     const { data: payments = [], error, isLoading } = useQuery<Payment[], Error>({
         queryKey: ['payments', 'client', user?.email],

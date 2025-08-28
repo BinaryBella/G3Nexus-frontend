@@ -8,6 +8,8 @@ import { projectService } from '@/app/lib/services/projectService';
 import { Company } from '@/app/lib/types';
 import { Edit3, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
 
 interface ProjectFormData {
     // Project Initialization fields
@@ -33,7 +35,7 @@ export default function EditProjectForm() {
     const queryClient = useQueryClient();
     const { canManageProjects } = useRoleAccess();
     const projectId = params.projectId as string;
-    
+
     const [activeTab, setActiveTab] = useState(0);
     const [formData, setFormData] = useState<ProjectFormData>({
         companyId: '',
@@ -53,6 +55,16 @@ export default function EditProjectForm() {
     const [error, setError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Project", "UPDATE")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
 
     // Check permission first
     useEffect(() => {
@@ -138,16 +150,16 @@ export default function EditProjectForm() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-        
+
         // Validate required fields for initialization tab
         if (!formData.companyId || !formData.projectName || !formData.projectType || !formData.projectSize) {
             setError('Please fill in all project initialization fields');
             return;
         }
-        
+
         try {
             setIsSubmitting(true);
-            
+
             // Format dates properly - use null for empty dates, ISO string for valid dates
             const formatDate = (dateString: string) => {
                 if (!dateString) return null;
@@ -261,7 +273,7 @@ export default function EditProjectForm() {
                     <ArrowLeft className="h-5 w-5 mr-2" />
                     Back to Projects
                 </button>
-                
+
                 <div className="flex items-center gap-3">
                     <Edit3 className="h-8 w-8 text-[#3450A3]" />
                     <div>
@@ -318,7 +330,7 @@ export default function EditProjectForm() {
                         {activeTab === 0 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Project Initialization</h2>
-                                
+
                                 {/* Company Name */}
                                 <div>
                                     <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">
@@ -486,7 +498,7 @@ export default function EditProjectForm() {
                         {activeTab === 1 && (
                             <div className="space-y-6">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-6">More Details</h2>
-                                
+
                                 {/* Actual Start Date */}
                                 <div>
                                     <label htmlFor="actualStartDate" className="block text-sm font-medium text-gray-700 mb-2">

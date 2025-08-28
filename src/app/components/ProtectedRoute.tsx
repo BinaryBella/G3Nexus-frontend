@@ -1,13 +1,12 @@
-// src/components/ProtectedRoute.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 
 interface ProtectedRouteProps {
-    children: React.ReactNode;
+    children: ReactNode;
     allowedRoles?: string[];
     requireAuth?: boolean;
 }
@@ -24,6 +23,7 @@ export default function ProtectedRoute({
 
     useEffect(() => {
         if (!loading) {
+            debugger;
             // If authentication is required but user is not authenticated
             if (requireAuth && !isAuthenticated) {
                 router.push('/auth/login');

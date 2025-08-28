@@ -21,9 +21,9 @@ const companyMenuItems: MenuItem[] = [
     { title: 'Projects', path: '/company/projects', icon: FolderOpen, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Requirements', path: '/company/requirements', icon: FileText, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Bug Reports', path: '/company/bugs', icon: Bug, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
-    { title: 'Financial Details', path: '/company/financial', icon: ClipboardList, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
-    { title: 'Quotation History', path: '/company/quotations', icon: Receipt, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
-    { title: 'Terms & Conditions', path: '/company/terms', icon: File, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
+    { title: 'Financial Details', path: '/company/financial', icon: ClipboardList, allowedRoles: [COMPANY_ADMIN] },
+    { title: 'Quotation History', path: '/company/quotations', icon: Receipt, allowedRoles: [COMPANY_ADMIN] },
+    { title: 'Terms & Conditions', path: '/company/terms', icon: File, allowedRoles: [COMPANY_ADMIN] },
 ];
 
 // Client menu items (visible to client users)
@@ -31,7 +31,7 @@ const clientMenuItems: MenuItem[] = [
     { title: 'Dashboard', path: '/client/dashboard', icon: FolderOpen, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },
     { title: 'Requirements', path: '/client/requirements', icon: FileText, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },
     { title: 'Bug Reports', path: '/client/bugs', icon: Bug, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },
-    { title: 'Payments', path: '/client/payments', icon: DollarSign, allowedRoles: [CLIENT_ADMIN, CLIENT_USER] },
+    { title: 'Payments', path: '/client/payments', icon: DollarSign, allowedRoles: [CLIENT_ADMIN] },
 ];
 
 const SideMenu = () => {
@@ -44,14 +44,26 @@ const SideMenu = () => {
 
         const userRole = user.role;
 
+        const menuItems: MenuItem[] = []
+
         // Company users can see all company menu items
         if (userRole === COMPANY_ADMIN || userRole === COMPANY_DEVELOPER) {
-            return companyMenuItems;
+            companyMenuItems.forEach(menuItem => {
+                if (menuItem.allowedRoles.includes(userRole)) {
+                    menuItems.push(menuItem);
+                }
+            })
+            return menuItems;
         }
 
         // Client users can only see specific menu items
         if (userRole === CLIENT_ADMIN || userRole === CLIENT_USER) {
-            return clientMenuItems;
+            clientMenuItems.forEach(menuItem => {
+                if (menuItem.allowedRoles.includes(userRole)) {
+                    menuItems.push(menuItem);
+                }
+            })
+            return menuItems;
         }
 
         return [];

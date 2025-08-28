@@ -355,7 +355,7 @@ const QuotationHistoryPage = () => {
 
     if (isLoading) {
         return (
-            <ProtectedRoute allowedRoles={[COMPANY_ADMIN, COMPANY_DEVELOPER]}>
+            <ProtectedRoute allowedRoles={[COMPANY_ADMIN]}>
                 <div className="min-h-screen bg-gray-50">
                     <div className="p-6">
                         <div className="animate-pulse">
@@ -375,7 +375,7 @@ const QuotationHistoryPage = () => {
 
     if (error) {
         return (
-            <ProtectedRoute allowedRoles={[COMPANY_ADMIN, COMPANY_DEVELOPER]}>
+            <ProtectedRoute allowedRoles={[COMPANY_ADMIN]}>
                 <div className="min-h-screen bg-gray-50">
                     <div className="p-6">
                         <div className="text-center py-12">
@@ -398,7 +398,7 @@ const QuotationHistoryPage = () => {
     }
 
     return (
-        <ProtectedRoute allowedRoles={[COMPANY_ADMIN, COMPANY_DEVELOPER]}>
+        <ProtectedRoute allowedRoles={[COMPANY_ADMIN]}>
             <div className="min-h-screen bg-gray-50">
                 <div className="p-6">
                     {/* Header */}

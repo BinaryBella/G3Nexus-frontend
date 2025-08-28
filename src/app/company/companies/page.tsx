@@ -9,6 +9,8 @@ import { companyService } from '@/app/lib/services/companyService';
 import { Company } from '@/app/lib/types';
 import { useRoleAccess } from '@/app/hooks/useRoleAccess';
 import FeedbackPopup from "@/app/components/FeedbackPopup";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
+import { useAuth } from "@/app/contexts/AuthContext";
 
 const CompaniesPage = () => {
     const router = useRouter();
@@ -25,6 +27,7 @@ const CompaniesPage = () => {
     const [popupMessage, setPopupMessage] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
+    const {user} = useAuth();
 
     useEffect(() => {
         fetchCompanies();
@@ -42,7 +45,7 @@ const CompaniesPage = () => {
                     const words = text.toLowerCase().split(/\s+/);
                     return words.some(word => word.startsWith(searchLower));
                 };
-                
+
                 return matchesWordBeginning(company.companyName) ||
                        matchesWordBeginning(company.address);
             });
@@ -232,7 +235,7 @@ const CompaniesPage = () => {
                                     </th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Address
-                                    </th>                                
+                                    </th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Actions
                                     </th>
@@ -262,29 +265,28 @@ const CompaniesPage = () => {
                                             <div className="max-w-xs truncate">
                                                 {company.address}
                                             </div>
-                                        </td>                                        
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex space-x-3">
-                                                {canManageCompanies() ? (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleEdit(company.companyId)}
-                                                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
-                                                            title="Edit Company"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(company.companyId)}
-                                                            className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium transition-colors"
-                                                            title="Delete Company"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </button>
-                                                    </>
-                                                ) : (
-                                                    <span className="text-gray-400 text-sm">View Only</span>
-                                                )}
+                                                {hasAccess(user!.role, "Company", "UPDATE") &&
+                                                    <button
+                                                        onClick={() => handleEdit(company.companyId)}
+                                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                        title="Edit Company"
+                                                    >
+                                                        <Edit className="h-4 w-4"/>
+                                                    </button>
+                                                }
+                                                {hasAccess(user!.role, "Company", "DELETE") &&
+                                                    <button
+                                                        onClick={() => handleDelete(company.companyId)}
+                                                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                        title="Delete Company"
+                                                    >
+                                                        <Trash2 className="h-4 w-4"/>
+                                                    </button>}
+                                                {!hasAccess(user!.role, "Company", "UPDATE") && !hasAccess(user!.role, "Company", "DELETE") &&
+                                                    <span className="text-gray-400 text-sm">View Only</span>}
                                             </div>
                                         </td>
                                     </tr>
