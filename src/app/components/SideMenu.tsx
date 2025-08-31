@@ -17,7 +17,7 @@ interface MenuItem {
 const companyMenuItems: MenuItem[] = [
     { title: 'Companies', path: '/company/companies', icon: User, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Clients', path: '/company/clients', icon: User, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
-    { title: 'Employees', path: '/company/employees', icon: Users, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
+    { title: 'Developers', path: '/company/employees', icon: Users, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Projects', path: '/company/projects', icon: FolderOpen, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Requirements', path: '/company/requirements', icon: FileText, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },
     { title: 'Bug Reports', path: '/company/bugs', icon: Bug, allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER] },

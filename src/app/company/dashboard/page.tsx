@@ -83,10 +83,10 @@ const sectionsConfig = [
         allowedRoles: [COMPANY_ADMIN]
     },
     {
-        title: 'Employee Details',
+        title: 'Developer Details',
         icon: User,
         route: '/company/employees',
-        description: 'Manage team members',
+        description: 'Manage developers',
         allowedRoles: [COMPANY_ADMIN, COMPANY_DEVELOPER]
     },
         {

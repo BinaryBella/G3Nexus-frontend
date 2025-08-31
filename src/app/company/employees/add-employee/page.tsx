@@ -103,7 +103,7 @@ const EmployeeForm = () => {
             try {
                 const exists = await employeeService.checkEmployeeExists(email.trim());
                 if (exists) {
-                    setEmailValidationError('An employee with this email already exists');
+                    setEmailValidationError('A developer with this email already exists');
                 } else {
                     setEmailValidationError('');
                 }
@@ -147,7 +147,7 @@ const EmployeeForm = () => {
                 <div className="text-center">
                     <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
-                    <p className="text-gray-600">You don&apos;t have permission to add employees.</p>
+                    <p className="text-gray-600">You don&apos;t have permission to add developers.</p>
                 </div>
             </div>
         );
@@ -176,7 +176,7 @@ const EmployeeForm = () => {
 
         // Employee Name validation
         if (!employeeName.trim()) {
-            newErrors.employeeName = 'Employee name is required';
+            newErrors.employeeName = 'Developer name is required';
         }
 
         // Contact No validation
@@ -335,7 +335,7 @@ const EmployeeForm = () => {
             // Double-check email doesn't exist before submitting
             const emailExists = await employeeService.checkEmployeeExists(email.trim());
             if (emailExists) {
-                setErrors({ email: 'An employee with this email already exists. Please choose a different email.' });
+                setErrors({ email: 'A developer with this email already exists. Please choose a different email.' });
                 return;
             }
 
@@ -363,7 +363,7 @@ const EmployeeForm = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Employee Added Successfully!</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Developer Added Successfully!</h3>
 
                     {/* Email Sent Icon and Message */}
                     <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mt-4 mb-2">
@@ -371,10 +371,10 @@ const EmployeeForm = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12H8m8 0l-4-4m4 4l-4 4" />
                         </svg>
                     </div>
-                    <p className="text-gray-600">The password has been sent to the employee via email.</p>
+                    <p className="text-gray-600">The password has been sent to the developer via email.</p>
 
                     {/* Redirect Message */}
-                    <p className="text-gray-600 mt-2">Redirecting to employee list...</p>
+                    <p className="text-gray-600 mt-2">Redirecting to developer list...</p>
                 </div>
             </div>
         );
@@ -389,14 +389,14 @@ const EmployeeForm = () => {
                     className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
                 >
                     <ArrowLeft className="h-5 w-5 mr-2" />
-                    Back to Employees
+                    Back to Developers
                 </button>
 
                 <div className="flex items-center gap-3">
                     <User className="h-8 w-8 text-[#3450A3]" />
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Add New Employee</h1>
-                        <p className="text-gray-600 mt-1">Create a new employee record</p>
+                        <h1 className="text-3xl font-bold text-gray-900">Add New Developer</h1>
+                        <p className="text-gray-600 mt-1">Create a new developer record</p>
                     </div>
                 </div>
             </div>
@@ -421,18 +421,18 @@ const EmployeeForm = () => {
                     )}
 
                     <form onSubmit={handleSubmit}>
-                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Employee Information</h2>
+                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Developer Information</h2>
 
                         <div className="space-y-6">
                             {/* Employee Name */}
                             <div>
                                 <label htmlFor="employeeName" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Employee Name *
+                                    Developer Name *
                                 </label>
                                 <input
                                     type="text"
                                     id="employeeName"
-                                    placeholder="Enter employee name"
+                                    placeholder="Enter developer name"
                                     value={employeeName}
                                     onChange={(e) => handleEmployeeNameChange(e.target.value)}
                                     className={`text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
@@ -519,7 +519,7 @@ const EmployeeForm = () => {
                                 <textarea
                                     id="address"
                                     rows={3}
-                                    placeholder="Enter employee address"
+                                    placeholder="Enter developer address"
                                     value={address}
                                     onChange={(e) => handleAddressChange(e.target.value)}
                                     className={`text-black w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3] ${
@@ -644,7 +644,7 @@ const EmployeeForm = () => {
                                         Adding...
                                     </>
                                 ) : (
-                                    'Add Employee'
+                                    'Add Developer'
                                 )}
                             </button>
                         </div>

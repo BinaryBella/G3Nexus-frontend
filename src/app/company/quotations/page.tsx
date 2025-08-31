@@ -266,7 +266,7 @@ const QuotationModal = ({ quotation, isOpen, onClose }: {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Employee
+                                Developer
                             </label>
                             <div className="bg-gray-50 rounded-lg p-4">
                                 <p className="text-gray-900 font-medium">{quotation.employeeName}</p>
@@ -460,7 +460,7 @@ const QuotationHistoryPage = () => {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                             <input
                                 type="text"
-                                placeholder="Search quotations by client, project, employee, type, or ID..."
+                                placeholder="Search quotations by client, project, developer, type, or ID..."
                                 className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                                 value={searchText}
                                 onChange={(e) => setSearchText(e.target.value)}
@@ -500,7 +500,7 @@ const QuotationHistoryPage = () => {
                                         <tr>
                                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
                                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                                            <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Developer</th>
                                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
                                             <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>

@@ -12,7 +12,7 @@ export const employeeService = {
       const response = await api.get<ApiResponse<Employee[]>>('/Employee');
 
       if (!response.data.status) {
-        throw new Error(response.data.error || 'Failed to fetch employees');
+        throw new Error(response.data.error || 'Failed to fetch developers');
       }
 
       return response.data.data;
@@ -44,7 +44,7 @@ export const employeeService = {
       const employee = employees.find(e => e.email.toLowerCase() === email.toLowerCase());
       
       if (!employee) {
-        throw new Error('Employee not found');
+        throw new Error('Developer not found');
       }
 
       return employee;
@@ -59,7 +59,7 @@ export const employeeService = {
       const response = await api.post<ApiResponse<Employee>>('/Employee', employeeData);
 
       if (!response.data.status) {
-        throw new Error(response.data.error || 'Failed to add employee');
+        throw new Error(response.data.error || 'Failed to add developer');
       }
 
       return response.data.data;
@@ -68,13 +68,13 @@ export const employeeService = {
     }
   },
 
-  // Update employee
+  // Update employeedeveloper
   updateEmployee: async (employeeData: EmployeeEditPayload): Promise<EmployeeEditPayload> => {
     try {
       const response = await api.put<ApiResponse<EmployeeEditPayload>>(`/Employee`, employeeData);
 
       if (!response.data.status) {
-        throw new Error(response.data.error || 'Failed to update employee');
+        throw new Error(response.data.error || 'Failed to update developer');
       }
 
       return response.data.data;
@@ -120,7 +120,7 @@ export const employeeService = {
       const response = await api.delete<ApiResponse<boolean>>(`/Employee/${id}`);
 
       if (!response.data.status) {
-        throw new Error(response.data.error || 'Failed to delete employee');
+        throw new Error(response.data.error || 'Failed to delete developer');
       }
 
       return response.data.data;

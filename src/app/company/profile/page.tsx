@@ -220,7 +220,7 @@ export default function ProfilePage() {
             const currentEmployee = await employeeService.getEmployeeByEmail(user?.email || '');
             
             if (!currentEmployee) {
-                throw new Error('Employee not found');
+                throw new Error('Developer not found');
             }
             
             // Debug logging
@@ -229,7 +229,7 @@ export default function ProfilePage() {
             
             // Validate that we have a valid employee ID
             if (!currentEmployee.employeeId || currentEmployee.employeeId === 0) {
-                throw new Error('Invalid employee ID');
+                throw new Error('Invalid developer ID');
             }
             
             // Prepare the update data according to the API structure

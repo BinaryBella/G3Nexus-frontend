@@ -108,8 +108,8 @@ const EmployeesPage = () => {
             setSelectedEmployee(null);
             setDeleteError(null);
         } catch (err) {
-            setDeleteError('Failed to delete employee. Please try again.');
-            console.error('Failed to delete employee:', err);
+            setDeleteError('Failed to delete developer. Please try again.');
+            console.error('Failed to delete developer:', err);
         } finally {
             setIsDeleting(false);
         }
@@ -125,7 +125,7 @@ const EmployeesPage = () => {
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
                     <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
-                    <p className="mt-2 text-gray-600">Loading employees...</p>
+                    <p className="mt-2 text-gray-600">Loading developers...</p>
                 </div>
             </div>
         );
@@ -136,7 +136,7 @@ const EmployeesPage = () => {
             <div className="flex justify-center items-center min-h-[400px]">
                 <div className="text-center">
                     <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <p className="text-gray-600">Error loading employees. Please try again.</p>
+                    <p className="text-gray-600">Error loading developers. Please try again.</p>
                 </div>
             </div>
         );
@@ -164,10 +164,10 @@ const EmployeesPage = () => {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                             <Users className="h-8 w-8 text-[#3450A3]" />
-                            Employees
+                            Developers
                         </h1>
                         <p className="text-gray-600 mt-2">
-                            {canManageEmployees() ? 'Manage and track your employees' : 'View employee information (read-only access)'}
+                            {canManageEmployees() ? 'Manage and track your developers' : 'View developer information (read-only access)'}
                         </p>
                     </div>
                     {canManageEmployees() && (
@@ -176,7 +176,7 @@ const EmployeesPage = () => {
                             className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
                         >
                             <Plus className="h-5 w-5" />
-                            Add New Employee
+                            Add New Developer
                         </button>
                     )}
                 </div>
@@ -186,7 +186,7 @@ const EmployeesPage = () => {
                     <div className="bg-white rounded-lg shadow-sm border p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-600">Total Employees</p>
+                                <p className="text-sm font-medium text-gray-600">Total Developers</p>
                                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                             </div>
                             <Users className="h-8 w-8 text-gray-400" />
@@ -217,7 +217,7 @@ const EmployeesPage = () => {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <input
                         type="text"
-                        placeholder="Search employees by name, email, role, or contact..."
+                        placeholder="Search developers by name, email, role, or contact..."
                         className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
@@ -230,12 +230,12 @@ const EmployeesPage = () => {
                 {filteredEmployees.length === 0 ? (
                     <div className="text-center py-12">
                         <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No developers found</h3>
                         <p className="text-gray-600">
                             {searchText
                                 ? 'Try adjusting your search criteria.'
                                 : canManageEmployees()
-                                    ? 'Get started by adding your first employee.'
+                                    ? 'Get started by adding your first developer.'
                                     : 'No employees found in the system.'
                             }
                         </p>
@@ -244,7 +244,7 @@ const EmployeesPage = () => {
                                 onClick={() => router.push('/company/employees/add-employee')}
                                 className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
                             >
-                                Add Employee
+                                Add Developer
                             </button>
                         )}
                     </div>
@@ -253,7 +253,7 @@ const EmployeesPage = () => {
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Developer</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Information</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
@@ -298,7 +298,7 @@ const EmployeesPage = () => {
                                                     <button
                                                         onClick={() => handleEdit(employee.employeeId)}
                                                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                                        title="Edit Employee"
+                                                        title="Edit Developer"
                                                     >
                                                         <Edit className="h-4 w-4"/>
                                                     </button>
@@ -307,7 +307,7 @@ const EmployeesPage = () => {
                                                     <button
                                                         onClick={() => handleDelete(employee.employeeId)}
                                                         className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                                        title="Delete Employee"
+                                                        title="Delete Developer"
                                                     >
                                                         <Trash2 className="h-4 w-4"/>
                                                     </button>}
@@ -342,8 +342,8 @@ const EmployeesPage = () => {
                 onClose={cancelDelete}
                 onConfirm={confirmDelete}
                 isDeleting={isDeleting}
-                title="Delete Employee"
-                message="Are you sure you want to delete this employee?"
+                title="Delete Developer"
+                message="Are you sure you want to delete this developer?"
                 itemName={selectedEmployee?.name}
                 warningMessage="This action cannot be undone."
             />
