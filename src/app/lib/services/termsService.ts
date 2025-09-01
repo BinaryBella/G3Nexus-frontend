@@ -36,7 +36,7 @@ export const termsService = {
   // Add new terms
   addTerms: async (content: string): Promise<TermsConditions> => {
     try {
-      const response = await api.post<ApiResponse<TermsConditions>>('/TermsConditions', { content });
+      const response = await api.post<ApiResponse<TermsConditions>>('/TermsConditions', { content, isActive: true });
 
       if (!response.data.status) {
         throw new Error(response.data.error || 'Failed to add terms and conditions');

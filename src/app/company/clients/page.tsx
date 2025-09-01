@@ -181,7 +181,7 @@ export default function CompanyClientsPage() {
                             Clients
                         </h1>
                         <p className="text-gray-600 mt-2">
-                            {!hasAccess(user!.role, "Client", "CREATE") ? 'Manage and track our clients' : 'View client information (read-only access)'}
+                            {hasAccess(user!.role, "Client", "CREATE") ? 'Manage and track our clients' : 'View client information (read-only access)'}
                         </p>
                     </div>
                     {hasAccess(user!.role, "Client", "CREATE") && (
@@ -265,14 +265,6 @@ export default function CompanyClientsPage() {
                                     : 'No clients found in the system.'
                             }
                         </p>
-                        {!searchText && hasAccess(user!.role, "Client", "CREATE") && (
-                            <button
-                                onClick={() => router.push('/company/clients/add-client')}
-                                className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                            >
-                                Add Client
-                            </button>
-                        )}
                     </div>
                 ) : (
                     <div className="overflow-x-auto">

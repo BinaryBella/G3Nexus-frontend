@@ -216,14 +216,6 @@ const CompaniesPage = () => {
                                 : 'Get started by adding your first company.'
                             }
                         </p>
-                        {!searchText && (
-                            <button
-                                onClick={() => router.push('/company/companies/add-company')}
-                                className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                            >
-                                Add New Company
-                            </button>
-                        )}
                     </div>
                 ) : (
                     <div className="overflow-x-auto">

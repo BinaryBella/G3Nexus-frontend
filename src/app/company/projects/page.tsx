@@ -250,14 +250,6 @@ export default function CompanyProjectsPage() {
                                     : 'No projects found in the system.'
                             }
                         </p>
-                        {!searchText && canManageProjects() && (
-                            <button
-                                onClick={() => router.push('/company/projects/add-project')}
-                                className="mt-4 bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                            >
-                                Add New Project
-                            </button>
-                        )}
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
