@@ -1,11 +1,10 @@
-// src/app/auth/login/page.tsx
 'use client';
 
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 interface LoginFormData {
     email: string;
@@ -13,45 +12,43 @@ interface LoginFormData {
 }
 
 export default function LoginPage() {
+    const {login} = useAuth();
     const [formData, setFormData] = useState<LoginFormData>({
         email: '',
         password: ''
     });
     const [showPassword, setShowPassword] = useState(false);
-    const router = useRouter();
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Add your login logic here
-        console.log('Form submitted:', formData);
+        setError('');
+        setIsLoading(true);
 
-        // Simulate a login process
         try {
-            // Replace this with your actual authentication logic
-            const response = await fakeAuthenticationCall(formData);
-
-            if (response.success) {
-                // Redirect to the projects page on successful login
-                router.push('/client/projects');
+            console.log('Starting login process...');
+            await login(formData.email, formData.password);
+            console.log('Login successful, checking auth state...');
+        } catch (error: any) {
+            console.error('Login failed:', error);
+            // Provide more specific error messages
+            if (error.response?.status === 401) {
+                setError("Invalid email or password. Please try again.");
+            } else if (error.message?.includes('Could not retrieve user information')) {
+                setError("Login successful but there was an issue with user data. Please try again.");
+            } else if (error.message?.includes('Invalid access token')) {
+                setError("Authentication issue. Please try again.");
             } else {
-                // Handle login failure (e.g., show an error message)
-                console.error('Login failed');
+                setError(error.message || "Invalid email or password. Please try again.");
             }
-        } catch (error) {
-            console.error('An error occurred during login:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
-// This is a placeholder function. Replace it with your actual authentication logic.
-    const fakeAuthenticationCall = async (credentials: LoginFormData): Promise<{ success: boolean }> => {
-        // Simulate an API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // For this example, always return success. In a real app, you'd validate the credentials.
-        return { success: true };
-    };
-
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
+        const {name, value} = e.target;
         setFormData(prev => ({
             ...prev,
             [name]: value
@@ -146,25 +143,31 @@ export default function LoginPage() {
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-800 focus:outline-none"
                                 >
                                     {showPassword ? (
-                                        <EyeOff className="h-5 w-5" />
+                                        <EyeOff className="h-5 w-5"/>
                                     ) : (
-                                        <Eye className="h-5 w-5" />
+                                        <Eye className="h-5 w-5"/>
                                     )}
                                 </button>
                             </div>
+                            {error && (
+                                <div className="text-red-300 mt-20 text-sm text-center">
+                                    {error}
+                                </div>
+                            )}
                         </div>
 
                         <div className="pt-8">
                             <button
                                 type="submit"
-                                className="w-full bg-[#F5B316] text-white py-3 rounded-lg font-medium hover:bg-[#E5A714] transition-colors"
+                                disabled={isLoading}
+                                className="w-full bg-[#F5B316] text-white py-3 rounded-lg font-medium hover:bg-[#E5A714] transition-colors disabled:bg-opacity-70"
                             >
-                                Login
+                                {isLoading ? 'Logging in...' : 'Login'}
                             </button>
 
                             <div className="text-center mt-4">
                                 <Link
-                                    href="/auth/reset-password"
+                                    href="/auth/forget-password"
                                     className="text-white text-sm hover:underline"
                                 >
                                     Forgot Password

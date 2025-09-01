@@ -1,0 +1,639 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { companyService } from '@/app/lib/services/companyService';
+import { projectService } from '@/app/lib/services/projectService';
+import { Company } from '@/app/lib/types';
+import { Edit3, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import { useAuth } from "@/app/contexts/AuthContext";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
+
+interface ProjectFormData {
+    // Project Initialization fields
+    companyId: string;
+    projectName: string;
+    projectType: string;
+    projectSize: string;
+    creationDate: string;
+    projectDescription: string;
+    estimatedBudget: string;
+    status: string;
+    // More Details fields
+    actualStartDate: string;
+    actualEndDate: string;
+    totalBudget: string;
+    paymentType: string;
+    paymentStatus: string;
+}
+
+export default function EditProjectForm() {
+    const router = useRouter();
+    const params = useParams();
+    const queryClient = useQueryClient();
+    const { canManageProjects } = useRoleAccess();
+    const projectId = params.projectId as string;
+
+    const [activeTab, setActiveTab] = useState(0);
+    const [formData, setFormData] = useState<ProjectFormData>({
+        companyId: '',
+        projectName: '',
+        projectType: '',
+        projectSize: '',
+        creationDate: '',
+        projectDescription: '',
+        estimatedBudget: '',
+        status: 'Active',
+        actualStartDate: '',
+        actualEndDate: '',
+        totalBudget: '',
+        paymentType: '',
+        paymentStatus: '',
+    });
+    const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [success, setSuccess] = useState(false);
+
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading) {
+            if (!user || !hasAccess(user.role, "Project", "UPDATE")) {
+                router.push("/access-denied");
+            }
+        }
+    }, [user, loading, router]);
+
+    // Check permission first
+    useEffect(() => {
+        if (!canManageProjects()) {
+            router.push('/company/projects');
+            return;
+        }
+    }, [canManageProjects, router]);
+
+    // Don't render if user doesn't have permission
+    if (!canManageProjects()) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Access Denied</h3>
+                    <p className="text-gray-600">You don&apos;t have permission to edit projects.</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Fetch project data
+    const { data: project, isLoading: projectLoading, error: projectError } = useQuery({
+        queryKey: ['project', projectId],
+        queryFn: () => projectService.getProjectById(parseInt(projectId)),
+        enabled: !!projectId,
+    });
+
+    // Fetch companies for dropdown
+    const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery<Company[], Error>({
+        queryKey: ['companies'],
+        queryFn: companyService.getAllCompanies,
+    });
+
+    // Populate form when project data is loaded
+    useEffect(() => {
+        if (project) {
+            setFormData({
+                companyId: project.companyId?.toString() || '',
+                projectName: project.projectName || '',
+                projectType: project.projectType || '',
+                projectSize: project.projectSize || '',
+                creationDate: project.creationDate ? new Date(project.creationDate).toISOString().split('T')[0] : '',
+                projectDescription: project.projectDescription || '',
+                estimatedBudget: project.estimatedBudget?.toString() || '',
+                status: project.status || 'Active',
+                actualStartDate: project.actualStartDate ? new Date(project.actualStartDate).toISOString().split('T')[0] : '',
+                actualEndDate: project.actualEndDate ? new Date(project.actualEndDate).toISOString().split('T')[0] : '',
+                totalBudget: project.totalBudget?.toString() || '',
+                paymentType: project.paymentType || '',
+                paymentStatus: project.paymentStatus || '',
+            });
+        }
+    }, [project]);
+
+    const updateProjectMutation = useMutation({
+        mutationFn: (projectData: any) => projectService.updateProject(parseInt(projectId), projectData),
+        onSuccess: () => {
+            setSuccess(true);
+            queryClient.invalidateQueries({ queryKey: ['projects'] });
+            queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+            setTimeout(() => {
+                router.push('/company/projects');
+            }, 1500);
+        },
+        onError: (error: Error) => {
+            console.error('Error updating project:', error);
+            setError(error.message || 'Failed to update project');
+        },
+    });
+
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    ) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+
+        // Validate required fields for initialization tab
+        if (!formData.companyId || !formData.projectName || !formData.projectType || !formData.projectSize) {
+            setError('Please fill in all project initialization fields');
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+
+            // Format dates properly - use null for empty dates, ISO string for valid dates
+            const formatDate = (dateString: string) => {
+                if (!dateString) return null;
+                try {
+                    const date = new Date(dateString);
+                    return isNaN(date.getTime()) ? null : date.toISOString();
+                } catch {
+                    return null;
+                }
+            };
+
+            // Prepare data for API call
+            const projectData = {
+                projectName: formData.projectName.trim(),
+                projectType: formData.projectType,
+                projectSize: formData.projectSize,
+                creationDate: formatDate(formData.creationDate) || new Date().toISOString(),
+                projectDescription: formData.projectDescription.trim(),
+                estimatedBudget: parseFloat(formData.estimatedBudget) || 0,
+                actualStartDate: formatDate(formData.actualStartDate),
+                actualEndDate: formatDate(formData.actualEndDate),
+                totalBudget: parseFloat(formData.totalBudget) || 0,
+                paymentType: formData.paymentType,
+                paymentStatus: formData.paymentStatus,
+                status: formData.status,
+                isActive: true,
+                companyId: parseInt(formData.companyId),
+                // Include client fields to maintain existing data
+                clientName: project?.clientName || "",
+                clientEmail: project?.clientEmail || ""
+            };
+
+            await updateProjectMutation.mutateAsync(projectData);
+        } catch (error) {
+            // Error handling is done in the mutation's onError callback
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleNext = () => {
+        if (validateInitializationInfo()) {
+            setActiveTab(1);
+        }
+    };
+
+    const handleCancel = () => {
+        router.push('/company/projects');
+    };
+
+    const validateInitializationInfo = () => {
+        if (!formData.companyId || !formData.projectName || !formData.projectType || !formData.projectSize) {
+            setError('Please fill in all project initialization fields');
+            return false;
+        }
+        setError(null);
+        return true;
+    };
+
+    if (projectLoading) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                    <p className="mt-2 text-gray-600">Loading project...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (projectError) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <p className="text-red-600">Error loading project. Please try again.</p>
+                    <button
+                        onClick={handleCancel}
+                        className="mt-4 text-blue-600 hover:text-blue-800"
+                    >
+                        Back to Projects
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (success) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Project Updated Successfully!</h3>
+                    <p className="text-gray-600">Redirecting to projects list...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
+                <button
+                    onClick={handleCancel}
+                    className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+                >
+                    <ArrowLeft className="h-5 w-5 mr-2" />
+                    Back to Projects
+                </button>
+
+                <div className="flex items-center gap-3">
+                    <Edit3 className="h-8 w-8 text-[#3450A3]" />
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Edit Project</h1>
+                        <p className="text-gray-600 mt-1">Update project information and details</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="max-w-4xl mx-auto mb-6">
+                <div className="border-b border-gray-200">
+                    <nav className="-mb-px flex space-x-8">
+                        <button
+                            onClick={() => setActiveTab(0)}
+                            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                activeTab === 0
+                                    ? 'border-[#3450A3] text-[#3450A3]'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            Project Initialization
+                        </button>
+                        <button
+                            onClick={() => setActiveTab(1)}
+                            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                activeTab === 1
+                                    ? 'border-[#3450A3] text-[#3450A3]'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            More Details
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
+            {/* Form */}
+            <div className="max-w-4xl mx-auto">
+                <div className="bg-white rounded-lg shadow-sm border p-8">
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+                            <div className="flex">
+                                <X className="h-5 w-5 text-red-400" />
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-red-800">Error</h3>
+                                    <p className="mt-1 text-sm text-red-700">{error}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit}>
+                        {activeTab === 0 && (
+                            <div className="space-y-6">
+                                <h2 className="text-xl font-semibold text-gray-900 mb-6">Project Initialization</h2>
+
+                                {/* Company Name */}
+                                <div>
+                                    <label htmlFor="companyId" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Company Name *
+                                    </label>
+                                    {companiesLoading ? (
+                                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-500">
+                                            Loading companies...
+                                        </div>
+                                    ) : companiesError ? (
+                                        <div className="w-full px-3 py-2 border border-red-300 rounded-md shadow-sm text-red-700">
+                                            Error loading companies
+                                        </div>
+                                    ) : (
+                                        <select
+                                            id="companyId"
+                                            name="companyId"
+                                            value={formData.companyId}
+                                            onChange={handleChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                            required
+                                        >
+                                            <option value="">Select Company</option>
+                                            {companies.map((company) => (
+                                                <option key={company.companyId} value={company.companyId}>
+                                                    {company.companyName}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+
+                                {/* Project Name */}
+                                <div>
+                                    <label htmlFor="projectName" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Project Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="projectName"
+                                        name="projectName"
+                                        value={formData.projectName}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        placeholder="Enter project name"
+                                        required
+                                    />
+                                </div>
+
+                                {/* Project Type */}
+                                <div>
+                                    <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Project Type *
+                                    </label>
+                                    <select
+                                        id="projectType"
+                                        name="projectType"
+                                        value={formData.projectType}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        required
+                                    >
+                                        <option value="">Select Project Type</option>
+                                        <option value="Web Development">Web Development</option>
+                                        <option value="Mobile Development">Mobile Development</option>
+                                        <option value="Desktop Application">Desktop Application</option>
+                                        <option value="E-commerce">E-commerce</option>
+                                        <option value="CRM System">CRM System</option>
+                                        <option value="ERP System">ERP System</option>
+                                        <option value="Content Management">Content Management</option>
+                                        <option value="Custom Software">Custom Software</option>
+                                    </select>
+                                </div>
+
+                                {/* Project Size */}
+                                <div>
+                                    <label htmlFor="projectSize" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Project Size *
+                                    </label>
+                                    <select
+                                        id="projectSize"
+                                        name="projectSize"
+                                        value={formData.projectSize}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        required
+                                    >
+                                        <option value="">Select Project Size</option>
+                                        <option value="Small">Small (1-3 months)</option>
+                                        <option value="Medium">Medium (3-6 months)</option>
+                                        <option value="Large">Large (6+ months)</option>
+                                    </select>
+                                </div>
+
+                                {/* Creation Date */}
+                                <div>
+                                    <label htmlFor="creationDate" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Creation Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        id="creationDate"
+                                        name="creationDate"
+                                        value={formData.creationDate}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    />
+                                </div>
+
+                                {/* Estimated Budget */}
+                                <div>
+                                    <label htmlFor="estimatedBudget" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Estimated Budget (LKR)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="estimatedBudget"
+                                        name="estimatedBudget"
+                                        value={formData.estimatedBudget}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        placeholder="Enter estimated budget"
+                                        step="0.01"
+                                        min="0"
+                                    />
+                                </div>
+
+                                {/* Project Description */}
+                                <div>
+                                    <label htmlFor="projectDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Project Description
+                                    </label>
+                                    <textarea
+                                        id="projectDescription"
+                                        name="projectDescription"
+                                        value={formData.projectDescription}
+                                        onChange={handleChange}
+                                        rows={4}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        placeholder="Enter project description, goals, and requirements..."
+                                    />
+                                </div>
+
+                                {/* Form Actions */}
+                                <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                                    <button
+                                        type="button"
+                                        onClick={handleCancel}
+                                        className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleNext}
+                                        className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] flex items-center gap-2"
+                                    >
+                                        Next
+                                        <ArrowRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 1 && (
+                            <div className="space-y-6">
+                                <h2 className="text-xl font-semibold text-gray-900 mb-6">More Details</h2>
+
+                                {/* Actual Start Date */}
+                                <div>
+                                    <label htmlFor="actualStartDate" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Actual Start Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        id="actualStartDate"
+                                        name="actualStartDate"
+                                        value={formData.actualStartDate}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    />
+                                </div>
+
+                                {/* Actual End Date */}
+                                <div>
+                                    <label htmlFor="actualEndDate" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Actual End Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        id="actualEndDate"
+                                        name="actualEndDate"
+                                        value={formData.actualEndDate}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    />
+                                </div>
+
+                                {/* Total Budget */}
+                                <div>
+                                    <label htmlFor="totalBudget" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Total Budget (LKR)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="totalBudget"
+                                        name="totalBudget"
+                                        value={formData.totalBudget}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                        placeholder="Enter total budget"
+                                        step="0.01"
+                                        min="0"
+                                    />
+                                </div>
+
+                                {/* Payment Type */}
+                                <div>
+                                    <label htmlFor="paymentType" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Payment Type
+                                    </label>
+                                    <select
+                                        id="paymentType"
+                                        name="paymentType"
+                                        value={formData.paymentType}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    >
+                                        <option value="">Select Payment Type</option>
+                                        <option value="Fixed Price">Fixed Price</option>
+                                        <option value="Hourly Rate">Hourly Rate</option>
+                                        <option value="Milestone Based">Milestone Based</option>
+                                        <option value="Advance Payment">Advance Payment</option>
+                                    </select>
+                                </div>
+
+                                {/* Payment Status */}
+                                <div>
+                                    <label htmlFor="paymentStatus" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Payment Status
+                                    </label>
+                                    <select
+                                        id="paymentStatus"
+                                        name="paymentStatus"
+                                        value={formData.paymentStatus}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    >
+                                        <option value="">Select Payment Status</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Partial">Partial</option>
+                                        <option value="Paid">Paid</option>
+                                        <option value="Overdue">Overdue</option>
+                                    </select>
+                                </div>
+
+                                {/* Status */}
+                                <div>
+                                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+                                        Project Status
+                                    </label>
+                                    <select
+                                        id="status"
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleChange}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                                    >
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="On Hold">On Hold</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                        <option value="Planning">Planning</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Testing">Testing</option>
+                                        <option value="Deployed">Deployed</option>
+                                    </select>
+                                </div>
+
+                                {/* Form Actions */}
+                                <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveTab(0)}
+                                        className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 flex items-center gap-2"
+                                    >
+                                        <ArrowLeft className="h-4 w-4" />
+                                        Back
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="px-6 py-2 bg-[#3450A3] text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3450A3] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    >
+                                        {isSubmitting ? 'Updating...' : 'Update Project'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+}

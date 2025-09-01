@@ -1,0 +1,336 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import Pagination from '@/app/components/Pagination';
+import { Building2, Plus, Edit, Trash2, Search, FileSearch, AlertTriangle, CheckCircle } from 'lucide-react';
+import { companyService } from '@/app/lib/services/companyService';
+import { Company } from '@/app/lib/types';
+import { useRoleAccess } from '@/app/hooks/useRoleAccess';
+import FeedbackPopup from "@/app/components/FeedbackPopup";
+import { hasAccess } from "@/app/lib/utils/roleAccess";
+import { useAuth } from "@/app/contexts/AuthContext";
+
+const CompaniesPage = () => {
+    const router = useRouter();
+    const { canManageCompanies } = useRoleAccess();
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [searchText, setSearchText] = useState('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showPopup, setShowPopup] = useState(false);
+    const [popupMessage, setPopupMessage] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
+    const {user} = useAuth();
+
+    useEffect(() => {
+        fetchCompanies();
+    }, []);
+
+    useEffect(() => {
+        // Filter companies based on search text
+        if (searchText.trim() === '') {
+            setFilteredCompanies(companies);
+        } else {
+            const searchLower = searchText.toLowerCase();
+            const filtered = companies.filter(company => {
+                // Helper function to check if search text matches beginning of any word
+                const matchesWordBeginning = (text: string) => {
+                    const words = text.toLowerCase().split(/\s+/);
+                    return words.some(word => word.startsWith(searchLower));
+                };
+
+                return matchesWordBeginning(company.companyName) ||
+                       matchesWordBeginning(company.address);
+            });
+            setFilteredCompanies(filtered);
+        }
+        // Reset to first page when search changes
+        setCurrentPage(1);
+    }, [searchText, companies]);
+
+    const fetchCompanies = async () => {
+        try {
+            setLoading(true);
+            const companiesData = await companyService.getAllCompanies();
+            setCompanies(companiesData);
+            setError(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch companies');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEdit = (id: number) => {
+        router.push(`/company/companies/edit-company/${id}`);
+    };
+
+    const handleDelete = (id: number) => {
+        const company = companies.find(comp => comp.companyId === id);
+        if (company) {
+            setSelectedCompany(company);
+            setShowDeleteModal(true);
+        }
+    };
+
+    const confirmDelete = async () => {
+        if (!selectedCompany) return;
+
+        try {
+            setIsDeleting(true);
+            const result = await companyService.deleteCompany(selectedCompany.companyId);
+            if (result.status) {
+                await fetchCompanies(); // Refresh the list
+                setShowDeleteModal(false);
+                setSelectedCompany(null);
+            } else {
+                setPopupMessage(result.message);
+                setShowPopup(true);
+            }
+        } catch (err) {
+            setPopupMessage(err instanceof Error ? err.message : 'Failed to delete company');
+            setShowPopup(true);
+            setError(err instanceof Error ? err.message : 'Failed to delete company');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setSelectedCompany(null);
+    };
+
+    const stats = {
+        total: companies.length,
+        active: companies.filter(company => company.isActive).length,
+        inactive: companies.filter(company => !company.isActive).length,
+    };
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredCompanies.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedCompanies = filteredCompanies.slice(startIndex, startIndex + itemsPerPage);
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                    <p className="mt-2 text-gray-600">Loading companies...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <div className="text-center">
+                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-gray-600">Error loading companies. Please try again.</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-50 p-6">
+            {/* Header */}
+            <div className="mb-8">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                            <Building2 className="h-8 w-8 text-[#3450A3]" />
+                            Companies
+                        </h1>
+                        <p className="text-gray-600 mt-2">Manage and oversee all company records</p>
+                    </div>
+                    {canManageCompanies() && (
+                        <button
+                            onClick={() => router.push('/company/companies/add-company')}
+                            className="bg-[#3450A3] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors"
+                        >
+                            <Plus className="h-5 w-5" />
+                            Add New Company
+                        </button>
+                    )}
+                </div>
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Total Companies</p>
+                                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                            </div>
+                            <Building2 className="h-8 w-8 text-gray-400" />
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-sm border p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-gray-600">Active</p>
+                                <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+                            </div>
+                            <CheckCircle className="h-8 w-8 text-green-400" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Search */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <input
+                        type="text"
+                        placeholder="Search companies by name or address..."
+                        className="text-black w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3450A3] focus:border-[#3450A3]"
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                    />
+                </div>
+            </div>
+            {/* Companies Table */}
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                {filteredCompanies.length === 0 ? (
+                    <div className="text-center py-12">
+                        <FileSearch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                            {searchText ? 'No companies found' : 'No companies available'}
+                        </h3>
+                        <p className="text-gray-600">
+                            {searchText
+                                ? 'Try adjusting your search criteria.'
+                                : 'Get started by adding your first company.'
+                            }
+                        </p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50 border-b">
+                                <tr>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Company
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Address
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {paginatedCompanies.map((company) => (
+                                    <tr key={company.companyId} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0 h-10 w-10">
+                                                    <div className="h-10 w-10 rounded-full bg-[#3450A3] flex items-center justify-center text-white font-medium">
+                                                        {company.companyName.charAt(0).toUpperCase()}
+                                                    </div>
+                                                </div>
+                                                <div className="ml-4">
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {company.companyName}
+                                                    </div>
+                                                    <div className="text-sm text-gray-500">
+                                                        ID: {company.companyId}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">
+                                            <div className="max-w-xs truncate">
+                                                {company.address}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex space-x-3">
+                                                {hasAccess(user!.role, "Company", "UPDATE") &&
+                                                    <button
+                                                        onClick={() => handleEdit(company.companyId)}
+                                                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                        title="Edit Company"
+                                                    >
+                                                        <Edit className="h-4 w-4"/>
+                                                    </button>
+                                                }
+                                                {hasAccess(user!.role, "Company", "DELETE") &&
+                                                    <button
+                                                        onClick={() => handleDelete(company.companyId)}
+                                                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                                        title="Delete Company"
+                                                    >
+                                                        <Trash2 className="h-4 w-4"/>
+                                                    </button>}
+                                                {!hasAccess(user!.role, "Company", "UPDATE") && !hasAccess(user!.role, "Company", "DELETE") &&
+                                                    <span className="text-gray-400 text-sm">View Only</span>}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* Pagination */}
+            {filteredCompanies.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border mt-4">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        totalItems={filteredCompanies.length}
+                        itemsPerPage={itemsPerPage}
+                    />
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={cancelDelete}
+                onConfirm={confirmDelete}
+                isDeleting={isDeleting}
+                title="Delete Company"
+                message="Are you sure you want to delete this company?"
+                itemName={selectedCompany?.companyName}
+                warningMessage="This action will set the company as inactive."
+            />
+
+            <FeedbackPopup
+                isOpen={showPopup}
+                onConfirm={() => {
+                    setShowPopup(false)
+                    setShowDeleteModal(false)
+                }}
+                onClose={() => {
+                    setShowPopup(false)
+                    setShowDeleteModal(false)
+                }}
+                type={"error"}
+                title={'Failed to Delete Company'}
+            >
+                {popupMessage}
+            </FeedbackPopup>
+        </div>
+    );
+};
+
+export default CompaniesPage;

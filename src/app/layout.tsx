@@ -1,19 +1,25 @@
+// src/app/layout.tsx
+import { AuthProvider } from '@/app/contexts/AuthContext';
+import { ProjectProvider } from '@/app/contexts/ProjectContext';
+import { ReactQueryProvider } from './react-query-provider';
 import './globals.css';
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
 
-const inter = Inter({ subsets: ['latin'] });
-
-export const metadata: Metadata = {
-    title:"G3Nexus"
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+                                       children,
+                                   }: {
+    children: React.ReactNode
+}) {
     return (
         <html lang="en">
-        <head>
-        </head>
-        <body className={inter.className}>{children}</body>
+        <body>
+        <ReactQueryProvider>
+            <AuthProvider>
+                <ProjectProvider>
+                    {children}
+                </ProjectProvider>
+            </AuthProvider>
+        </ReactQueryProvider>
+        </body>
         </html>
     );
 }
